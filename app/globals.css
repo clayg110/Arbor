@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* warm, flat, minimal palette */
+  --bg: #faf9f6;
+  --surface: #ffffff;
+  --border: #e6e4dd;
+  --text: #1a1a18;
+  --text-muted: #6f6e68;
+  --text-subtle: #9a9890;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Never use heavy weights — clamp anything that asks for >500. */
+b,
+strong {
+  font-weight: 500;
+}
+
+/* hairline 0.5px borders */
+.border-hairline {
+  border-width: 0.5px;
+  border-style: solid;
+  border-color: var(--border);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #dedcd3;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cfcdc3;
+}
