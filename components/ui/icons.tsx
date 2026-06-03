@@ -173,3 +173,59 @@ export const ArrowRightIcon = (p: P) => (
     <path d="M5 12h14M13 6l6 6-6 6" />
   </svg>
 );
+
+export const ColumnsIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="1.5" />
+    <path d="M9 4v16M15 4v16" />
+  </svg>
+);
+
+export const RowsIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="1.5" />
+    <path d="M3 9.5h18M3 14.5h18" />
+  </svg>
+);
+
+export const PlusIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
+export const ChevronDownIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);
+
+export const ChevronRightIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+);
+
+export const ChevronUpIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M6 15l6-6 6 6" />
+  </svg>
+);
+
+export const GripIcon = (p: P) => (
+  <svg {...base} {...p} strokeWidth={1.2}>
+    <circle cx="9" cy="6" r="1" fill="currentColor" stroke="none" />
+    <circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="9" cy="18" r="1" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="6" r="1" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="15" cy="18" r="1" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+export const ClockIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);

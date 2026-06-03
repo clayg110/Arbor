@@ -49,9 +49,9 @@ export function DateRangeControl({
 
       {selected === "custom" && (
         <div className={variant === "bar" ? "mt-2 flex items-end gap-2" : "mt-2"}>
-          <div className={variant === "bar" ? "flex items-end gap-2" : "flex gap-2"}>
-            <DateField label="From" value={from} onChange={onFromChange} />
-            <DateField label="To" value={to} onChange={onToChange} />
+          <div className={variant === "bar" ? "flex items-end gap-2" : "grid grid-cols-2 gap-2"}>
+            <DateField label="From" value={from} onChange={onFromChange} variant={variant} />
+            <DateField label="To" value={to} onChange={onToChange} variant={variant} />
           </div>
           <button
             type="button"
@@ -84,13 +84,15 @@ function DateField({
   label,
   value,
   onChange,
+  variant,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  variant: "sidebar" | "bar";
 }) {
   return (
-    <label className="block">
+    <label className={variant === "bar" ? "block w-[130px]" : "block min-w-0"}>
       <span className="mb-0.5 block text-[10px] font-normal text-subtle">{label}</span>
       <span
         className="relative flex items-center rounded-md bg-surface"
@@ -100,7 +102,7 @@ function DateField({
           type="date"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="arbor-date w-[120px] appearance-none bg-transparent px-2 py-1 pr-6 text-[11px] font-normal text-ink focus:outline-none"
+          className="arbor-date w-full min-w-0 appearance-none bg-transparent px-2 py-1 pr-6 text-[11px] font-normal text-ink focus:outline-none"
         />
         <CalendarIcon className="pointer-events-none absolute right-1.5 h-3.5 w-3.5 text-subtle" />
       </span>
