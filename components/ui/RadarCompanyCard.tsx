@@ -66,17 +66,25 @@ export function RadarCompanyCard({
         </button>
       </div>
 
-      {/* name */}
-      <h3
-        className="mt-2 text-[14px] font-medium leading-snug text-ink"
-        style={c.pulled ? { textDecoration: "line-through" } : undefined}
-      >
-        {c.name}
-      </h3>
+      {/* name (left) + logo (right) */}
+      <div className="mt-2 flex items-start justify-between gap-2">
+        <h3
+          className="text-[14px] font-medium leading-snug text-ink"
+          style={c.pulled ? { textDecoration: "line-through" } : undefined}
+        >
+          {c.name}
+        </h3>
+        <LogoBox name={c.name} url={c.logoUrl} />
+      </div>
 
-      {/* sector + confidence */}
+      {/* sector + subsector + confidence */}
       <div className="mt-2 flex flex-wrap items-center gap-1">
         <SectorBadge sector={c.sector} />
+        {c.subsector && (
+          <span className="rounded-full bg-[#F1EFE8] px-2 py-0.5 text-[10px] font-medium text-[#444441]">
+            {c.subsector}
+          </span>
+        )}
         <Tooltip text={confTip} width={230}>
           {c.pulled ? (
             <span className="inline-flex items-center rounded-full bg-[#EDEBE4] px-2 py-0.5 text-[11px] font-medium text-[#555550]">
@@ -92,6 +100,20 @@ export function RadarCompanyCard({
       <p className="mt-2 text-[11px] font-normal text-muted">
         {ownerLabel}: {c.ownerName}
       </p>
+
+      {/* financials (shown when known) */}
+      {(c.revenue || c.ebitda || c.margin) && (
+        <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
+          {c.revenue && <CardStat label="Rev" value={c.revenue} />}
+          {c.ebitda && <CardStat label="EBITDA" value={c.ebitda} />}
+          {c.margin && <CardStat label="Margin" value={c.margin} />}
+        </div>
+      )}
+
+      {/* description */}
+      {c.description && (
+        <p className="mt-1.5 line-clamp-2 text-[11px] font-normal text-subtle">{c.description}</p>
+      )}
 
       <div className="my-2 h-px" style={{ backgroundColor: "var(--border)" }} />
 
@@ -167,6 +189,47 @@ export function RadarCompanyCard({
     <div className={className} style={style} {...handlers}>
       {body}
     </div>
+  );
+}
+
+// company logo — image when known, initials placeholder otherwise
+function LogoBox({ name, url }: { name: string; url?: string | null }) {
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt=""
+        className="h-7 w-7 shrink-0 rounded object-contain"
+        style={{ border: "0.5px solid var(--border)" }}
+      />
+    );
+  }
+  const initials =
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() || "—";
+  return (
+    <span
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-[#F1EFE8] text-[10px] font-medium text-[#444441]"
+      style={{ border: "0.5px solid var(--border)" }}
+      aria-hidden
+    >
+      {initials}
+    </span>
+  );
+}
+
+function CardStat({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="text-[11px] font-normal">
+      <span className="text-subtle">{label} </span>
+      <span className="font-medium text-ink">{value}</span>
+    </span>
   );
 }
 

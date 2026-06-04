@@ -16,7 +16,6 @@ import {
   getSignals,
   getNotes,
   getSectorPeers,
-  mockCompanies,
 } from "@/lib/mock-data";
 import {
   SECTOR_LABELS,
@@ -26,19 +25,65 @@ import {
   STAGE_DOT,
 } from "@/lib/colors";
 import { formatDate, daysLabel } from "@/lib/format";
+import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
+import {
+  toCompanyProfile,
+  toStageHistory,
+  toSignals,
+  toNotes,
+} from "@/lib/adapters";
+import type { DbCompany, DbHistory, DbSignal, DbNote } from "@/types/db";
+import type { Company, StageHistoryRecord, Signal, Note } from "@/lib/types";
 
-export function generateStaticParams() {
-  return mockCompanies.map((c) => ({ id: c.id }));
-}
+export const dynamic = "force-dynamic";
 
-export default function CompanyPage({ params }: { params: { id: string } }) {
-  const company = getCompany(params.id);
+export default async function CompanyPage({ params }: { params: { id: string } }) {
+  let company: Company | undefined;
+  let history: StageHistoryRecord[] = [];
+  let signals: Signal[] = [];
+  let notes: Note[] = [];
+  let peers: Company[] = [];
+  let currentUserId: string | undefined;
+
+  if (hasSupabaseEnv()) {
+    try {
+      const sb = createClient();
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      currentUserId = user?.id;
+      const { data: c } = await sb.from("companies").select("*").eq("id", params.id).maybeSingle();
+      if (c) {
+        const cc = c as DbCompany;
+        const [{ data: h }, { data: s }, { data: n }, { data: p }] = await Promise.all([
+          sb.from("deal_stage_history").select("*").eq("company_id", cc.id).order("changed_at", { ascending: false }),
+          sb.from("signals_raw").select("*").eq("company_id", cc.id).order("ingested_at", { ascending: false }).limit(8),
+          sb.from("analyst_notes").select("*").eq("company_id", cc.id).order("created_at", { ascending: false }),
+          sb.from("companies").select("*").eq("sector", cc.sector).neq("id", cc.id).limit(4),
+        ]);
+        company = toCompanyProfile(cc);
+        history = toStageHistory((h ?? []) as DbHistory[]);
+        signals = toSignals((s ?? []) as DbSignal[]);
+        notes = toNotes((n ?? []) as DbNote[]);
+        peers = ((p ?? []) as DbCompany[]).map(toCompanyProfile);
+      }
+    } catch {
+      company = undefined;
+    }
+  }
+
+  if (!company) {
+    const c = getCompany(params.id);
+    if (c) {
+      company = c;
+      history = getStageHistory(c.id);
+      signals = getSignals(c.id);
+      notes = getNotes(c.id);
+      peers = getSectorPeers(c.id);
+    }
+  }
+
   if (!company) notFound();
-
-  const history = getStageHistory(company.id);
-  const signals = getSignals(company.id);
-  const notes = getNotes(company.id);
-  const peers = getSectorPeers(company.id);
 
   return (
     <div>
@@ -53,9 +98,12 @@ export default function CompanyPage({ params }: { params: { id: string } }) {
       {/* header */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[22px] font-medium leading-tight text-ink">
-            {company.name}
-          </h1>
+          <div className="flex items-center gap-3">
+            <CompanyLogo name={company.name} url={company.logoUrl} />
+            <h1 className="text-[22px] font-medium leading-tight text-ink">
+              {company.name}
+            </h1>
+          </div>
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <DealTypeBadge type={company.dealType} />
             <SectorBadge sector={company.sector} />
@@ -74,7 +122,10 @@ export default function CompanyPage({ params }: { params: { id: string } }) {
         </div>
         <div className="flex items-center gap-2">
           <WatchlistButton companyId={company.id} withLabel />
-          <MarkReviewButton flagged={company.confidence === "needs_review"} />
+          <MarkReviewButton
+            companyId={company.id}
+            flagged={company.confidence === "needs_review"}
+          />
         </div>
       </div>
 
@@ -125,7 +176,7 @@ export default function CompanyPage({ params }: { params: { id: string } }) {
           </Section>
 
           <Section title="Analyst notes">
-            <AnalystNoteEditor initialNotes={notes} />
+            <AnalystNoteEditor initialNotes={notes} companyId={company.id} currentUserId={currentUserId} />
           </Section>
         </div>
 
@@ -133,14 +184,22 @@ export default function CompanyPage({ params }: { params: { id: string } }) {
         <div className="space-y-6">
           <Section title="Company details">
             <dl className="space-y-2.5 text-[13px]">
-              <Detail label="Sector" value={SECTOR_LABELS[company.sector]} />
+              <Detail label="Sector" value={SECTOR_LABELS[company.sector] ?? company.sector} />
+              {company.subsector && <Detail label="Subsector" value={company.subsector} />}
               <Detail label="Deal type" value={DEAL_TYPE_LABELS[company.dealType]} />
               <Detail
-                label={company.dealType === "carveout" ? "Parent" : "Sponsor"}
+                label={company.dealType === "carveout" ? "Parent (owner)" : "Sponsor (owner)"}
                 value={company.parentCompany ?? company.sponsorFirm ?? "—"}
               />
               <Detail label="Current stage" value={STAGE_LABELS[company.currentStage]} />
               <Detail label="Confidence" value={CONFIDENCE_LABELS[company.confidence]} />
+              {company.revenue && (
+                <FinDetail label="Revenue" value={company.revenue} href={company.revenueSource} />
+              )}
+              {company.ebitda && (
+                <FinDetail label="EBITDA" value={company.ebitda} href={company.ebitdaSource} />
+              )}
+              {company.margin && <Detail label="Margin" value={company.margin} />}
               <Detail label="First tracked" value={formatDate(company.firstTracked)} />
               <Detail label="Last updated" value={formatDate(company.lastUpdated)} />
             </dl>
@@ -191,5 +250,54 @@ function Detail({ label, value }: { label: string; value: string }) {
       <dt className="text-[12px] font-normal text-subtle">{label}</dt>
       <dd className="text-right font-normal text-ink">{value}</dd>
     </div>
+  );
+}
+
+// Financial figure whose value links to its source filing / press release.
+function FinDetail({ label, value, href }: { label: string; value: string; href?: string | null }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="text-[12px] font-normal text-subtle">{label}</dt>
+      <dd className="text-right font-normal text-ink">
+        {href ? (
+          <a href={href} target="_blank" rel="noreferrer" className="text-[#185FA5] hover:underline">
+            {value} ↗
+          </a>
+        ) : (
+          value
+        )}
+      </dd>
+    </div>
+  );
+}
+
+function CompanyLogo({ name, url }: { name: string; url?: string | null }) {
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={url}
+        alt=""
+        className="h-10 w-10 shrink-0 rounded-md object-contain"
+        style={{ border: "0.5px solid var(--border)" }}
+      />
+    );
+  }
+  const initials =
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase() || "—";
+  return (
+    <span
+      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[#F1EFE8] text-[13px] font-medium text-[#444441]"
+      style={{ border: "0.5px solid var(--border)" }}
+      aria-hidden
+    >
+      {initials}
+    </span>
   );
 }

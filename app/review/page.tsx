@@ -4,20 +4,28 @@ import { useMemo, useState } from "react";
 import { ReviewRow } from "@/components/ui/ReviewRow";
 import { mockReviewItems, getCompany } from "@/lib/mock-data";
 import { SECTOR_LABELS, SECTORS } from "@/lib/colors";
-import type { Sector } from "@/lib/types";
+import { useLive } from "@/lib/use-live";
+import { api } from "@/lib/api-client";
+import type { ReviewRowData } from "@/lib/adapters/review";
+import type { Sector, Stage } from "@/lib/types";
+
+const MOCK_ROWS: ReviewRowData[] = mockReviewItems
+  .map((i) => ({ company: getCompany(i.companyId), reason: i.reason, conflictSummary: i.conflictSummary }))
+  .filter((r): r is ReviewRowData => !!r.company);
 
 export default function ReviewPage() {
   const [sector, setSector] = useState<Sector | "all">("all");
 
+  const live = useLive(
+    "review",
+    async () => ((await api.review()) as { rows: ReviewRowData[] }).rows,
+    MOCK_ROWS
+  );
+  const allRows = live.data;
+
   const rows = useMemo(
-    () =>
-      mockReviewItems
-        .map((item) => ({ item, company: getCompany(item.companyId) }))
-        .filter(
-          (r): r is { item: typeof mockReviewItems[number]; company: NonNullable<ReturnType<typeof getCompany>> } =>
-            !!r.company && (sector === "all" || r.company.sector === sector)
-        ),
-    [sector]
+    () => allRows.filter((r) => sector === "all" || r.company.sector === sector),
+    [allRows, sector]
   );
 
   return (
@@ -28,7 +36,7 @@ export default function ReviewPage() {
           className="rounded-full px-2 py-0.5 text-[11px] font-medium"
           style={{ backgroundColor: "#FCEBEB", color: "#791F1F" }}
         >
-          {mockReviewItems.length}
+          {allRows.length}
         </span>
       </div>
 
@@ -52,12 +60,18 @@ export default function ReviewPage() {
       </div>
 
       <div className="space-y-2.5">
-        {rows.map(({ item, company }) => (
+        {rows.map(({ company, reason, conflictSummary }) => (
           <ReviewRow
             key={company.id}
             company={company}
-            reason={item.reason}
-            conflictSummary={item.conflictSummary}
+            reason={reason}
+            conflictSummary={conflictSummary}
+            onAction={
+              live.source === "live"
+                ? (action: "confirm" | "override", stage?: Stage) =>
+                    api.reviewAction(company.id, { action, stage }).catch(() => {})
+                : undefined
+            }
           />
         ))}
         {rows.length === 0 && (

@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { api } from "@/lib/api-client";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -35,17 +36,17 @@ import {
 import {
   METRICS,
   metricValue,
-  velocity,
+  velocity as mockVelocity,
   velocitySummary,
-  sectorStage,
-  dealSplit,
-  confidenceDist,
-  exitFunnel,
-  transitionRates,
-  topSectors,
-  sponsors,
-  signalSources,
-  recentChanges,
+  sectorStage as mockSectorStage,
+  dealSplit as mockDealSplit,
+  confidenceDist as mockConfidenceDist,
+  exitFunnel as mockExitFunnel,
+  transitionRates as mockTransitionRates,
+  topSectors as mockTopSectors,
+  sponsors as mockSponsors,
+  signalSources as mockSignalSources,
+  recentChanges as mockRecentChanges,
   buildHeatmap,
   heatColor,
   tokenToPreset,
@@ -82,6 +83,72 @@ function AnalyticsInner() {
     setTimeout(() => setLoading(false), 400);
   });
 
+  // Live-or-mock analytics bundle (refetched when the committed range changes).
+  const fallback = useMemo(
+    () => ({
+      velocity: mockVelocity,
+      sectorStage: mockSectorStage,
+      dealSplit: mockDealSplit,
+      confidenceDist: mockConfidenceDist,
+      exitFunnel: mockExitFunnel,
+      transitionRates: mockTransitionRates,
+      topSectors: mockTopSectors,
+      sponsors: mockSponsors,
+      signalSources: mockSignalSources,
+      recentChanges: mockRecentChanges,
+      heatmap: buildHeatmap(),
+      metrics: null as Record<string, string> | null,
+    }),
+    []
+  );
+  const [viz, setViz] = useState(fallback);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const d = (await api.analytics(
+          `?from=${r.committed.from}&to=${r.committed.to}`
+        )) as Record<string, unknown>;
+        if (!active || !d) return;
+        setViz({
+          velocity: (d.velocity as typeof mockVelocity) ?? mockVelocity,
+          sectorStage: (d.sectorStage as typeof mockSectorStage) ?? mockSectorStage,
+          dealSplit: (d.dealSplit as typeof mockDealSplit) ?? mockDealSplit,
+          confidenceDist: (d.confidenceDist as typeof mockConfidenceDist) ?? mockConfidenceDist,
+          exitFunnel: (d.exitFunnel as typeof mockExitFunnel) ?? mockExitFunnel,
+          transitionRates: (d.transitionRates as typeof mockTransitionRates) ?? mockTransitionRates,
+          topSectors: (d.topSectors as typeof mockTopSectors) ?? mockTopSectors,
+          sponsors: (d.sponsors as typeof mockSponsors) ?? mockSponsors,
+          signalSources: (d.signalSources as typeof mockSignalSources) ?? mockSignalSources,
+          recentChanges: (d.recentChanges as typeof mockRecentChanges) ?? mockRecentChanges,
+          heatmap: (d.heatmap as ReturnType<typeof buildHeatmap>) ?? buildHeatmap(),
+          metrics: (d.metrics as Record<string, string> | null) ?? null,
+        });
+      } catch {
+        if (active) setViz(fallback);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [r.committed.from, r.committed.to, fallback]);
+
+  const {
+    velocity,
+    sectorStage,
+    dealSplit,
+    confidenceDist,
+    exitFunnel,
+    transitionRates,
+    topSectors,
+    sponsors,
+    signalSources,
+    recentChanges,
+    heatmap,
+    metrics,
+  } = viz;
+
   const onSectorClick = (d: unknown) => {
     const key = (d as { payload?: { sectorKey?: string } })?.payload?.sectorKey;
     if (key) router.push(`/radar?sector=${key}`);
@@ -113,7 +180,7 @@ function AnalyticsInner() {
       {/* ROW 1 — metric cards */}
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-3">
         {METRICS.map((m) => (
-          <MetricCard key={m.id} m={m} preset={r.committed.preset} loading={loading} />
+          <MetricCard key={m.id} m={m} preset={r.committed.preset} loading={loading} override={metrics?.[m.id]} />
         ))}
       </div>
 
@@ -378,7 +445,7 @@ function AnalyticsInner() {
 
       {/* ROW 5 — heatmap */}
       <Panel title="Deal activity heatmap — events by day" className="mb-4">
-        {loading ? <Skeleton h={180} /> : <Heatmap />}
+        {loading ? <Skeleton h={180} /> : <Heatmap days={heatmap} />}
       </Panel>
 
       {/* ROW 6 — recent changes + signal sources */}
@@ -501,12 +568,15 @@ function MetricCard({
   m,
   preset,
   loading,
+  override,
 }: {
   m: MetricSpec;
   preset: CommittedRange["preset"];
   loading: boolean;
+  override?: string;
 }) {
   const value = metricValue(m, preset);
+  const display = override ?? m.display(value);
   const tone = m.deltaTone === "good" ? "#27500A" : "#BA7517";
   return (
     <div className="rounded-lg bg-[#F5F4EF] p-4">
@@ -514,7 +584,7 @@ function MetricCard({
         <div>
           <div className="text-[11px] font-normal text-muted">{m.label}</div>
           <div className="mt-1 text-[20px] font-medium leading-tight text-ink">
-            {loading ? "—" : m.display(value)}
+            {loading ? "—" : display}
           </div>
         </div>
         {!loading && <Sparkline values={m.spark} tone={m.deltaTone} />}
@@ -625,9 +695,8 @@ function SignalTip({ active, payload }: TipProps) {
 }
 
 // ---- heatmap ----
-function Heatmap() {
-  const days = buildHeatmap();
-  const firstDow = days[0].dow;
+function Heatmap({ days }: { days: ReturnType<typeof buildHeatmap> }) {
+  const firstDow = days[0]?.dow ?? 0;
   // arrange into columns (weeks) x 7 rows (Mon..Sun)
   const columns: (typeof days[number] | null)[][] = [];
   days.forEach((day, idx) => {

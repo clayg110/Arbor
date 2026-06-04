@@ -4,20 +4,34 @@ import { useState } from "react";
 import { StarIcon } from "./icons";
 import { mockWatchlist } from "@/lib/mock-data";
 import { cn } from "@/lib/format";
+import { api, BackendOff } from "@/lib/api-client";
 
 export function WatchlistButton({
   companyId,
   withLabel = false,
+  initialWatched,
 }: {
   companyId: string;
   withLabel?: boolean;
+  initialWatched?: boolean;
 }) {
-  const [watched, setWatched] = useState(mockWatchlist.includes(companyId));
+  const [watched, setWatched] = useState(
+    initialWatched ?? mockWatchlist.includes(companyId)
+  );
+
+  function toggle() {
+    const next = !watched;
+    setWatched(next); // optimistic
+    (next ? api.addWatch(companyId) : api.removeWatch(companyId)).catch((e) => {
+      // BackendOff = mock mode: keep optimistic toggle. Real error: revert.
+      if (!(e instanceof BackendOff)) setWatched(!next);
+    });
+  }
 
   return (
     <button
       type="button"
-      onClick={() => setWatched((w) => !w)}
+      onClick={toggle}
       aria-pressed={watched}
       aria-label={watched ? "Remove from watchlist" : "Add to watchlist"}
       className={cn(

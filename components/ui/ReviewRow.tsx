@@ -12,10 +12,12 @@ export function ReviewRow({
   company,
   conflictSummary,
   reason,
+  onAction,
 }: {
   company: Company;
   conflictSummary: string;
   reason: string;
+  onAction?: (action: "confirm" | "override", stage?: Stage) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [resolved, setResolved] = useState<null | string>(null);
@@ -59,7 +61,10 @@ export function ReviewRow({
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={() => setResolved(`stage confirmed as ${STAGE_LABELS[company.currentStage]}`)}
+            onClick={() => {
+              onAction?.("confirm");
+              setResolved(`stage confirmed as ${STAGE_LABELS[company.currentStage]}`);
+            }}
             className="rounded-md px-3 py-1.5 text-[12px] font-medium"
             style={{ backgroundColor: "#EAF3DE", color: "#27500A" }}
           >
@@ -84,6 +89,7 @@ export function ReviewRow({
             onCancel={() => setOpen(false)}
             onConfirm={(stage: Stage) => {
               setOpen(false);
+              onAction?.("override", stage);
               setResolved(`stage overridden to ${STAGE_LABELS[stage]}`);
             }}
           />

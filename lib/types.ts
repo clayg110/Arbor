@@ -1,12 +1,19 @@
 // ---- enums ----
 export type Sector =
+  // legacy demo sectors
   | "chemicals"
   | "industrials"
   | "agriculture"
   | "specialty_materials"
   | "energy_fuels"
   | "pharma_inputs"
-  | "consumer_coatings";
+  | "consumer_coatings"
+  // real taxonomy (Backend §2.1)
+  | "aerospace_defense"
+  | "capital_goods"
+  | "automotive"
+  | "transportation"
+  | "basic_materials";
 
 export type DealType = "carveout" | "private_asset";
 
@@ -36,6 +43,7 @@ export interface Company {
   id: string;
   name: string;
   sector: Sector;
+  subsector?: string | null;
   dealType: DealType;
   sponsorFirm?: string | null;
   parentCompany?: string | null;
@@ -45,6 +53,12 @@ export interface Company {
   daysInStage: number;
   firstTracked: string; // ISO date
   lastUpdated: string; // ISO date
+  logoUrl?: string | null;
+  revenue?: string | null;
+  ebitda?: string | null;
+  margin?: string | null;
+  revenueSource?: string | null;
+  ebitdaSource?: string | null;
 }
 
 export interface StageHistoryRecord {
@@ -71,6 +85,7 @@ export interface Signal {
 export interface Note {
   id: string;
   companyId: string;
+  userId?: string | null; // owner — controls edit/delete in the UI
   author: string;
   initials: string;
   content: string;

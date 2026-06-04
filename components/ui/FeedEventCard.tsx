@@ -22,7 +22,8 @@ import {
   PencilIcon,
 } from "./icons";
 import { STAGE_COLORS, STAGE_LABELS } from "@/lib/colors";
-import type { FeedItem, FeedItemType } from "@/lib/feed-data";
+import type { FeedItemType } from "@/lib/feed-data";
+import type { FeedItemData } from "@/lib/adapters/feed";
 import type { SourceType } from "@/lib/types";
 
 const TYPE_VISUAL: Record<
@@ -51,7 +52,7 @@ export function FeedEventCard({
   isWatched,
   onToggleWatch,
 }: {
-  item: FeedItem;
+  item: FeedItemData;
   isWatched: boolean;
   onToggleWatch: () => void;
 }) {
@@ -176,7 +177,7 @@ function Quote({
 }: {
   text: string;
   attribution: string;
-  stage: FeedItem["stage"];
+  stage: FeedItemData["stage"];
 }) {
   const c = STAGE_COLORS[stage];
   return (
@@ -197,7 +198,7 @@ function Quote({
 function NewEntry({
   content,
 }: {
-  content: Extract<NonNullable<FeedItem["expanded"]>, { kind: "new_entry" }>;
+  content: Extract<NonNullable<FeedItemData["expanded"]>, { kind: "new_entry" }>;
 }) {
   return (
     <div
@@ -226,8 +227,8 @@ function Conflict({
   signalA,
   signalB,
 }: {
-  signalA: { source: string; text: string; stage: FeedItem["stage"] };
-  signalB: { source: string; text: string; stage: FeedItem["stage"] };
+  signalA: { source: string; text: string; stage: FeedItemData["stage"] };
+  signalB: { source: string; text: string; stage: FeedItemData["stage"] };
 }) {
   return (
     <div
@@ -259,7 +260,7 @@ function SignalCol({
   signal,
 }: {
   label: string;
-  signal: { source: string; text: string; stage: FeedItem["stage"] };
+  signal: { source: string; text: string; stage: FeedItemData["stage"] };
 }) {
   const c = STAGE_COLORS[signal.stage];
   return (

@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RadarCompanyCard } from "@/components/ui/RadarCompanyCard";
 import { RadarTable, type SortKey, type SortDir, type GroupBy } from "@/components/ui/RadarTable";
 import { SearchBar } from "@/components/ui/SearchBar";
+import { AddCompanyModal } from "@/components/ui/AddCompanyModal";
 import {
   ColumnsIcon,
   RowsIcon,
@@ -15,12 +16,13 @@ import {
   radarCompanies,
   summaryStrip,
   sectorSummary,
-  sponsorOptions,
   MOST_ACTIVE_SECTOR,
   type RadarCompany,
 } from "@/lib/radar-data";
 import { STAGE_COLORS, SECTOR_LABELS, SECTORS } from "@/lib/colors";
 import { cn } from "@/lib/format";
+import { useLive } from "@/lib/use-live";
+import { api, BackendOff } from "@/lib/api-client";
 import type { Sector, DealType, Confidence, Stage } from "@/lib/types";
 
 const CONF_RANK: Record<Confidence, number> = { high: 4, medium: 3, low: 2, needs_review: 1 };
@@ -64,6 +66,25 @@ const ALL_CONF: Confidence[] = ["high", "medium", "low", "needs_review"];
 const CONF_LABEL: Record<Confidence, string> = { high: "High", medium: "Medium", low: "Low", needs_review: "Needs review" };
 
 export default function RadarPage() {
+  const live = useLive(
+    "radar",
+    () => api.companies("?limit=500"),
+    { companies: radarCompanies, total: radarCompanies.length, summary: null, sectorSummary: [] },
+    { realtime: true }
+  );
+  const [added, setAdded] = useState<RadarCompany[]>([]);
+  const liveCompanies = live.data.companies;
+  const companies = useMemo(
+    () => (added.length ? [...added, ...liveCompanies] : liveCompanies),
+    [added, liveCompanies]
+  );
+  const summary = live.data.summary ?? summaryStrip;
+  const sectors = live.data.sectorSummary.length ? live.data.sectorSummary : sectorSummary;
+  const sponsorOpts = useMemo(
+    () => Array.from(new Set(companies.map((c) => c.ownerName))).sort(),
+    [companies]
+  );
+
   const [view, setView] = useState<"kanban" | "table">("kanban");
   const [sector, setSector] = useState<Sector | "all">("all");
   const [deal, setDeal] = useState<DealType | "all">("all");
@@ -80,13 +101,20 @@ export default function RadarPage() {
   const [colSort, setColSort] = useState<Record<string, string>>({ in: "days", mon: "days", hold: "days" });
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [shown, setShown] = useState<Record<string, number>>({});
-  const [toast, setToast] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
   const [newThisWeek, setNewThisWeek] = useState(false);
 
   // "this week" = added on/after 7 days before the mock anchor (2026-06-03)
   const WEEK_CUTOFF = "2026-05-27";
 
   const sortId = SORT_OPTIONS.find((o) => o.key === sortKey && o.dir === sortDir)?.id ?? "";
+
+  // Seed watchlist from live data (mock keeps its own starred set).
+  useEffect(() => {
+    if (live.source === "live") {
+      setWatch(new Set(companies.filter((c) => c.watchlisted).map((c) => c.id)));
+    }
+  }, [live.source, companies]);
 
   function toggleSet<T>(setter: (f: (s: Set<T>) => Set<T>) => void, value: T) {
     setter((prev) => {
@@ -97,9 +125,19 @@ export default function RadarPage() {
     });
   }
 
+  // Watchlist toggle — optimistic local + persist. BackendOff (mock mode) is
+  // swallowed; a real failure (e.g. starring before live data loaded) reverts.
+  function toggleWatch(id: string) {
+    const had = watch.has(id);
+    toggleSet(setWatch, id);
+    (had ? api.removeWatch(id) : api.addWatch(id)).catch((e) => {
+      if (!(e instanceof BackendOff)) toggleSet(setWatch, id);
+    });
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return radarCompanies.filter((c) => {
+    return companies.filter((c) => {
       if (sector !== "all" && c.sector !== sector) return false;
       if (deal !== "all" && c.dealType !== deal) return false;
       if (confidence.size && !confidence.has(c.confidence)) return false;
@@ -112,7 +150,7 @@ export default function RadarPage() {
       }
       return true;
     });
-  }, [sector, deal, confidence, stages, sponsor, search, newThisWeek]);
+  }, [companies, sector, deal, confidence, stages, sponsor, search, newThisWeek]);
 
   const activeCount =
     (sector !== "all" ? 1 : 0) +
@@ -170,6 +208,19 @@ export default function RadarPage() {
     setSortDir(dir);
   }
 
+  // Kanban columns: build each column's cards, then render only the non-empty
+  // ones so a single-stage filter expands to fill the row instead of leaving
+  // blank columns. (Falls back to all columns when nothing matches.)
+  const kanbanAll = COLUMNS.map((col) => {
+    const cs = COL_SORT.find((o) => o.id === colSort[col.id]) ?? COL_SORT[0];
+    return { col, cards: sortList(filtered.filter((c) => col.stages.includes(c.stage)), cs.key, cs.dir) };
+  });
+  const kanbanCols = kanbanAll.some((c) => c.cards.length > 0)
+    ? kanbanAll.filter((c) => c.cards.length > 0)
+    : kanbanAll;
+  const kanbanGrid =
+    kanbanCols.length === 1 ? "md:grid-cols-1" : kanbanCols.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3";
+
   return (
     <div>
       {/* ===== SECTION 1 — control bar (sticky) ===== */}
@@ -196,10 +247,7 @@ export default function RadarPage() {
             <SearchBar onSearch={setSearch} className="w-64" placeholder="Search company, sponsor, sector…" />
             <button
               type="button"
-              onClick={() => {
-                setToast(true);
-                setTimeout(() => setToast(false), 2000);
-              }}
+              onClick={() => setShowAdd(true)}
               className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-muted hover:text-ink"
               style={{ border: "0.5px solid var(--border)" }}
             >
@@ -245,7 +293,7 @@ export default function RadarPage() {
             style={{ boxShadow: "inset 0 0 0 0.5px var(--border)" }}
           >
             <option value="all">All sponsors</option>
-            {sponsorOptions.map((s) => (
+            {sponsorOpts.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
@@ -258,8 +306,14 @@ export default function RadarPage() {
 
         {/* Row C — sort / group / count */}
         <div className="mt-1 flex flex-wrap items-center justify-end gap-3 text-[11px]">
-          <span className="mr-auto text-subtle">
-            Showing {filtered.length} of {summaryStrip.total.toLocaleString()} companies
+          <span className="mr-auto flex items-center gap-2 text-subtle">
+            Showing {filtered.length} of {summary.total.toLocaleString()} companies
+            {live.loading && (
+              <span className="inline-flex items-center gap-1 text-[#185FA5]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ backgroundColor: "#185FA5" }} />
+                loading live data…
+              </span>
+            )}
           </span>
           <label className="flex items-center gap-1.5 text-muted">
             Sort
@@ -296,32 +350,32 @@ export default function RadarPage() {
 
       {/* ===== SECTION 2 — summary strip ===== */}
       <div className="-mx-6 mb-4 flex flex-wrap bg-[#F5F4EF] px-6 py-3" style={{ borderTop: "0.5px solid var(--border)", borderBottom: "0.5px solid var(--border)" }}>
-        <Block label="Total tracked" value={summaryStrip.total.toLocaleString()} sub="across 7 sectors" active={activeQuick.total} onClick={() => applyQuick("total")} />
-        <Block label="In market" value={String(summaryStrip.inMarket)} color="#0C447C" sub="↑ 12 this week" active={activeQuick.in_market} onClick={() => applyQuick("in_market")} />
-        <Block label="Monitor for exit" value={String(summaryStrip.monitor)} color="#633806" sub="↓ 4 this week" active={activeQuick.monitor} onClick={() => applyQuick("monitor")} />
-        <Block label="On hold / Pulled" value={String(summaryStrip.onHold)} color="#791F1F" sub="→ no change" active={activeQuick.hold} onClick={() => applyQuick("hold")} />
+        <Block label="Total tracked" value={summary.total.toLocaleString()} sub={`across ${sectors.length} sectors`} active={activeQuick.total} onClick={() => applyQuick("total")} />
+        <Block label="In market" value={String(summary.inMarket)} color="#0C447C" sub="↑ 12 this week" active={activeQuick.in_market} onClick={() => applyQuick("in_market")} />
+        <Block label="Monitor for exit" value={String(summary.monitor)} color="#633806" sub="↓ 4 this week" active={activeQuick.monitor} onClick={() => applyQuick("monitor")} />
+        <Block label="On hold / Pulled" value={String(summary.onHold)} color="#791F1F" sub="→ no change" active={activeQuick.hold} onClick={() => applyQuick("hold")} />
         <Block
           label="Needs review"
-          value={String(summaryStrip.needsReview)}
+          value={String(summary.needsReview)}
           color="#633806"
           sub="requires analyst action"
           pulse
           active={activeQuick.needs_review}
           onClick={() => applyQuick("needs_review")}
         />
-        <Block label="New this week" value={String(summaryStrip.newThisWeek)} color="#27500A" sub="6 carveouts · 2 private" last active={activeQuick.new_week} onClick={() => applyQuick("new_week")} />
+        <Block label="New this week" value={String(summary.newThisWeek)} color="#27500A" sub={`${summary.newCarveout} carveouts · ${summary.newPrivate} private`} last active={activeQuick.new_week} onClick={() => applyQuick("new_week")} />
       </div>
 
       {/* ===== sector summary cards ===== */}
       <div className="mb-5 flex gap-2 overflow-x-auto pb-1">
-        {sectorSummary.map((s) => {
+        {sectors.map((s) => {
           const active = sector === s.key;
           const total = s.inMarket + s.monitor + s.onHold;
           return (
             <button
               key={s.key}
               type="button"
-              onClick={() => setSector(active ? "all" : s.key)}
+              onClick={() => setSector(active ? "all" : (s.key as Sector))}
               className="shrink-0 rounded-lg bg-surface p-3 text-left"
               style={{ width: 168, border: active ? "1px solid #185FA5" : "0.5px solid var(--border)" }}
             >
@@ -344,10 +398,8 @@ export default function RadarPage() {
 
       {/* ===== SECTION 3 — main ===== */}
       {view === "kanban" ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          {COLUMNS.map((col) => {
-            const cs = COL_SORT.find((o) => o.id === colSort[col.id]) ?? COL_SORT[0];
-            const cards = sortList(filtered.filter((c) => col.stages.includes(c.stage)), cs.key, cs.dir);
+        <div className={`grid grid-cols-1 gap-4 ${kanbanGrid}`}>
+          {kanbanCols.map(({ col, cards }) => {
             const isCollapsed = collapsed.has(col.id);
             const limit = shown[col.id] ?? 15;
             const visible = cards.slice(0, limit);
@@ -390,7 +442,7 @@ export default function RadarPage() {
                         key={c.id}
                         c={c}
                         watched={watch.has(c.id)}
-                        onToggleWatch={() => toggleSet(setWatch, c.id)}
+                        onToggleWatch={() => toggleWatch(c.id)}
                       />
                     ))}
                     {cards.length === 0 && <p className="py-8 text-center text-[11px] text-subtle">No companies</p>}
@@ -418,16 +470,20 @@ export default function RadarPage() {
           onSort={onTableSort}
           groupBy={groupBy}
           watch={watch}
-          onToggleWatch={(id) => toggleSet(setWatch, id)}
+          onToggleWatch={(id) => toggleWatch(id)}
           onClearFilters={clearAll}
         />
       )}
 
-      {/* toast */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-40 rounded-md px-3 py-2 text-[12px] font-medium text-white shadow-lg" style={{ backgroundColor: "#1A1A18" }}>
-          Add company — coming soon
-        </div>
+      {showAdd && (
+        <AddCompanyModal
+          live={live.source === "live"}
+          onClose={() => setShowAdd(false)}
+          onAdded={(c) => {
+            if (live.source === "live") live.reload();
+            else setAdded((prev) => [c, ...prev]);
+          }}
+        />
       )}
     </div>
   );

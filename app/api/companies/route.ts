@@ -1,0 +1,182 @@
+import { type NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { ok, fail, requireBackend, csv } from "@/lib/api/respond";
+import { getSessionUser } from "@/lib/api/auth";
+import {
+  toRadarCompany,
+  toSummaryStrip,
+  toSectorSummary,
+} from "@/lib/adapters";
+import type {
+  DbCompany,
+  LastSignalRow,
+  SummaryCountsRow,
+  SectorStageRow,
+} from "@/types/db";
+import { SECTORS } from "@/lib/colors";
+import type { Confidence, Sector, DealType, Stage } from "@/lib/types";
+
+const CONF_RANK: Record<Confidence, number> = { high: 4, medium: 3, low: 2, needs_review: 1 };
+
+const SECTORS_SET = new Set<Sector>(SECTORS);
+const DEALS_SET = new Set<DealType>(["carveout", "private_asset"]);
+const STAGES_SET = new Set<Stage>(["in_market", "monitor_for_exit", "on_hold", "pulled"]);
+const CONF_SET = new Set<Confidence>(["high", "medium", "low", "needs_review"]);
+
+// GET /api/companies — radar list (filters + sort) + summary strip + sector cards.
+export async function GET(request: NextRequest) {
+  const guard = requireBackend();
+  if (guard) return guard;
+
+  const sp = request.nextUrl.searchParams;
+  const sector = sp.get("sector");
+  const deal = sp.get("deal");
+  const sponsor = sp.get("sponsor");
+  const q = sp.get("q")?.trim();
+  const quick = sp.get("quick");
+  const sort = sp.get("sort") ?? "days_desc";
+  const limit = Math.min(Number(sp.get("limit") ?? 200), 500);
+  const offset = Number(sp.get("offset") ?? 0);
+  const confidence = csv(sp.get("confidence"));
+  const stages = csv(sp.get("stage"));
+
+  const supabase = createClient();
+
+  let query = supabase.from("companies").select("*", { count: "exact" });
+
+  if (sector && sector !== "all") query = query.eq("sector", sector as Sector);
+  if (deal && deal !== "all") query = query.eq("deal_type", deal as DealType);
+  if (confidence.length) query = query.in("confidence", confidence as Confidence[]);
+  if (stages.length) query = query.in("current_stage", stages as Stage[]);
+  if (sponsor && sponsor !== "all") {
+    query = query.or(`sponsor_firm.eq.${sponsor},parent_company.eq.${sponsor}`);
+  }
+  if (q) {
+    query = query.or(
+      `name.ilike.%${q}%,sponsor_firm.ilike.%${q}%,parent_company.ilike.%${q}%`
+    );
+  }
+
+  // quick filters (summary-strip blocks)
+  if (quick === "in_market") query = query.eq("current_stage", "in_market");
+  else if (quick === "monitor") query = query.eq("current_stage", "monitor_for_exit");
+  else if (quick === "hold") query = query.in("current_stage", ["on_hold", "pulled"]);
+  else if (quick === "needs_review") query = query.eq("confidence", "needs_review");
+  else if (quick === "new_week") {
+    const wk = new Date(Date.now() - 7 * 86_400_000).toISOString();
+    query = query.gte("created_at", wk);
+  }
+
+  // DB-level sort (confidence handled after adapt)
+  if (sort === "days_desc") query = query.order("current_stage_since", { ascending: true });
+  else if (sort === "days_asc") query = query.order("current_stage_since", { ascending: false });
+  else if (sort === "name_asc") query = query.order("name", { ascending: true });
+  else if (sort === "name_desc") query = query.order("name", { ascending: false });
+  else if (sort === "added_desc") query = query.order("created_at", { ascending: false });
+  else query = query.order("name", { ascending: true });
+
+  const { data, count, error } = await query.range(offset, offset + limit - 1);
+  if (error) return fail(error.message, 500);
+
+  const companies = (data ?? []) as DbCompany[];
+
+  // last signal per company + the user's watchlist. The last-signal view has at
+  // most one row per company with signals (small), so fetch it whole rather than
+  // filtering by a 500-id IN clause (which made this route ~9s).
+  const [{ data: sigs }, { data: wl }, { data: summaryRows }, { data: sectorRows }] =
+    await Promise.all([
+      supabase.from("v_company_last_signal").select("*"),
+      supabase.from("watchlist").select("company_id"),
+      supabase.from("v_summary_counts").select("*").limit(1),
+      supabase.from("v_sector_stage").select("*"),
+    ]);
+
+  const lastByCompany = new Map<string, LastSignalRow>();
+  for (const s of (sigs ?? []) as LastSignalRow[]) lastByCompany.set(s.company_id, s);
+  const watched = new Set((wl ?? []).map((r) => (r as { company_id: string }).company_id));
+
+  let radar = companies.map((c) =>
+    toRadarCompany(c, lastByCompany.get(c.id) ?? null, watched.has(c.id))
+  );
+
+  if (sort === "conf_desc" || sort === "conf_asc") {
+    radar = radar.sort((a, b) => {
+      const d = CONF_RANK[b.confidence] - CONF_RANK[a.confidence];
+      return sort === "conf_desc" ? d : -d;
+    });
+  }
+
+  const summary = (summaryRows?.[0] as SummaryCountsRow | undefined) ?? null;
+  const sectors = (sectorRows ?? []) as SectorStageRow[];
+
+  return ok({
+    companies: radar,
+    total: count ?? radar.length,
+    summary: summary ? toSummaryStrip(summary) : null,
+    sectorSummary: toSectorSummary(sectors),
+  });
+}
+
+// POST /api/companies — add a company (the radar "Add company" form). Also
+// writes a new_entry history row so it surfaces in the feed.
+export async function POST(request: NextRequest) {
+  const guard = requireBackend();
+  if (guard) return guard;
+
+  const supabase = createClient();
+  const user = await getSessionUser(supabase);
+  if (!user) return fail("Unauthorized", 401);
+
+  let body: {
+    name?: string;
+    sector?: string;
+    dealType?: string;
+    sponsorFirm?: string | null;
+    parentCompany?: string | null;
+    stage?: string;
+    confidence?: string;
+    description?: string | null;
+  };
+  try {
+    body = await request.json();
+  } catch {
+    return fail("Invalid JSON body");
+  }
+
+  if (!body.name?.trim()) return fail("name required");
+  if (!body.sector || !SECTORS_SET.has(body.sector as Sector)) return fail("valid sector required");
+  if (!body.dealType || !DEALS_SET.has(body.dealType as DealType)) return fail("valid dealType required");
+  const stage: Stage = body.stage && STAGES_SET.has(body.stage as Stage) ? (body.stage as Stage) : "in_market";
+  const confidence: Confidence =
+    body.confidence && CONF_SET.has(body.confidence as Confidence)
+      ? (body.confidence as Confidence)
+      : "needs_review";
+
+  const { data: created, error } = await supabase
+    .from("companies")
+    .insert({
+      name: body.name.trim(),
+      sector: body.sector as Sector,
+      deal_type: body.dealType as DealType,
+      sponsor_firm: body.sponsorFirm?.trim() || null,
+      parent_company: body.parentCompany?.trim() || null,
+      description: body.description?.trim() || null,
+      current_stage: stage,
+      confidence,
+    })
+    .select("*")
+    .single();
+  if (error) return fail(error.message, 500);
+
+  const c = created as DbCompany;
+  await supabase.from("deal_stage_history").insert({
+    company_id: c.id,
+    stage,
+    event_type: "new_entry",
+    changed_by: "analyst_manual",
+    source_type: "manual",
+    headline: `Added to tracker — ${c.name}`,
+  });
+
+  return ok({ company: toRadarCompany(c) }, { status: 201 });
+}

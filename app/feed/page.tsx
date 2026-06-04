@@ -16,12 +16,9 @@ import {
 import {
   feedItems,
   DAY_LABELS,
-  DAY_ORDER,
   initialWatchlist,
   sectorsActive,
   liveStatus,
-  type FeedItem,
-  type DayKey,
   type WatchEntry,
 } from "@/lib/feed-data";
 import {
@@ -32,6 +29,9 @@ import {
 } from "@/lib/analytics-data";
 import { SECTOR_LABELS, STAGE_DOT } from "@/lib/colors";
 import { cn, formatDate } from "@/lib/format";
+import { useLive } from "@/lib/use-live";
+import { api } from "@/lib/api-client";
+import type { FeedItemData } from "@/lib/adapters/feed";
 import type { DealType, Sector } from "@/lib/types";
 
 type TypeFilter = "all" | "stage_changes" | "new_entries" | "flagged";
@@ -53,12 +53,31 @@ const FEED_SECTORS: Sector[] = [
   "energy_fuels",
 ];
 
-const STAGE_CHANGE_TYPES: FeedItem["type"][] = [
+const STAGE_CHANGE_TYPES: FeedItemData["type"][] = [
   "to_in_market",
   "to_monitor",
   "to_on_hold",
   "pulled",
 ];
+
+// Mock feed items normalized to the live FeedItemData shape (dayLabel-based).
+const MOCK_ITEMS: FeedItemData[] = feedItems.map((it) => ({
+  id: it.id,
+  type: it.type,
+  companyId: it.companyId ?? "",
+  company: it.company,
+  dealType: it.dealType,
+  sector: it.sector,
+  confidence: it.confidence,
+  stage: it.stage,
+  headline: it.headline,
+  source: it.source,
+  sourceUrl: it.sourceUrl,
+  timeLabel: it.timeLabel,
+  dateKey: "",
+  dayLabel: DAY_LABELS[it.day],
+  expanded: it.expanded,
+}));
 
 // Metadata for any company that can appear in the watchlist (initial + feed).
 const WATCH_META: Record<string, WatchEntry> = (() => {
@@ -101,17 +120,26 @@ function FeedInner() {
     () => new Set(initialWatchlist.map((w) => w.name))
   );
 
+  const live = useLive("feed", () => api.feed("?limit=150"), { items: MOCK_ITEMS }, { realtime: true });
+  const items = live.data.items;
+
   const isWatched = (name: string) => watch.has(name);
-  const toggleWatch = (name: string) =>
+  const toggleWatch = (name: string, companyId?: string) => {
+    const adding = !watch.has(name);
     setWatch((prev) => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
+      if (adding) next.add(name);
+      else next.delete(name);
       return next;
     });
+    // Persist by id when live; BackendOff (mock) is swallowed so toggle still works.
+    if (companyId) {
+      (adding ? api.addWatch(companyId) : api.removeWatch(companyId)).catch(() => {});
+    }
+  };
 
   const filtered = useMemo(() => {
-    return feedItems.filter((it) => {
+    return items.filter((it) => {
       if (typeFilter === "stage_changes" && !STAGE_CHANGE_TYPES.includes(it.type))
         return false;
       if (typeFilter === "new_entries" && it.type !== "new_entry") return false;
@@ -123,16 +151,18 @@ function FeedInner() {
         return false;
       return true;
     });
-  }, [typeFilter, sector, deal, watchOnly, highConfOnly, watch]);
+  }, [items, typeFilter, sector, deal, watchOnly, highConfOnly, watch]);
 
-  const groups = useMemo(
-    () =>
-      DAY_ORDER.map((day) => ({
-        day,
-        items: filtered.filter((it) => it.day === day),
-      })).filter((g) => g.items.length > 0),
-    [filtered]
-  );
+  // Group consecutive items by day label (preserves order).
+  const groups = useMemo(() => {
+    const out: { label: string; items: FeedItemData[] }[] = [];
+    for (const it of filtered) {
+      const last = out[out.length - 1];
+      if (last && last.label === it.dayLabel) last.items.push(it);
+      else out.push({ label: it.dayLabel, items: [it] });
+    }
+    return out;
+  }, [filtered]);
 
   function clearAll() {
     setTypeFilter("all");
@@ -213,7 +243,7 @@ function FeedInner() {
       </div>
 
       <p className="mb-5 text-[12px] font-normal text-subtle">
-        Showing {filtered.length} of {feedItems.length} events
+        Showing {filtered.length} of {items.length} events
       </p>
 
       {/* MAIN: list + sidebar */}
@@ -224,13 +254,13 @@ function FeedInner() {
             <EmptyState onClear={clearAll} />
           ) : (
             groups.map((g) => (
-              <DayGroup key={g.day} day={g.day} items={g.items}>
+              <DayGroup key={g.label} label={g.label} items={g.items}>
                 {g.items.map((it) => (
                   <FeedEventCard
                     key={it.id}
                     item={it}
                     isWatched={isWatched(it.company)}
-                    onToggleWatch={() => toggleWatch(it.company)}
+                    onToggleWatch={() => toggleWatch(it.company, it.companyId || undefined)}
                   />
                 ))}
               </DayGroup>
@@ -323,12 +353,12 @@ function FeedInner() {
                 </li>
               )}
             </ul>
-            <button
-              type="button"
-              className="mt-3 text-[11px] font-normal text-[#185FA5] hover:underline"
+            <Link
+              href="/watchlist"
+              className="mt-3 inline-block text-[11px] font-normal text-[#185FA5] hover:underline"
             >
               Manage watchlist
-            </button>
+            </Link>
           </Card>
 
           {/* Card 3 — activity summary + date range */}
@@ -369,12 +399,12 @@ function FeedInner() {
 
 // ---- day group ----
 function DayGroup({
-  day,
+  label,
   items,
   children,
 }: {
-  day: DayKey;
-  items: FeedItem[];
+  label: string;
+  items: FeedItemData[];
   children: React.ReactNode;
 }) {
   const stageChanges = items.filter((i) => STAGE_CHANGE_TYPES.includes(i.type)).length;
@@ -391,7 +421,7 @@ function DayGroup({
       <div className="relative flex items-center py-3">
         <span className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />
         <span className="px-3 text-[11px] font-medium uppercase tracking-wide text-muted">
-          {DAY_LABELS[day]}
+          {label}
         </span>
         <span className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />
       </div>
@@ -465,10 +495,25 @@ function Card({ children }: { children: React.ReactNode }) {
 // ---- activity summary card (date range + range-aware stats) ----
 function ActivitySummary({ initial }: { initial?: CommittedRange }) {
   const r = useDateRange(initial);
-  const stats = statsFor(r.committed.preset);
+  const mockStats = statsFor(r.committed.preset);
   const dist = distributionFor(r.committed.preset, r.committed.from, r.committed.to);
   const distMax = Math.max(...dist.map((d) => d.count), 1);
   const showDistLabels = dist.length <= 8;
+
+  // Live range-aware event counts from /api/stats/summary; mock fallback.
+  const liveStats = useLive(
+    `feed-rangestats-${r.committed.from}-${r.committed.to}`,
+    async () => (await api.stats(`?from=${r.committed.from}&to=${r.committed.to}`)).rangeStats,
+    null as null | {
+      stageChanges: number;
+      newEntries: number;
+      pulled: number;
+      flagged: number;
+      confidence: number;
+    }
+  );
+  const stats =
+    liveStats.source === "live" && liveStats.data ? liveStats.data : mockStats;
 
   const rows = [
     { label: "Stage changes", value: stats.stageChanges, color: "#185FA5" },

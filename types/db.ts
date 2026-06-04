@@ -1,0 +1,332 @@
+// ============================================================================
+// Database row types — mirror supabase/migrations/0001_init.sql + 0002.
+// Hand-written (stand-in for `supabase gen types`). Regenerate later with:
+//   supabase gen types typescript --project-id <id> > types/db.ts
+//
+// IMPORTANT: row shapes are declared with `type` (not `interface`) so they
+// satisfy supabase-js's `Record<string, unknown>` constraint — interfaces lack
+// an index signature and collapse Insert/Update to `never`.
+// ============================================================================
+
+import type {
+  Sector,
+  DealType,
+  Stage,
+  Confidence,
+  SourceType,
+} from "@/lib/types";
+
+export type ChangedBy = "system_auto" | "analyst_manual";
+
+export type DbFeedEvent =
+  | "moved_in_market"
+  | "moved_monitor"
+  | "moved_on_hold"
+  | "pulled"
+  | "new_entry"
+  | "flagged"
+  | "confidence_update";
+
+// ---- llm_output jsonb (signals_raw) — feed/review contract ----
+export interface ConflictSide {
+  source: string;
+  text: string;
+  stage: Stage;
+}
+export interface LlmOutput {
+  event_type?: DbFeedEvent;
+  headline?: string;
+  stage?: Stage;
+  confidence?: Confidence;
+  key_quote?: string;
+  attribution?: string;
+  deal_size?: string;
+  reasoning?: string;
+  conflict?: { signalA: ConflictSide; signalB: ConflictSide };
+  new_entry?: {
+    owner_label: "Sponsor" | "Parent";
+    owner_name: string;
+    deal_size: string;
+    reason: string;
+  };
+}
+
+// ---- table rows ----
+export type DbCompany = {
+  id: string;
+  name: string;
+  sector: Sector;
+  subsector: string | null;
+  deal_type: DealType;
+  sponsor_firm: string | null;
+  parent_company: string | null;
+  description: string | null;
+  confidence: Confidence;
+  current_stage: Stage;
+  current_stage_since: string;
+  logo_url: string | null;
+  revenue: string | null;
+  ebitda: string | null;
+  margin: string | null;
+  revenue_source_url: string | null;
+  ebitda_source_url: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// Monitored company universe (Backend §2.1) — no deal stage.
+export type DbUniverseCompany = {
+  id: string;
+  name: string;
+  sector: string;
+  subsector: string | null;
+  last_scanned_at: string | null;
+  created_at: string;
+};
+export type UniverseCountsRow = {
+  sector: string;
+  subsector: string | null;
+  n: number;
+};
+
+export type DbSignal = {
+  id: string;
+  company_id: string | null;
+  raw_text: string | null;
+  source_url: string | null;
+  source_type: SourceType | null;
+  source_name: string | null;
+  doc_type: string | null;
+  ingested_at: string;
+  processed: boolean;
+  matched_company_id: string | null;
+  llm_output: LlmOutput | null;
+};
+
+export type DbHistory = {
+  id: string;
+  company_id: string;
+  signal_id: string | null;
+  stage: Stage;
+  event_type: DbFeedEvent | null;
+  changed_at: string;
+  changed_by: ChangedBy;
+  source_type: SourceType | null;
+  source_name: string | null;
+  doc_type: string | null;
+  source_url: string | null;
+  headline: string | null;
+  notes: string | null;
+};
+
+export type DbWatchlist = {
+  id: string;
+  user_id: string;
+  company_id: string;
+  created_at: string;
+};
+
+export type DbNote = {
+  id: string;
+  company_id: string;
+  user_id: string;
+  author: string | null;
+  content: string;
+  created_at: string;
+};
+
+export type DbLlmUsage = {
+  id: string;
+  source_type: SourceType | null;
+  model: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cost_usd: number | null;
+  created_at: string;
+};
+
+export type DbPipelineRun = {
+  id: string;
+  pipeline: string;
+  ran_at: string;
+  fetched: number;
+  created: number;
+  updated: number;
+  flagged: number;
+  errors: number;
+  ok: boolean;
+};
+export type PipelineLatestRow = {
+  pipeline: string;
+  ran_at: string;
+  fetched: number;
+  created: number;
+  updated: number;
+  flagged: number;
+  errors: number;
+  ok: boolean;
+};
+
+// ---- view rows (0002_analytics.sql) ----
+export type LastSignalRow = {
+  company_id: string;
+  ingested_at: string;
+  source_type: SourceType | null;
+  source_name: string | null;
+  doc_type: string | null;
+  key_quote: string | null;
+};
+export type SummaryCountsRow = {
+  total: number;
+  in_market: number;
+  monitor: number;
+  on_hold: number;
+  needs_review: number;
+  new_this_week: number;
+  new_carveout: number;
+  new_private: number;
+};
+export type SectorStageRow = {
+  sector: Sector;
+  in_market: number;
+  monitor: number;
+  on_hold: number;
+  total: number;
+};
+export type DealSplitRow = { deal_type: DealType; value: number; pct: number };
+export type ConfidenceDistRow = { confidence: Confidence; count: number; pct: number };
+export type ExitFunnelRow = { stage: Stage; avg_days: number; n: number };
+export type TopSectorRow = { sector: Sector; avg_days: number; n: number };
+export type SponsorActivityRow = { sponsor: string; processes: number; top_sector: Sector };
+export type SignalSourceRow = { source_type: SourceType; count: number; pct: number };
+export type TransitionRateRow = { from_stage: Stage; to_stage: Stage; count: number; pct: number };
+
+// ---- rpc return rows ----
+export type VelocityRow = { week_start: string; carveout: number; private_asset: number; total: number };
+export type HeatmapRow = { day: string; events: number; stage_changes: number; new_entries: number };
+export type SummaryMetricsRow = {
+  new_deals: number;
+  stage_changes: number;
+  avg_days_market: number;
+  pulled: number;
+  needs_review: number;
+  avg_confidence: number;
+};
+export type EventCountsRow = {
+  stage_changes: number;
+  new_entries: number;
+  pulled: number;
+  flagged: number;
+  confidence_updates: number;
+};
+export type RecentChangeRow = {
+  id: string;
+  company_id: string;
+  name: string;
+  from_stage: Stage | null;
+  to_stage: Stage;
+  source_type: SourceType | null;
+  changed_at: string;
+};
+
+// ============================================================================
+// Database type for the typed Supabase client (Layer 4).
+// ============================================================================
+type Rel = [];
+
+export interface Database {
+  public: {
+    Tables: {
+      companies: {
+        Row: DbCompany;
+        Insert: Partial<DbCompany> & { name: string; sector: Sector; deal_type: DealType };
+        Update: Partial<DbCompany>;
+        Relationships: Rel;
+      };
+      signals_raw: {
+        Row: DbSignal;
+        Insert: Partial<DbSignal>;
+        Update: Partial<DbSignal>;
+        Relationships: Rel;
+      };
+      deal_stage_history: {
+        Row: DbHistory;
+        Insert: Partial<DbHistory> & { company_id: string; stage: Stage };
+        Update: Partial<DbHistory>;
+        Relationships: Rel;
+      };
+      watchlist: {
+        Row: DbWatchlist;
+        Insert: Partial<DbWatchlist> & { user_id: string; company_id: string };
+        Update: Partial<DbWatchlist>;
+        Relationships: Rel;
+      };
+      analyst_notes: {
+        Row: DbNote;
+        Insert: Partial<DbNote> & { company_id: string; user_id: string; content: string };
+        Update: Partial<DbNote>;
+        Relationships: Rel;
+      };
+      llm_usage: {
+        Row: DbLlmUsage;
+        Insert: Partial<DbLlmUsage>;
+        Update: Partial<DbLlmUsage>;
+        Relationships: Rel;
+      };
+      pipeline_runs: {
+        Row: DbPipelineRun;
+        Insert: Partial<DbPipelineRun> & { pipeline: string };
+        Update: Partial<DbPipelineRun>;
+        Relationships: Rel;
+      };
+      universe_companies: {
+        Row: DbUniverseCompany;
+        Insert: Partial<DbUniverseCompany> & { name: string; sector: string };
+        Update: Partial<DbUniverseCompany>;
+        Relationships: Rel;
+      };
+    };
+    Views: {
+      v_company_last_signal: { Row: LastSignalRow; Relationships: Rel };
+      v_pipeline_latest: { Row: PipelineLatestRow; Relationships: Rel };
+      v_universe_counts: { Row: UniverseCountsRow; Relationships: Rel };
+      v_summary_counts: { Row: SummaryCountsRow; Relationships: Rel };
+      v_sector_stage: { Row: SectorStageRow; Relationships: Rel };
+      v_deal_split: { Row: DealSplitRow; Relationships: Rel };
+      v_confidence_dist: { Row: ConfidenceDistRow; Relationships: Rel };
+      v_exit_funnel: { Row: ExitFunnelRow; Relationships: Rel };
+      v_top_sectors: { Row: TopSectorRow; Relationships: Rel };
+      v_sponsor_activity: { Row: SponsorActivityRow; Relationships: Rel };
+      v_signal_sources: { Row: SignalSourceRow; Relationships: Rel };
+      v_transition_rates: { Row: TransitionRateRow; Relationships: Rel };
+      v_recent_changes: { Row: RecentChangeRow; Relationships: Rel };
+    };
+    Functions: {
+      rpc_velocity: { Args: { p_from?: string; p_to?: string }; Returns: VelocityRow[] };
+      rpc_heatmap: { Args: { p_from?: string; p_to?: string }; Returns: HeatmapRow[] };
+      rpc_summary_metrics: { Args: { p_from?: string; p_to?: string }; Returns: SummaryMetricsRow[] };
+      rpc_event_counts: { Args: { p_from?: string; p_to?: string }; Returns: EventCountsRow[] };
+      rpc_apply_stage: {
+        Args: {
+          p_company_id: string;
+          p_stage: Stage;
+          p_confidence?: Confidence;
+          p_changed_by?: ChangedBy;
+          p_source_type?: SourceType;
+          p_notes?: string;
+        };
+        Returns: DbHistory;
+      };
+    };
+    Enums: {
+      sector_enum: Sector;
+      deal_type_enum: DealType;
+      stage_enum: Stage;
+      confidence_enum: Confidence;
+      changed_by_enum: ChangedBy;
+      source_type_enum: SourceType;
+      feed_event_enum: DbFeedEvent;
+    };
+    CompositeTypes: Record<string, never>;
+  };
+}

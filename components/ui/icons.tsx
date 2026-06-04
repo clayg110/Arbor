@@ -54,6 +54,20 @@ export const SearchIcon = (p: P) => (
   </svg>
 );
 
+export const TrashIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M4 7h16M10 11v6M14 11v6" />
+    <path d="M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" />
+  </svg>
+);
+
+export const LogOutIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+    <path d="M10 17l5-5-5-5M15 12H3" />
+  </svg>
+);
+
 export const BellIcon = (p: P) => (
   <svg {...base} {...p}>
     <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />

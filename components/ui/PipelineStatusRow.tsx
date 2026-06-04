@@ -9,18 +9,24 @@ export function PipelineStatusRow({
   records,
   errors,
   schedule,
+  onRun,
 }: {
   name: string;
   lastRun: string;
   records: number;
   errors: number;
   schedule: string;
+  onRun?: () => void | Promise<void>;
 }) {
   const [running, setRunning] = useState(false);
 
-  function run() {
+  async function run() {
     setRunning(true);
-    setTimeout(() => setRunning(false), 1200);
+    try {
+      await onRun?.();
+    } finally {
+      setTimeout(() => setRunning(false), 1200);
+    }
   }
 
   return (

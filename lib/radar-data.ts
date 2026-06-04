@@ -25,6 +25,15 @@ export interface RadarCompany {
   quote?: string;
   watchlisted?: boolean;
   wasInMarket?: number; // for on_hold/pulled
+  // §2.1/§2.2 additions (nullable — populated by ingestion / manual entry)
+  subsector?: string | null;
+  logoUrl?: string | null;
+  revenue?: string | null;
+  ebitda?: string | null;
+  margin?: string | null;
+  description?: string | null;
+  revenueSource?: string | null;
+  ebitdaSource?: string | null;
 }
 
 const sig = (
@@ -194,6 +203,8 @@ export const summaryStrip = {
   onHold: 448,
   needsReview: 12,
   newThisWeek: 8,
+  newCarveout: 6,
+  newPrivate: 2,
 };
 
 // ---- sector summary cards ----

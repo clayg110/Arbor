@@ -1,72 +1,111 @@
 # Arbor
 
-Live intelligence platform tracking companies moving through private-equity deal
-lifecycles (carveouts + private assets), organized by sector.
-
-**Current build: complete frontend on mock data.** No Supabase, auth, pipelines,
-search, Redis, or realtime yet — every page runs entirely from `lib/mock-data.ts`
-and needs zero external services or environment variables.
+Live intelligence on companies moving through private-equity deal lifecycles —
+carveouts and private-asset exits. Tracks 1,000+ companies across stages
+(in market → monitor for exit → on hold → pulled), with an analyst feed,
+analytics, a review queue, and automated signal ingestion.
 
 ## Stack
 
-- Next.js 14 (App Router) + TypeScript
-- Tailwind CSS — flat, minimal, light theme; Inter (400/500 only)
-- Recharts (analytics)
-- pnpm
+- **Next.js 14** (App Router, TypeScript) · **Tailwind** · **Recharts**
+- **Supabase** — Postgres, Auth (email/password), Realtime, RLS
+- **Anthropic Claude** — structured signal extraction (forced tool call)
+- **Typesense** — search + entity resolution (optional; Supabase `ilike` fallback)
+- **Upstash Redis** — LLM rate-limit + pipeline lock (optional; no-op if unset)
+- **Vercel** — hosting + cron
 
-## Run
+## Mock-first design
+
+Every external dependency is **env-guarded**. With no `.env.local`, the app runs
+fully on mock data: all pages render, API routes return `503`, and client
+fetchers fall back to mock. Add keys and each subsystem "flips on" — no code
+changes. The mock frontend is the contract the backend was built against.
+
+## Quick start (mock mode)
 
 ```bash
 pnpm install
-pnpm dev      # http://localhost:3000 → redirects to /radar
-pnpm build    # production build (type-check + lint); all routes prerender
+pnpm dev          # http://localhost:3000  → redirects to /radar
 ```
 
-> Node isn't required to be globally installed — any Node 18.17+ works. pnpm via
-> `corepack enable && corepack prepare pnpm@latest --activate`.
+No environment needed. Explore /radar, /feed, /analytics, /review, /watchlist,
+/company/[id]. /admin and auth require the live backend (below).
+
+## Going live (real backend)
+
+1. **Create a Supabase project.** Copy `.env.local.example` → `.env.local` and
+   fill the Supabase block (`NEXT_PUBLIC_SUPABASE_URL`, `…_ANON_KEY`,
+   `SUPABASE_SERVICE_ROLE_KEY`) and `ANTHROPIC_API_KEY`.
+
+2. **Apply migrations** (Supabase SQL editor, in order):
+   `supabase/migrations/0001_init.sql` → `0002_analytics.sql` →
+   `0003_layer5.sql` → `0004_features.sql`, then `supabase/seed.sql`.
+   See `supabase/README.md`.
+
+3. **Create users.** Self-signup is enabled at `/signup` (new users default to
+   the `analyst` role). Promote someone to `admin` from the Admin page, or set
+   `user_metadata.role = "admin"` in the Supabase dashboard for the first admin.
+
+4. **Run.** `pnpm dev`. Unauthenticated requests are redirected to `/login`
+   (API routes return `401`). Realtime stage changes stream into /radar + /feed.
+
+### Optional subsystems
+
+- **Search (Typesense):** set `TYPESENSE_*`, then `pnpm sync:search` to create +
+  fill the `companies` collection. Without it, search uses a Supabase `ilike`
+  fallback.
+- **Rate-limit / lock (Upstash):** set `UPSTASH_REDIS_REST_*`. No-op if unset.
+- **Web signals (Google CSE):** set `GOOGLE_CUSTOM_SEARCH_*` for the private-asset
+  pipeline. Without it, that pipeline runs on RSS only.
+
+## Ingestion pipelines
+
+Two cron jobs (`vercel.json`) feed the tracker:
+
+- **Carveouts** (`/api/ingest/carveouts`, every 6h) — SEC EDGAR full-text search.
+- **Private assets** (`/api/ingest/private-assets`, every 12h) — Google CSE per
+  tracked company + PE/M&A RSS.
+
+Each fetches source text → Claude extracts a structured signal → entity
+resolution (Dice ≥ 0.85) matches or creates a company → stage update + history.
+Routes are guarded by `CRON_SECRET` and a distributed lock. Trigger manually
+from the Admin page (admin only).
+
+## Auth flows
+
+- `/login` — email + password
+- `/signup` — self-serve registration (role: analyst)
+- `/forgot-password` → email link → `/auth/reset`
+- `/auth/callback` — email-confirmation + recovery code exchange
+- Role management — admins change roles / create users from `/admin`
 
 ## Routes
 
 | Route | Description |
 |-------|-------------|
-| `/` | redirects to `/radar` |
-| `/radar` | Kanban radar — sector pills, deal-type toggle, debounced search (all client-side) |
-| `/feed` | Activity feed grouped by day + sidebar (live, watchlist, weekly summary) |
-| `/analytics` | Metric cards + Recharts (velocity, deal split, stage-by-sector, funnel, top sectors) |
-| `/company/[id]` | Profile — timeline, key signals, analyst notes, sector peers (try `/company/1…24`) |
-| `/review` | Analyst review queue — Confirm / inline Override modal |
-| `/admin` | Pipeline health + system stats + users table |
+| `/radar` | Kanban + table radar — filters, summary strip, sector cards, add company |
+| `/feed` | Activity feed grouped by day + sidebar (live, watchlist, range stats) |
+| `/analytics` | Metric cards + Recharts (velocity, splits, funnel, heatmap, sources) |
+| `/watchlist` | Manage watched companies |
+| `/company/[id]` | Profile — timeline, signals, analyst notes (edit/delete), peers |
+| `/review` | Analyst review queue — Confirm / Override |
+| `/admin` | Pipeline health, system stats, user + role management (admin only) |
 
-Top nav (Radar / Feed / Analytics) lives in `components/layout/AppLayout.tsx`;
-`/review` and `/admin` are reachable by URL.
+## Scripts
 
-## Design system
-
-Flat and minimal: white card surfaces, 0.5px hairline borders, no shadows or
-gradients, Inter at weights 400/500 only. Exact badge/stage hex values live in
-`lib/colors.ts` (applied via inline styles for fidelity).
-
-## Project layout
-
-```
-app/
-  layout.tsx                 AppLayout wrapper + Inter font
-  page.tsx                   redirect → /radar
-  radar | feed | analytics | review | admin /page.tsx
-  company/[id]/page.tsx      generateStaticParams over all mock companies
-components/
-  ui/                        badges, cards, kanban, timeline, modal, etc.
-  layout/                    AppLayout, PageHeader
-lib/
-  types.ts                   all TypeScript types
-  colors.ts                  exact design-system color/label maps
-  mock-data.ts               all mock data (companies, history, signals, notes, feed, …)
-  format.ts                  date / className helpers
-supabase/                    SQL schema + seed (kept for the future backend pass)
+```bash
+pnpm dev            # dev server
+pnpm build          # production build
+pnpm lint           # eslint
+pnpm sync:search    # push companies → Typesense
+pnpm extract:test   # smoke-test the LLM extractor
 ```
 
-## Not built yet (intentionally)
+## Architecture notes
 
-Supabase client & DB calls, auth/protected routes, ingestion pipelines, Typesense
-search, Redis, realtime subscriptions, and any env-var dependencies. The
-`supabase/` SQL from the earlier backend spike is retained for the next pass.
+- **Adapters** (`lib/adapters/`) are the seam: pure functions mapping DB
+  snake_case rows → frontend camelCase shapes. No Supabase imports.
+- **`useLive`** (`lib/use-live.ts`) — live fetch + mock fallback + realtime refetch.
+- **`requireBackend()`** — API routes return `503` until Supabase env is set.
+- **Typed Supabase client** via `Database` generic in `types/db.ts` (row shapes
+  are `type`, not `interface`, to satisfy supabase-js's index-signature constraint).

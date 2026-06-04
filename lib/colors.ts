@@ -64,6 +64,7 @@ export const CONFIDENCE_LABELS: Record<Confidence, string> = {
 export const SECTOR_SWATCH: Swatch = { bg: "#F1EFE8", text: "#444441" };
 
 export const SECTOR_LABELS: Record<Sector, string> = {
+  // legacy demo sectors
   chemicals: "Chemicals",
   industrials: "Industrials",
   agriculture: "Agriculture",
@@ -71,6 +72,12 @@ export const SECTOR_LABELS: Record<Sector, string> = {
   energy_fuels: "Energy & fuels",
   pharma_inputs: "Pharma inputs",
   consumer_coatings: "Consumer & coatings",
+  // real taxonomy (Backend §2.1)
+  aerospace_defense: "Aerospace & Defense",
+  capital_goods: "Capital Goods",
+  automotive: "Automotive",
+  transportation: "Transportation",
+  basic_materials: "Basic Materials",
 };
 
 export const SECTORS = Object.keys(SECTOR_LABELS) as Sector[];
