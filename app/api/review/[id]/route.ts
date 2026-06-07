@@ -14,33 +14,34 @@ const reviewSchema = z.object({
 // POST /api/review/[id] — { action: "confirm" | "override", stage? }
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const guard = requireBackend();
   if (guard) return guard;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
   const parsed = await parseJson(request, reviewSchema);
   if (!parsed.ok) return parsed.res;
   const body = parsed.data;
+  const { id } = await params;
 
   if (body.action === "confirm") {
     const { error } = await supabase
       .from("companies")
       .update({ confidence: "high" })
-      .eq("id", params.id);
+      .eq("id", id);
     if (error) return serverError(error);
-    await auditAs(user, "review.confirm", { entityType: "company", entityId: params.id });
+    await auditAs(user, "review.confirm", { entityType: "company", entityId: id });
     return ok({ ok: true });
   }
 
   if (body.action === "override") {
     if (!body.stage) return fail("stage required for override");
     const { data, error } = await supabase.rpc("rpc_apply_stage", {
-      p_company_id: params.id,
+      p_company_id: id,
       p_stage: body.stage,
       p_confidence: "high",
       p_changed_by: "analyst_manual",
@@ -50,7 +51,7 @@ export async function POST(
     if (error) return serverError(error);
     await auditAs(user, "review.override", {
       entityType: "company",
-      entityId: params.id,
+      entityId: id,
       metadata: { stage: body.stage },
     });
     return ok({ ok: true, history: data });

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const guard = requireBackend();
   if (guard) return guard;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
   if (user.role !== "admin") return fail("Forbidden", 403);

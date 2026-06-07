@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   const confidence = csv(sp.get("confidence"));
   const stages = csv(sp.get("stage"));
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   let query = supabase.from("companies").select("*", { count: "exact" });
 
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
   const guard = requireBackend();
   if (guard) return guard;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 

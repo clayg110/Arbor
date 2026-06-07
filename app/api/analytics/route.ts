@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   const to = sp.get("to");
   const range = from && to ? { p_from: from, p_to: to } : {};
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   const [
     velocity,

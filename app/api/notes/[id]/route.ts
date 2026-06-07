@@ -13,22 +13,23 @@ const editSchema = z.object({ content: z.string().trim().min(1, "required").max(
 // is the real guard; we also scope the update by user_id for clarity.
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const guard = requireBackend();
   if (guard) return guard;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
   const parsed = await parseJson(request, editSchema);
   if (!parsed.ok) return parsed.res;
 
+  const { id } = await params;
   const { data, error } = await supabase
     .from("analyst_notes")
     .update({ content: parsed.data.content })
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id)
     .select("*")
     .maybeSingle();
@@ -41,19 +42,20 @@ export async function PATCH(
 // DELETE /api/notes/[id] — delete own note.
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const guard = requireBackend();
   if (guard) return guard;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
+  const { id } = await params;
   const { error } = await supabase
     .from("analyst_notes")
     .delete()
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("user_id", user.id);
   if (error) return serverError(error);
 

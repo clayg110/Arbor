@@ -15,7 +15,7 @@ const watchSchema = z.object({ companyId: z.string().min(1).max(64) });
 export async function GET() {
   const guard = requireBackend();
   if (guard) return guard;
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data, error } = await supabase
     .from("watchlist")
     .select("company_id, company:companies(*)")
@@ -39,7 +39,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const guard = requireBackend();
   if (guard) return guard;
-  const supabase = createClient();
+  const supabase = await createClient();
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const guard = requireBackend();
   if (guard) return guard;
-  const supabase = createClient();
+  const supabase = await createClient();
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 

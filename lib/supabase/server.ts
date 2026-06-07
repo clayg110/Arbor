@@ -13,8 +13,9 @@ export function hasSupabaseEnv(): boolean {
 }
 
 // Server client for RSCs + route handlers (cookie-based session).
-export function createClient() {
-  const store = cookies();
+// cookies() is async in Next 15+, so this is async — await it at call sites.
+export async function createClient() {
+  const store = await cookies();
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

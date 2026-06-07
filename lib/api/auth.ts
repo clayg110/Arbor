@@ -31,7 +31,7 @@ export async function getSessionUser(
 export async function requireAdmin(): Promise<
   { res: NextResponse; user: null } | { res: null; user: SessionUser }
 > {
-  const user = await getSessionUser(createClient());
+  const user = await getSessionUser(await createClient());
   if (!user) return { res: fail("Unauthorized", 401), user: null };
   if (user.role !== "admin") return { res: fail("Forbidden", 403), user: null };
   return { res: null, user };

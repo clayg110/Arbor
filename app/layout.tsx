@@ -23,7 +23,7 @@ export default async function RootLayout({
   let user: SessionUser | null = null;
   if (hasSupabaseEnv()) {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
       const {
         data: { user: u },
       } = await supabase.auth.getUser();

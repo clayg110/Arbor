@@ -23,13 +23,13 @@ const patchSchema = z.object({
 // GET /api/companies/[id] — full profile bundle.
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const guard = requireBackend();
   if (guard) return guard;
 
-  const supabase = createClient();
-  const { id } = params;
+  const supabase = await createClient();
+  const { id } = await params;
 
   const { data: company, error } = await supabase
     .from("companies")
@@ -62,17 +62,17 @@ export async function GET(
 // PATCH /api/companies/[id] — stage override / confirm / mark-for-review.
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const guard = requireBackend();
   if (guard) return guard;
 
-  const { id } = params;
+  const { id } = await params;
   const parsed = await parseJson(request, patchSchema);
   if (!parsed.ok) return parsed.res;
   const body = parsed.data;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 

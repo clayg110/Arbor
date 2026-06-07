@@ -8,7 +8,7 @@ export async function GET() {
   const guard = requireBackend();
   if (guard) return guard;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: companies, error } = await supabase
     .from("companies")
     .select("*")

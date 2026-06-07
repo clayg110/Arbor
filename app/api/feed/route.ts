@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   const to = sp.get("to");
   const limit = Math.min(Number(sp.get("limit") ?? 150), 400);
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   let query = supabase
     .from("deal_stage_history")

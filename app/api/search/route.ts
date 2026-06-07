@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
   }
 
   // ---- Supabase ilike fallback ----
-  const supabase = createClient();
+  const supabase = await createClient();
   let query = supabase
     .from("companies")
     .select("id,name,sector,deal_type,sponsor_firm,parent_company,current_stage,confidence")

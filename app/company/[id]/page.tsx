@@ -37,7 +37,8 @@ import type { Company, StageHistoryRecord, Signal, Note } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function CompanyPage({ params }: { params: { id: string } }) {
+export default async function CompanyPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   let company: Company | undefined;
   let history: StageHistoryRecord[] = [];
   let signals: Signal[] = [];
@@ -47,12 +48,12 @@ export default async function CompanyPage({ params }: { params: { id: string } }
 
   if (hasSupabaseEnv()) {
     try {
-      const sb = createClient();
+      const sb = await createClient();
       const {
         data: { user },
       } = await sb.auth.getUser();
       currentUserId = user?.id;
-      const { data: c } = await sb.from("companies").select("*").eq("id", params.id).maybeSingle();
+      const { data: c } = await sb.from("companies").select("*").eq("id", id).maybeSingle();
       if (c) {
         const cc = c as DbCompany;
         const [{ data: h }, { data: s }, { data: n }, { data: p }] = await Promise.all([
@@ -73,7 +74,7 @@ export default async function CompanyPage({ params }: { params: { id: string } }
   }
 
   if (!company) {
-    const c = getCompany(params.id);
+    const c = getCompany(id);
     if (c) {
       company = c;
       history = getStageHistory(c.id);
