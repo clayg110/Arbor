@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend } from "@/lib/api/respond";
+import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { toNotes } from "@/lib/adapters";
 import type { DbNote } from "@/types/db";
@@ -33,7 +33,7 @@ export async function PATCH(
     .eq("user_id", user.id)
     .select("*")
     .maybeSingle();
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
   if (!data) return fail("Not found or not yours", 404);
 
   return ok({ note: toNotes([data as DbNote])[0] });
@@ -56,7 +56,7 @@ export async function DELETE(
     .delete()
     .eq("id", params.id)
     .eq("user_id", user.id);
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
 
   return ok({ ok: true });
 }

@@ -115,4 +115,33 @@ export const api = {
   deleteNote: (id: string) => jsend(`/api/notes/${id}`, "DELETE"),
   markReview: (companyId: string) =>
     jsend(`/api/companies/${companyId}`, "PATCH", { action: "mark_review" }),
+  setStage: (companyId: string, stage: string) =>
+    jsend(`/api/companies/${companyId}`, "PATCH", {
+      action: "override",
+      stage,
+      notes: "Stage moved by analyst (drag).",
+    }),
+  apiKeys: () => jget<{ keys: ApiKeyView[] }>(`/api/admin/api-keys`),
+  createApiKey: (name: string) =>
+    jsend<{ key: ApiKeyView & { plaintext: string } }>(`/api/admin/api-keys`, "POST", { name }),
+  revokeApiKey: (id: string) => jsend(`/api/admin/api-keys?id=${id}`, "DELETE"),
+  auditLog: (limit = 100) => jget<{ entries: AuditEntryView[] }>(`/api/admin/audit?limit=${limit}`),
 };
+
+export interface ApiKeyView {
+  id: string;
+  name: string;
+  prefix: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+}
+export interface AuditEntryView {
+  id: string;
+  action: string;
+  entityType: string | null;
+  entityId: string | null;
+  actorEmail: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}

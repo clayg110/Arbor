@@ -1,6 +1,8 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend } from "@/lib/api/respond";
+import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
+import { getSessionUser } from "@/lib/api/auth";
+import { auditAs } from "@/lib/audit";
 import {
   toCompanyProfile,
   toStageHistory,
@@ -26,7 +28,7 @@ export async function GET(
     .select("*")
     .eq("id", id)
     .maybeSingle();
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
   if (!company) return fail("Not found", 404);
   const c = company as DbCompany;
 
@@ -66,9 +68,7 @@ export async function PATCH(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
   const action = body.action ?? "override";
@@ -83,19 +83,26 @@ export async function PATCH(
       p_source_type: "manual",
       p_notes: body.notes ?? "Stage overridden by analyst.",
     });
-    if (error) return fail(error.message, 500);
+    if (error) return serverError(error);
+    await auditAs(user, "company.stage_override", {
+      entityType: "company",
+      entityId: id,
+      metadata: { stage: body.stage, notes: body.notes ?? null },
+    });
     return ok({ ok: true, history: data });
   }
 
   if (action === "confirm") {
     const { error } = await supabase.from("companies").update({ confidence: "high" }).eq("id", id);
-    if (error) return fail(error.message, 500);
+    if (error) return serverError(error);
+    await auditAs(user, "company.confirm", { entityType: "company", entityId: id });
     return ok({ ok: true });
   }
 
   if (action === "mark_review") {
     const { error } = await supabase.from("companies").update({ confidence: "needs_review" }).eq("id", id);
-    if (error) return fail(error.message, 500);
+    if (error) return serverError(error);
+    await auditAs(user, "company.mark_review", { entityType: "company", entityId: id });
     return ok({ ok: true });
   }
 

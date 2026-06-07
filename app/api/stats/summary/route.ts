@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend } from "@/lib/api/respond";
+import { ok, requireBackend, serverError } from "@/lib/api/respond";
 import { toSummaryStrip, toSectorSummary, toRangeStats } from "@/lib/adapters";
 import type { SummaryCountsRow, SectorStageRow, EventCountsRow } from "@/types/db";
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   ]);
 
   const err = summary.error || sectors.error || events.error;
-  if (err) return fail(err.message, 500);
+  if (err) return serverError(err);
 
   const summaryRow = (summary.data?.[0] as SummaryCountsRow | undefined) ?? null;
   const eventRow = (events.data?.[0] as EventCountsRow | undefined) ?? null;

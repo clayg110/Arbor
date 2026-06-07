@@ -1,7 +1,8 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend, csv } from "@/lib/api/respond";
+import { ok, fail, requireBackend, csv, safeFilterValue, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
+import { auditAs } from "@/lib/audit";
 import {
   toRadarCompany,
   toSummaryStrip,
@@ -49,11 +50,13 @@ export async function GET(request: NextRequest) {
   if (confidence.length) query = query.in("confidence", confidence as Confidence[]);
   if (stages.length) query = query.in("current_stage", stages as Stage[]);
   if (sponsor && sponsor !== "all") {
-    query = query.or(`sponsor_firm.eq.${sponsor},parent_company.eq.${sponsor}`);
+    const s = safeFilterValue(sponsor);
+    query = query.or(`sponsor_firm.eq.${s},parent_company.eq.${s}`);
   }
   if (q) {
+    const qq = safeFilterValue(q);
     query = query.or(
-      `name.ilike.%${q}%,sponsor_firm.ilike.%${q}%,parent_company.ilike.%${q}%`
+      `name.ilike.%${qq}%,sponsor_firm.ilike.%${qq}%,parent_company.ilike.%${qq}%`
     );
   }
 
@@ -76,7 +79,7 @@ export async function GET(request: NextRequest) {
   else query = query.order("name", { ascending: true });
 
   const { data, count, error } = await query.range(offset, offset + limit - 1);
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
 
   const companies = (data ?? []) as DbCompany[];
 
@@ -166,7 +169,7 @@ export async function POST(request: NextRequest) {
     })
     .select("*")
     .single();
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
 
   const c = created as DbCompany;
   await supabase.from("deal_stage_history").insert({
@@ -176,6 +179,12 @@ export async function POST(request: NextRequest) {
     changed_by: "analyst_manual",
     source_type: "manual",
     headline: `Added to tracker — ${c.name}`,
+  });
+
+  await auditAs(user, "company.create", {
+    entityType: "company",
+    entityId: c.id,
+    metadata: { name: c.name, sector: c.sector, dealType: c.deal_type, stage },
   });
 
   return ok({ company: toRadarCompany(c) }, { status: 201 });

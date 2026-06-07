@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "sync:search": "node --env-file=.env.local scripts/sync-typesense.mjs",
+    "backfill:logos": "node --env-file=.env.local scripts/backfill-logos.mjs",
+    "backfill:orgs": "node --env-file=.env.local scripts/backfill-orgs.mjs",
     "extract:test": "tsx scripts/test-extract.ts",
     "test": "vitest run"
   },
@@ -29,7 +31,7 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.35",
-    "postcss": "^8",
+    "postcss": "^8.5.15",
     "supabase": "^2.104.0",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.22.4",

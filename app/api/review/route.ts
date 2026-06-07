@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend } from "@/lib/api/respond";
+import { ok, requireBackend, serverError } from "@/lib/api/respond";
 import { toReviewRow } from "@/lib/adapters";
 import type { DbCompany, DbSignal } from "@/types/db";
 
@@ -14,7 +14,7 @@ export async function GET() {
     .select("*")
     .eq("confidence", "needs_review")
     .order("updated_at", { ascending: false });
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
 
   const rows = await Promise.all(
     ((companies ?? []) as DbCompany[]).map(async (c) => {

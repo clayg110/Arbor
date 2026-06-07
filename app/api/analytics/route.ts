@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend } from "@/lib/api/respond";
+import { ok, requireBackend, serverError } from "@/lib/api/respond";
 import {
   toVelocity,
   toSectorStage,
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
   const firstError =
     velocity.error || sectorStage.error || dealSplit.error || metrics.error || heatmap.error;
-  if (firstError) return fail(firstError.message, 500);
+  if (firstError) return serverError(firstError);
 
   const sectorRows = (sectorStage.data ?? []) as SectorStageRow[];
   const summaryRow = (summary.data?.[0] as SummaryCountsRow | undefined) ?? null;

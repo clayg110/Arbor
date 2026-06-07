@@ -3,9 +3,11 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { extractSignal } from "@/lib/extract-signal";
 import { fetchRecentCarveoutFilings } from "@/lib/ingest/edgar";
 import { fetchUniverseSignals, markUniverseScanned } from "@/lib/ingest/universe";
+import { fetchTranscriptSignals, hasTranscriptEnv } from "@/lib/ingest/transcripts";
 import { processSignal, type Outcome } from "@/lib/ingest/persist";
 import { cronGuard } from "@/lib/ingest/guard";
 import { acquireLock } from "@/lib/redis/lock";
+import { notifyPipelineFailure, notifyPipelineCrash } from "@/lib/alerts";
 
 export const maxDuration = 60;
 
@@ -88,6 +90,39 @@ async function run(request: NextRequest) {
     }
     await markUniverseScanned(svc, scannedIds);
 
+    // Earnings-call transcripts: parent companies often disclose divestitures
+    // on the call (FMP; no-op without FMP_API_KEY + TRANSCRIPT_TICKERS).
+    let transcripts = 0;
+    if (hasTranscriptEnv()) {
+      const items = await fetchTranscriptSignals(10);
+      transcripts = items.length;
+      counts.fetched += items.length;
+      for (const t of items) {
+        try {
+          const ex = await extractSignal({ rawText: t.rawText, sourceType: "earnings_transcript" });
+          if (!ex) {
+            counts.errors++;
+            continue;
+          }
+          const r = await processSignal(
+            svc,
+            ex,
+            {
+              sourceType: "earnings_transcript",
+              sourceName: t.sourceName,
+              docType: t.docType,
+              sourceUrl: t.sourceUrl,
+              rawText: t.rawText,
+            },
+            "carveout"
+          );
+          counts[r.outcome]++;
+        } catch {
+          counts.errors++;
+        }
+      }
+    }
+
     await svc.from("pipeline_runs").insert({
       pipeline: "carveouts",
       fetched: counts.fetched,
@@ -98,12 +133,25 @@ async function run(request: NextRequest) {
       ok: counts.errors === 0,
     });
 
+    await notifyPipelineFailure({ pipeline: "carveouts", ...counts });
+
     return NextResponse.json({
       ok: true,
       pipeline: "carveouts",
       universeScanned: scannedIds.length,
+      transcripts,
       ...counts,
     });
+  } catch (err) {
+    try {
+      await createServiceClient()
+        .from("pipeline_runs")
+        .insert({ pipeline: "carveouts", fetched: 0, created: 0, updated: 0, flagged: 0, errors: 1, ok: false });
+    } catch {
+      // recording the failure is best-effort
+    }
+    await notifyPipelineCrash("carveouts", err);
+    return NextResponse.json({ ok: false, error: "Pipeline crashed" }, { status: 500 });
   } finally {
     await lock.release();
   }

@@ -18,10 +18,18 @@ export function RadarCompanyCard({
   c,
   watched,
   onToggleWatch,
+  draggable = false,
+  dragging = false,
+  onCardDragStart,
+  onCardDragEnd,
 }: {
   c: RadarCompany;
   watched: boolean;
   onToggleWatch: () => void;
+  draggable?: boolean;
+  dragging?: boolean;
+  onCardDragStart?: (e: React.DragEvent) => void;
+  onCardDragEnd?: () => void;
 }) {
   const [hover, setHover] = useState(false);
   const ownerLabel = c.dealType === "carveout" ? "Parent" : "Sponsor";
@@ -36,7 +44,7 @@ export function RadarCompanyCard({
 
   const body = (
     <>
-      {/* drag handle — TODO: implement drag-to-move stage in session 2 with Supabase backend */}
+      {/* drag handle — card is draggable between kanban columns to change stage */}
       <span
         className="absolute left-0.5 top-1/2 -translate-y-1/2 transition-opacity"
         style={{ opacity: hover ? 0.4 : 0 }}
@@ -173,7 +181,8 @@ export function RadarCompanyCard({
   const style: React.CSSProperties = {
     border: `0.5px solid ${hover ? accent : "var(--border)"}`,
     backgroundColor: hover ? `${accent}0D` : "var(--surface)",
-    opacity: c.pulled ? 0.78 : 1,
+    opacity: dragging ? 0.4 : c.pulled ? 0.78 : 1,
+    cursor: draggable ? "grab" : undefined,
   };
 
   const handlers = {
@@ -181,12 +190,16 @@ export function RadarCompanyCard({
     onMouseLeave: () => setHover(false),
   };
 
+  const dragProps = draggable
+    ? { draggable: true, onDragStart: onCardDragStart, onDragEnd: onCardDragEnd }
+    : {};
+
   return c.companyId ? (
-    <Link href={`/company/${c.companyId}`} className={className} style={style} {...handlers}>
+    <Link href={`/company/${c.companyId}`} className={className} style={style} {...handlers} {...dragProps}>
       {body}
     </Link>
   ) : (
-    <div className={className} style={style} {...handlers}>
+    <div className={className} style={style} {...handlers} {...dragProps}>
       {body}
     </div>
   );

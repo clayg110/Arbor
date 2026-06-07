@@ -31,6 +31,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# standalone marketing site — tracked in its own repo (arbor-landing)
+/Landing Page/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

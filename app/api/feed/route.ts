@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend, csv } from "@/lib/api/respond";
+import { ok, requireBackend, csv, serverError } from "@/lib/api/respond";
 import { toFeedItem, type CompanyMin } from "@/lib/adapters";
 import type { DbHistory, DbFeedEvent, LlmOutput } from "@/types/db";
 import type { DealType, Sector, Confidence } from "@/lib/types";
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   if (to) query = query.lte("changed_at", to + "T23:59:59");
 
   const { data, error } = await query;
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
 
   // user watchlist (for watchOnly)
   let watched = new Set<string>();

@@ -1,7 +1,8 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend } from "@/lib/api/respond";
+import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
+import { auditAs } from "@/lib/audit";
 import type { Stage } from "@/lib/types";
 
 // POST /api/review/[id] — { action: "confirm" | "override", stage? }
@@ -28,7 +29,8 @@ export async function POST(
       .from("companies")
       .update({ confidence: "high" })
       .eq("id", params.id);
-    if (error) return fail(error.message, 500);
+    if (error) return serverError(error);
+    await auditAs(user, "review.confirm", { entityType: "company", entityId: params.id });
     return ok({ ok: true });
   }
 
@@ -42,7 +44,12 @@ export async function POST(
       p_source_type: "manual",
       p_notes: "Stage overridden from review queue.",
     });
-    if (error) return fail(error.message, 500);
+    if (error) return serverError(error);
+    await auditAs(user, "review.override", {
+      entityType: "company",
+      entityId: params.id,
+      metadata: { stage: body.stage },
+    });
     return ok({ ok: true, history: data });
   }
 

@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend } from "@/lib/api/respond";
+import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { toRadarCompany } from "@/lib/adapters";
 import type { DbCompany } from "@/types/db";
@@ -15,7 +15,7 @@ export async function GET() {
     .from("watchlist")
     .select("company_id, company:companies(*)")
     .order("created_at", { ascending: false });
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
 
   const rows = (data ?? []) as unknown as {
     company_id: string;
@@ -48,8 +48,11 @@ export async function POST(request: NextRequest) {
 
   const { error } = await supabase
     .from("watchlist")
-    .upsert({ user_id: user.id, company_id: body.companyId }, { onConflict: "user_id,company_id" });
-  if (error) return fail(error.message, 500);
+    .upsert(
+      { user_id: user.id, company_id: body.companyId, org_id: user.orgId },
+      { onConflict: "user_id,company_id" }
+    );
+  if (error) return serverError(error);
   return ok({ ok: true, watched: true });
 }
 
@@ -69,6 +72,6 @@ export async function DELETE(request: NextRequest) {
     .delete()
     .eq("user_id", user.id)
     .eq("company_id", companyId);
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
   return ok({ ok: true, watched: false });
 }

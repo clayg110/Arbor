@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { hasPublicSupabaseEnv } from "@/lib/supabase/env-client";
-import { BackendOff } from "@/lib/api-client";
 
 export type Source = "live" | "mock";
 
@@ -24,9 +23,9 @@ export function useLive<T>(
       const d = await fetcher();
       setData(d);
       setSource("live");
-    } catch (e) {
+    } catch {
       setData(fallback);
-      setSource(e instanceof BackendOff ? "mock" : "mock");
+      setSource("mock");
     } finally {
       setLoading(false);
     }

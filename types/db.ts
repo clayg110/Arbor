@@ -123,6 +123,7 @@ export type DbWatchlist = {
   id: string;
   user_id: string;
   company_id: string;
+  org_id: string | null;
   created_at: string;
 };
 
@@ -130,8 +131,40 @@ export type DbNote = {
   id: string;
   company_id: string;
   user_id: string;
+  org_id: string | null;
   author: string | null;
   content: string;
+  created_at: string;
+};
+
+// ---- multi-tenant + governance (0014) ----
+export type DbOrg = {
+  id: string;
+  name: string;
+  created_at: string;
+};
+
+export type DbAuditLog = {
+  id: string;
+  org_id: string | null;
+  user_id: string | null;
+  actor_email: string | null;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+};
+
+export type DbApiKey = {
+  id: string;
+  org_id: string;
+  created_by: string | null;
+  name: string;
+  key_prefix: string;
+  key_hash: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
   created_at: string;
 };
 
@@ -283,6 +316,24 @@ export interface Database {
         Row: DbUniverseCompany;
         Insert: Partial<DbUniverseCompany> & { name: string; sector: string };
         Update: Partial<DbUniverseCompany>;
+        Relationships: Rel;
+      };
+      orgs: {
+        Row: DbOrg;
+        Insert: Partial<DbOrg> & { name: string };
+        Update: Partial<DbOrg>;
+        Relationships: Rel;
+      };
+      audit_log: {
+        Row: DbAuditLog;
+        Insert: Partial<DbAuditLog> & { action: string };
+        Update: Partial<DbAuditLog>;
+        Relationships: Rel;
+      };
+      api_keys: {
+        Row: DbApiKey;
+        Insert: Partial<DbApiKey> & { org_id: string; name: string; key_prefix: string; key_hash: string };
+        Update: Partial<DbApiKey>;
         Relationships: Rel;
       };
     };

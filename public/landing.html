@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arbor — Track every deal. Never miss a signal.</title>
+  <meta name="description" content="Arbor tracks carveouts and private equity exits across every major sector — automatically ingesting signals from SEC filings, earnings transcripts, and news, and surfacing them in a live deal radar." />
+
+  <!-- Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <!-- Tabler Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+
+  <style>
+    :root {
+      --bg: #080C12;
+      --bg-alt: #0B0F18;
+      --surface: #0E1420;
+      --surface-border: #162030;
+      --elevated: #111828;
+      --elevated-border: #1C2A3E;
+      --accent: #0EA5E9;
+      --accent-muted: #0C3B5E;
+      --accent-text: #38BDF8;
+      --accent-hover: #0284C7;
+      --heading: #F0EFFF;
+      --muted: #6B7A8D;
+      --border: #162030;
+      --faint: #2E4056;
+      --logo: #1E3448;
+
+      --stage-in-market: #185FA5;
+      --stage-monitor: #BA7517;
+      --stage-hold: #791F1F;
+
+      --maxw: 1280px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      /* subtle dot-grid across the whole page */
+      background-image: radial-gradient(var(--border) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img, svg { display: block; }
+
+    .wrap {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 0 48px;
+    }
+
+    /* ---------- shared atoms ---------- */
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-muted);
+      color: var(--accent-text);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 14px;
+      border-radius: 999px;
+      letter-spacing: 0.01em;
+    }
+
+    .grad {
+      background: linear-gradient(90deg, var(--accent-text), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 14px 28px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: var(--heading);
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent-text);
+    }
+    .btn-ghost:hover { background: rgba(14, 165, 233, 0.125); }
+
+    .section { padding: 110px 0; position: relative; }
+    .section--alt { background: var(--bg-alt); }
+
+    .section-head { text-align: center; max-width: 760px; margin: 0 auto 72px; }
+    .section-head h2 {
+      font-size: 48px;
+      font-weight: 600;
+      line-height: 1.12;
+      color: var(--heading);
+      margin: 20px 0 18px;
+      letter-spacing: -0.02em;
+    }
+    .section-head p { font-size: 17px; color: var(--muted); }
+
+    /* ---------- NAV ---------- */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(8, 12, 18, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 0 48px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--heading);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+    }
+    .nav-links a {
+      font-size: 14px;
+      color: var(--muted);
+      transition: color 0.2s ease-out;
+    }
+    .nav-links a:hover { color: var(--heading); }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .nav-right .signin {
+      font-size: 14px;
+      color: var(--muted);
+      transition: color 0.2s ease-out;
+    }
+    .nav-right .signin:hover { color: var(--heading); }
+    .nav-cta { padding: 9px 18px; font-size: 14px; }
+
+    .hamburger {
+      display: none;
+      background: transparent;
+      border: none;
+      color: var(--heading);
+      font-size: 24px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* ---------- HERO ---------- */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 120px 0 80px;
+      overflow: hidden;
+    }
+    .hero-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 900px;
+      height: 600px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse at center, rgba(14, 165, 233, 0.10), transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .hero-copy { max-width: 600px; }
+    .hero h1 {
+      font-size: 64px;
+      font-weight: 700;
+      line-height: 1.1;
+      color: var(--heading);
+      letter-spacing: -0.03em;
+      margin: 22px 0 18px;
+    }
+    .hero-sub {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .hero-body {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 520px;
+      margin-bottom: 30px;
+    }
+    .hero-ctas {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .hero-fine { font-size: 13px; color: var(--faint); }
+
+    /* hero mock card */
+    .mock {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--elevated-border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 0 80px rgba(14, 165, 233, 0.094);
+    }
+    .mock-cols {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .mock-col-head {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      padding: 5px 10px;
+      border-radius: 6px;
+      margin-bottom: 10px;
+      color: var(--heading);
+    }
+    .h-inmarket { background: rgba(24, 95, 165, 0.28); color: #8FC2F2; }
+    .h-monitor  { background: rgba(186, 117, 23, 0.24); color: #E6B26A; }
+    .h-hold     { background: rgba(121, 31, 31, 0.30); color: #E08A8A; }
+
+    .mock-card {
+      background: var(--elevated);
+      border: 1px solid var(--elevated-border);
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 9px;
+    }
+    .bar {
+      height: 7px;
+      border-radius: 4px;
+      background: #1C2A3E;
+      margin-bottom: 7px;
+    }
+    .bar.dot { background: var(--accent-muted); }
+    .bar:last-child { margin-bottom: 0; }
+
+    /* ---------- SOCIAL PROOF ---------- */
+    .proof {
+      background: var(--bg-alt);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 44px 0;
+      text-align: center;
+    }
+    .proof-label {
+      font-size: 12px;
+      color: var(--faint);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 26px;
+    }
+    .logos {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+    }
+    .logos span {
+      color: var(--logo);
+      font-size: 22px;
+      transition: color 0.2s ease-out;
+      cursor: default;
+    }
+    .logos span:hover { color: var(--muted); }
+    .lg-serif    { font-family: Georgia, 'Times New Roman', serif; font-weight: 600; }
+    .lg-caps     { text-transform: uppercase; font-weight: 700; letter-spacing: 0.12em; font-size: 18px; font-stretch: condensed; }
+    .lg-light    { font-weight: 300; }
+    .lg-italic   { font-family: Georgia, serif; font-style: italic; font-weight: 500; }
+    .lg-smallcaps{ font-variant: small-caps; font-weight: 600; letter-spacing: 0.02em; }
+
+    /* ---------- FEATURES ---------- */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      transition: border-color 0.2s ease-out;
+    }
+    .card:hover { border-color: var(--accent); }
+    .card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--heading);
+      font-size: 20px;
+    }
+    .card h3 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--heading);
+      margin: 16px 0 8px;
+    }
+    .card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+    /* ---------- HOW IT WORKS ---------- */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+    .step {
+      position: relative;
+      padding: 0 44px;
+      border-left: 1px solid var(--border);
+    }
+    .step:first-child { border-left: none; padding-left: 0; }
+    .step-num {
+      font-size: 120px;
+      font-weight: 800;
+      line-height: 1;
+      color: #0D1A28;
+      letter-spacing: -0.04em;
+      margin-bottom: -28px;
+      user-select: none;
+    }
+    .step-icon { font-size: 32px; color: var(--accent); margin-bottom: 16px; }
+    .step h3 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--heading);
+      margin-bottom: 12px;
+    }
+    .step p { font-size: 16px; color: var(--muted); max-width: 360px; }
+
+    /* ---------- METRICS ---------- */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      align-items: stretch;
+      gap: 0;
+      margin-bottom: 72px;
+    }
+    .stat {
+      text-align: center;
+      padding: 0 40px;
+      border-left: 1px solid var(--border);
+    }
+    .stat:first-child { border-left: none; }
+    .stat-num {
+      font-size: 56px;
+      font-weight: 700;
+      color: var(--heading);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .stat-label { font-size: 14px; color: var(--muted); margin-top: 12px; }
+
+    .quote {
+      max-width: 600px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .quote blockquote {
+      font-size: 26px;
+      font-style: italic;
+      font-weight: 500;
+      color: var(--heading);
+      line-height: 1.5;
+      letter-spacing: -0.01em;
+    }
+    .quote cite {
+      display: block;
+      margin-top: 20px;
+      font-style: normal;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    /* ---------- PRICING ---------- */
+    .prices {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+    .price {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px 28px;
+    }
+    .price.pro {
+      background: var(--elevated);
+      border: 1px solid var(--accent);
+      box-shadow: 0 0 40px rgba(14, 165, 233, 0.094);
+    }
+    .price-popular {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: var(--heading);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 14px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .price-name { font-size: 15px; font-weight: 600; color: var(--heading); }
+    .price-amt {
+      font-size: 46px;
+      font-weight: 700;
+      color: var(--heading);
+      letter-spacing: -0.02em;
+      margin: 14px 0 2px;
+    }
+    .price-amt span { font-size: 15px; font-weight: 400; color: var(--muted); }
+    .price-sub { font-size: 14px; color: var(--muted); margin-bottom: 22px; }
+    .price ul { list-style: none; margin-bottom: 24px; }
+    .price li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--muted);
+      padding: 7px 0;
+    }
+    .price li i { color: var(--accent); font-size: 16px; margin-top: 2px; flex-shrink: 0; }
+    .price .btn { width: 100%; }
+    .price-fine { font-size: 12px; color: var(--faint); text-align: center; margin-top: 10px; }
+    .price-foot { text-align: center; font-size: 14px; color: var(--faint); margin-top: 36px; }
+
+    /* ---------- FAQ ---------- */
+    .faq-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 72px;
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--heading);
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 500;
+      text-align: left;
+      padding: 22px 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .faq-q .sign { color: var(--accent); font-size: 22px; font-weight: 400; flex-shrink: 0; line-height: 1; }
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+    .faq-a p { font-size: 14px; color: var(--muted); padding: 0 0 22px; max-width: 92%; }
+
+    /* ---------- FINAL CTA ---------- */
+    .final {
+      position: relative;
+      max-width: 760px;
+      margin: 80px auto;
+      background: var(--surface);
+      border: 1px solid var(--elevated-border);
+      border-radius: 20px;
+      padding: 64px;
+      text-align: center;
+      overflow: hidden;
+    }
+    .final-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 600px;
+      height: 400px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse at center, rgba(14, 165, 233, 0.13), transparent 70%);
+      pointer-events: none;
+    }
+    .final h2 {
+      position: relative;
+      font-size: 48px;
+      font-weight: 700;
+      color: var(--heading);
+      letter-spacing: -0.02em;
+      margin-bottom: 18px;
+    }
+    .final p {
+      position: relative;
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 480px;
+      margin: 0 auto 30px;
+    }
+    .final-ctas {
+      position: relative;
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+    }
+
+    /* ---------- FOOTER ---------- */
+    .footer {
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 48px 0 0;
+    }
+    .footer-cols {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      padding-bottom: 40px;
+    }
+    .footer-brand .brand { margin-bottom: 14px; }
+    .footer-brand p { font-size: 14px; color: var(--faint); max-width: 260px; margin-bottom: 18px; }
+    .footer-social { display: flex; gap: 14px; }
+    .footer-social a { color: var(--logo); font-size: 20px; transition: color 0.2s ease-out; }
+    .footer-social a:hover { color: var(--muted); }
+    .footer-col h4 {
+      font-size: 12px;
+      color: var(--faint);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .footer-col a {
+      display: block;
+      font-size: 14px;
+      color: var(--muted);
+      padding: 5px 0;
+      transition: color 0.2s ease-out;
+    }
+    .footer-col a:hover { color: var(--heading); }
+    .footer-bar {
+      border-top: 1px solid var(--border);
+      padding: 22px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-bar span { font-size: 13px; color: var(--logo); }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 1024px) {
+      .hero-grid { grid-template-columns: 1fr; text-align: center; }
+      .hero-copy { max-width: 640px; margin: 0 auto; }
+      .hero-body { margin-left: auto; margin-right: auto; }
+      .hero-ctas { justify-content: center; }
+      .hero-visual { display: none; }
+      .hero h1 { font-size: 54px; }
+
+      .grid-3 { grid-template-columns: repeat(2, 1fr); }
+      .steps { grid-template-columns: 1fr; gap: 40px; }
+      .step { border-left: none; padding-left: 0; }
+      .prices { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; }
+      .price.pro { order: -1; }
+      .faq-grid { grid-template-columns: 1fr; }
+      .footer-cols { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .wrap, .nav-inner { padding-left: 20px; padding-right: 20px; }
+      .section { padding: 72px 0; }
+      .section-head h2 { font-size: 36px; }
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        flex-direction: column;
+        gap: 0;
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        padding: 8px 24px 20px;
+      }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 12px 0; width: 100%; border-bottom: 1px solid var(--border); }
+      .nav-right .signin { display: none; }
+      .hamburger { display: block; }
+
+      .hero { min-height: auto; padding: 90px 0 60px; }
+      .hero h1 { font-size: 40px; }
+      .hero-sub { font-size: 18px; }
+      .hero-body { font-size: 16px; }
+      .hero-ctas { flex-direction: column; }
+      .hero-ctas .btn { width: 100%; }
+
+      .grid-3 { grid-template-columns: 1fr; }
+      .stats { flex-direction: column; gap: 32px; }
+      .stat { max-width: none; border-left: none; padding: 0; }
+      .quote blockquote { font-size: 21px; }
+      .final { padding: 40px 24px; margin: 48px auto; border-radius: 16px; }
+      .final h2 { font-size: 32px; }
+      .footer-cols { grid-template-columns: 1fr 1fr; gap: 28px; }
+      .footer-bar { flex-direction: column; gap: 8px; text-align: center; }
+      .logos { gap: 28px; }
+    }
+
+    /* ---------- ANIMATIONS (opt-in only when motion allowed) ---------- */
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      }
+      .reveal.is-visible {
+        opacity: 1;
+        transform: none;
+      }
+
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .hero-anim { opacity: 0; animation: fadeUp 0.6s ease-out forwards; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= NAV ================= -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="9" cy="12" r="6.4" stroke="#0EA5E9" stroke-width="1.6"/>
+          <circle cx="15" cy="12" r="6.4" stroke="#0EA5E9" stroke-width="1.6"/>
+        </svg>
+        Arbor
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="nav-right">
+        <a class="signin" href="/login">Sign in</a>
+        <a class="btn btn-primary nav-cta" href="/signup">Get started</a>
+        <button class="hamburger" id="hamburger" aria-label="Toggle menu"><i class="ti ti-menu-2"></i></button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ================= HERO ================= -->
+  <header class="hero" id="top">
+    <div class="hero-glow"></div>
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <span class="pill hero-anim" style="animation-delay:.1s">✦ Purpose-built for M&amp;A intelligence</span>
+          <h1 class="hero-anim" style="animation-delay:0s">Track every deal.<br/>Never miss a signal.</h1>
+          <p class="hero-sub grad hero-anim" style="animation-delay:.15s">1,000+ companies. Two pipelines. One radar.</p>
+          <p class="hero-body hero-anim" style="animation-delay:.2s">Arbor tracks carveouts and private equity exits across every major sector — automatically ingesting signals from SEC filings, earnings transcripts, and news sources, and surfacing them in a live deal radar your whole team can act on.</p>
+          <div class="hero-ctas hero-anim" style="animation-delay:.25s">
+            <a class="btn btn-primary" href="/signup">Start tracking deals</a>
+            <a class="btn btn-ghost" href="#how">See how it works</a>
+          </div>
+          <p class="hero-fine hero-anim" style="animation-delay:.3s">No credit card required · Free 14-day trial · Cancel anytime</p>
+        </div>
+
+        <div class="hero-visual hero-anim" style="animation-delay:.4s">
+          <div class="mock">
+            <div class="mock-cols">
+              <div class="mock-col">
+                <div class="mock-col-head h-inmarket">In market</div>
+                <div class="mock-card"><div class="bar" style="width:80%"></div><div class="bar dot" style="width:45%"></div></div>
+                <div class="mock-card"><div class="bar" style="width:65%"></div><div class="bar dot" style="width:55%"></div></div>
+                <div class="mock-card"><div class="bar" style="width:72%"></div><div class="bar dot" style="width:40%"></div></div>
+              </div>
+              <div class="mock-col">
+                <div class="mock-col-head h-monitor">Monitor</div>
+                <div class="mock-card"><div class="bar" style="width:70%"></div><div class="bar dot" style="width:50%"></div></div>
+                <div class="mock-card"><div class="bar" style="width:85%"></div><div class="bar dot" style="width:42%"></div></div>
+                <div class="mock-card"><div class="bar" style="width:60%"></div><div class="bar dot" style="width:58%"></div></div>
+              </div>
+              <div class="mock-col">
+                <div class="mock-col-head h-hold">On hold</div>
+                <div class="mock-card"><div class="bar" style="width:75%"></div><div class="bar dot" style="width:48%"></div></div>
+                <div class="mock-card"><div class="bar" style="width:62%"></div><div class="bar dot" style="width:52%"></div></div>
+                <div class="mock-card"><div class="bar" style="width:78%"></div><div class="bar dot" style="width:38%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= SOCIAL PROOF ================= -->
+  <section class="proof">
+    <div class="wrap">
+      <p class="proof-label">Trusted by deal teams at</p>
+      <div class="logos">
+        <span class="lg-serif">Meridian Capital</span>
+        <span class="lg-caps">Atlas Partners</span>
+        <span class="lg-light">Northgate</span>
+        <span class="lg-italic">Vantara Group</span>
+        <span class="lg-smallcaps">Stonehaven</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FEATURES ================= -->
+  <section class="section" id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="pill">Core capabilities</span>
+        <h2>Everything in one<br/><span class="grad">radar screen.</span></h2>
+        <p>Two automated ingestion pipelines continuously monitor public filings, transcripts, and news — so your team spends time on deals, not on hunting for signals.</p>
+      </div>
+      <div class="grid-3">
+        <div class="card reveal"><div class="card-icon"><i class="ti ti-file-text"></i></div>
+          <h3>SEC filing ingestion</h3>
+          <p>Automatically parses 8-K, S-4, and 10-K filings from EDGAR the moment they are published, extracting divestiture signals with source attribution.</p></div>
+        <div class="card reveal"><div class="card-icon"><i class="ti ti-microphone"></i></div>
+          <h3>Earnings call parsing</h3>
+          <p>Transcripts from quarterly earnings calls are chunked and scanned for carveout language, strategic review signals, and advisor mandate announcements.</p></div>
+        <div class="card reveal"><div class="card-icon"><i class="ti ti-world"></i></div>
+          <h3>News signal detection</h3>
+          <p>Google Search and PE Wire RSS feeds continuously monitor private asset activity, capturing deal signals that never appear in regulatory filings.</p></div>
+        <div class="card reveal"><div class="card-icon"><i class="ti ti-cpu"></i></div>
+          <h3>LLM extraction engine</h3>
+          <p>Every signal passes through Claude to extract company name, deal stage, confidence level, and the exact quote that triggered the classification.</p></div>
+        <div class="card reveal"><div class="card-icon"><i class="ti ti-layout-board"></i></div>
+          <h3>Live deal radar</h3>
+          <p>A Kanban board showing every tracked company sorted by stage — In market, Monitor for exit, On hold — updated in real time as new signals arrive.</p></div>
+        <div class="card reveal"><div class="card-icon"><i class="ti ti-shield-check"></i></div>
+          <h3>Analyst review queue</h3>
+          <p>Low-confidence signals and conflicting sources are flagged for human review before updating the radar, keeping data quality high at scale.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HOW IT WORKS ================= -->
+  <section class="section section--alt" id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="pill">How it works</span>
+        <h2>From raw signal<br/><span class="grad">to deal insight.</span></h2>
+      </div>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">01</div>
+          <div class="step-icon"><i class="ti ti-antenna"></i></div>
+          <h3>Signals are ingested automatically</h3>
+          <p>Every 6 hours, Arbor queries SEC EDGAR for new filings. Every 12 hours, it scans Google News and PE Wire for private asset signals. No manual monitoring required.</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">02</div>
+          <div class="step-icon"><i class="ti ti-brain"></i></div>
+          <h3>Claude extracts structured intelligence</h3>
+          <p>Each raw signal is sent to Claude with a structured extraction prompt. The model returns company name, deal stage, confidence score, and the exact sentence that justified the classification.</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">03</div>
+          <div class="step-icon"><i class="ti ti-radar"></i></div>
+          <h3>Your radar updates in real time</h3>
+          <p>Confirmed signals update the radar immediately. Low-confidence signals go to the analyst review queue. Your team sees only verified, sourced deal movements.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= METRICS ================= -->
+  <section class="section">
+    <div class="wrap">
+      <div class="stats">
+        <div class="stat reveal">
+          <div class="stat-num" data-target="1000" data-suffix="+">0</div>
+          <div class="stat-label">Companies tracked</div>
+        </div>
+        <div class="stat reveal">
+          <div class="stat-num" data-target="2">0</div>
+          <div class="stat-label">Automated pipelines</div>
+        </div>
+        <div class="stat reveal">
+          <div class="stat-num" data-target="4" data-prefix="&lt;" data-suffix="h">0</div>
+          <div class="stat-label">Avg. signal detection time</div>
+        </div>
+      </div>
+      <div class="quote reveal">
+        <blockquote>“We used to spend two hours a day reading filings. Arbor does it overnight.”</blockquote>
+        <cite>— Head of Coverage, Mid-market PE firm</cite>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PRICING ================= -->
+  <section class="section section--alt" id="pricing">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="pill">Pricing</span>
+        <h2>Simple,<br/><span class="grad">transparent pricing.</span></h2>
+        <p>Start free. Scale as your deal flow grows.</p>
+      </div>
+      <div class="prices">
+        <!-- Starter -->
+        <div class="price reveal">
+          <div class="price-name">Starter</div>
+          <div class="price-amt">$0<span> / month</span></div>
+          <div class="price-sub">For individual analysts</div>
+          <ul>
+            <li><i class="ti ti-check"></i>Up to 50 tracked companies</li>
+            <li><i class="ti ti-check"></i>Manual deal entry only</li>
+            <li><i class="ti ti-check"></i>Radar + feed views</li>
+            <li><i class="ti ti-check"></i>1 user seat</li>
+            <li><i class="ti ti-check"></i>7-day signal history</li>
+          </ul>
+          <a class="btn btn-ghost" href="/signup">Get started free</a>
+        </div>
+        <!-- Pro -->
+        <div class="price pro reveal">
+          <div class="price-popular">Most popular</div>
+          <div class="price-name">Pro</div>
+          <div class="price-amt">$299<span> / month</span></div>
+          <div class="price-sub">For active deal teams</div>
+          <ul>
+            <li><i class="ti ti-check"></i>Up to 500 tracked companies</li>
+            <li><i class="ti ti-check"></i>Carveout pipeline (SEC + transcripts)</li>
+            <li><i class="ti ti-check"></i>Private asset pipeline (Google + RSS)</li>
+            <li><i class="ti ti-check"></i>LLM signal extraction</li>
+            <li><i class="ti ti-check"></i>Analyst review queue</li>
+            <li><i class="ti ti-check"></i>5 user seats</li>
+            <li><i class="ti ti-check"></i>Full signal history</li>
+            <li><i class="ti ti-check"></i>Slack + email alerts</li>
+          </ul>
+          <a class="btn btn-primary" href="/signup">Start free trial</a>
+          <p class="price-fine">14-day free trial, no card required</p>
+        </div>
+        <!-- Enterprise -->
+        <div class="price reveal">
+          <div class="price-name">Enterprise</div>
+          <div class="price-amt">Custom</div>
+          <div class="price-sub">For large coverage teams</div>
+          <ul>
+            <li><i class="ti ti-check"></i>Unlimited companies</li>
+            <li><i class="ti ti-check"></i>All pipelines + custom sources</li>
+            <li><i class="ti ti-check"></i>Dedicated ingestion schedule</li>
+            <li><i class="ti ti-check"></i>Unlimited user seats</li>
+            <li><i class="ti ti-check"></i>SSO + audit logs</li>
+            <li><i class="ti ti-check"></i>SLA + dedicated support</li>
+            <li><i class="ti ti-check"></i>API access</li>
+          </ul>
+          <a class="btn btn-ghost" href="/login">Contact us</a>
+        </div>
+      </div>
+      <p class="price-foot">All plans include SOC 2 compliant data handling and 99.9% uptime SLA.</p>
+    </div>
+  </section>
+
+  <!-- ================= FAQ ================= -->
+  <section class="section" id="faq">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="pill">FAQ</span>
+        <h2>Common questions.</h2>
+      </div>
+      <div class="faq-grid">
+        <div class="faq-item">
+          <button class="faq-q">How does Arbor find private company deals?<span class="sign">+</span></button>
+          <div class="faq-a"><p>The private asset pipeline queries Google Custom Search for each tracked company using deal-specific keywords. It also monitors PE Wire and Reuters M&amp;A RSS feeds continuously for new signals about sponsor-backed companies.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">How accurate is the LLM extraction?<span class="sign">+</span></button>
+          <div class="faq-a"><p>Signals are classified with a confidence score. High-confidence signals update the radar automatically. Low-confidence signals go to the analyst review queue for human verification before any stage change is made.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">What sources does the carveout pipeline use?<span class="sign">+</span></button>
+          <div class="faq-a"><p>SEC EDGAR full-text search for 8-K, S-4, and 10-K filings. Earnings call transcripts from public sources. Both are queried on a 6-hour schedule.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Can I add companies manually?<span class="sign">+</span></button>
+          <div class="faq-a"><p>Yes. Any company can be added to the tracker manually and assigned a stage and confidence level. Manual entries are tracked alongside automated signals.</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">How many users can access Arbor?<span class="sign">+</span></button>
+          <div class="faq-a"><p>The Starter plan includes 1 seat. Pro includes 5. Enterprise plans support unlimited seats with role-based access control (analyst and admin roles).</p></div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-q">Is my deal data private?<span class="sign">+</span></button>
+          <div class="faq-a"><p>Yes. Each team's data is fully isolated with row-level security. Arbor does not share, sell, or use your tracked companies or analyst notes for any purpose.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FINAL CTA ================= -->
+  <section class="section--alt" style="padding:1px 0;">
+    <div class="wrap">
+      <div class="final reveal">
+        <div class="final-glow"></div>
+        <h2>Your deal radar is waiting.</h2>
+        <p>Start tracking carveouts and private assets today. No setup required. First signals in under an hour.</p>
+        <div class="final-ctas">
+          <a class="btn btn-primary" href="/signup">Get started free</a>
+          <a class="btn btn-ghost" href="/login">Book a demo</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FOOTER ================= -->
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-cols">
+        <div class="footer-brand">
+          <a class="brand" href="#top">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="9" cy="12" r="6.4" stroke="#0EA5E9" stroke-width="1.6"/>
+              <circle cx="15" cy="12" r="6.4" stroke="#0EA5E9" stroke-width="1.6"/>
+            </svg>
+            Arbor
+          </a>
+          <p>M&amp;A deal intelligence for active coverage teams.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="Twitter"><i class="ti ti-brand-twitter"></i></a>
+            <a href="#" aria-label="LinkedIn"><i class="ti ti-brand-linkedin"></i></a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#">Changelog</a>
+          <a href="#">Roadmap</a>
+        </div>
+        <div class="footer-col">
+          <h4>Company</h4>
+          <a href="#">About</a>
+          <a href="#">Blog</a>
+          <a href="#">Careers</a>
+          <a href="#">Contact</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Security</a>
+          <a href="#">SOC 2</a>
+        </div>
+      </div>
+      <div class="footer-bar">
+        <span>© 2026 Arbor. All rights reserved.</span>
+        <span>Built for deal professionals.</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ---------- hamburger ----------
+    (function () {
+      var btn = document.getElementById('hamburger');
+      var links = document.getElementById('navLinks');
+      if (btn && links) {
+        btn.addEventListener('click', function () {
+          links.classList.toggle('open');
+        });
+        links.querySelectorAll('a').forEach(function (a) {
+          a.addEventListener('click', function () { links.classList.remove('open'); });
+        });
+      }
+    })();
+
+    // ---------- FAQ accordion ----------
+    document.querySelectorAll('.faq-q').forEach(function (q) {
+      q.addEventListener('click', function () {
+        var item = q.parentElement;
+        var ans = q.nextElementSibling;
+        var sign = q.querySelector('.sign');
+        var open = item.classList.toggle('open');
+        if (open) {
+          ans.style.maxHeight = ans.scrollHeight + 'px';
+          sign.textContent = '−';
+        } else {
+          ans.style.maxHeight = '0px';
+          sign.textContent = '+';
+        }
+      });
+    });
+
+    // ---------- scroll reveal + count-up ----------
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function runCount(el) {
+      var target = parseFloat(el.getAttribute('data-target'));
+      var prefix = el.getAttribute('data-prefix') || '';
+      var suffix = el.getAttribute('data-suffix') || '';
+      // decode any HTML entity (e.g. &lt;) the attribute may carry
+      var tmp = document.createElement('textarea'); tmp.innerHTML = prefix; prefix = tmp.value;
+      var dur = 1200, start = null;
+      function fmt(n) { return prefix + n.toLocaleString('en-US') + suffix; }
+      function tick(ts) {
+        if (start === null) start = ts;
+        var p = Math.min((ts - start) / dur, 1);
+        var eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+        el.textContent = fmt(Math.round(target * eased));
+        if (p < 1) requestAnimationFrame(tick);
+        else el.textContent = fmt(target);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    if (reduce || !('IntersectionObserver' in window)) {
+      document.querySelectorAll('.reveal').forEach(function (el) { el.classList.add('is-visible'); });
+      document.querySelectorAll('.stat-num').forEach(function (el) {
+        var prefix = el.getAttribute('data-prefix') || '';
+        var tmp = document.createElement('textarea'); tmp.innerHTML = prefix; prefix = tmp.value;
+        el.textContent = prefix + parseFloat(el.getAttribute('data-target')).toLocaleString('en-US') + (el.getAttribute('data-suffix') || '');
+      });
+    } else {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          var el = entry.target;
+          el.classList.add('is-visible');
+          var nums = el.querySelectorAll ? el.querySelectorAll('.stat-num') : [];
+          if (el.classList.contains('stat')) {
+            var n = el.querySelector('.stat-num');
+            if (n && !n.dataset.done) { n.dataset.done = '1'; runCount(n); }
+          }
+          io.unobserve(el);
+        });
+      }, { threshold: 0.1 });
+
+      // stagger feature/pricing cards via transition-delay
+      function stagger(selector) {
+        document.querySelectorAll(selector).forEach(function (el, i) {
+          el.style.transitionDelay = (i % 4 * 0.1) + 's';
+        });
+      }
+      stagger('#features .card');
+      stagger('#pricing .price');
+
+      document.querySelectorAll('.reveal').forEach(function (el) { io.observe(el); });
+    }
+  </script>
+</body>
+</html>

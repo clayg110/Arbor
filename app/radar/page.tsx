@@ -74,10 +74,22 @@ export default function RadarPage() {
   );
   const [added, setAdded] = useState<RadarCompany[]>([]);
   const liveCompanies = live.data.companies;
-  const companies = useMemo(
-    () => (added.length ? [...added, ...liveCompanies] : liveCompanies),
-    [added, liveCompanies]
-  );
+
+  // Drag-to-move (kanban): optimistic stage overrides + active-drag tracking.
+  const [stageOverride, setStageOverride] = useState<Record<string, Stage>>({});
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragStage, setDragStage] = useState<Stage | null>(null);
+  const [dropCol, setDropCol] = useState<string | null>(null);
+
+  const companies = useMemo(() => {
+    const base = added.length ? [...added, ...liveCompanies] : liveCompanies;
+    if (Object.keys(stageOverride).length === 0) return base;
+    return base.map((c) =>
+      stageOverride[c.id]
+        ? { ...c, stage: stageOverride[c.id], pulled: stageOverride[c.id] === "pulled" || undefined }
+        : c
+    );
+  }, [added, liveCompanies, stageOverride]);
   const summary = live.data.summary ?? summaryStrip;
   const sectors = live.data.sectorSummary.length ? live.data.sectorSummary : sectorSummary;
   const sponsorOpts = useMemo(
@@ -133,6 +145,40 @@ export default function RadarPage() {
     (had ? api.removeWatch(id) : api.addWatch(id)).catch((e) => {
       if (!(e instanceof BackendOff)) toggleSet(setWatch, id);
     });
+  }
+
+  function clearOverride(id: string) {
+    setStageOverride((p) => {
+      const n = { ...p };
+      delete n[id];
+      return n;
+    });
+  }
+
+  function endDrag() {
+    setDragId(null);
+    setDragStage(null);
+    setDropCol(null);
+  }
+
+  // Drop a card on a column → optimistic stage move + persist. BackendOff (mock
+  // mode) keeps the optimistic move; a real failure reverts. In live mode we
+  // refetch then drop the override so the canonical row takes over.
+  function handleStageDrop(target: Stage) {
+    const id = dragId;
+    const from = dragStage;
+    endDrag();
+    if (!id || from === target) return;
+    setStageOverride((p) => ({ ...p, [id]: target }));
+    api
+      .setStage(id, target)
+      .then(async () => {
+        if (live.source === "live") await live.reload();
+        clearOverride(id);
+      })
+      .catch((e) => {
+        if (!(e instanceof BackendOff)) clearOverride(id);
+      });
   }
 
   const filtered = useMemo(() => {
@@ -404,8 +450,29 @@ export default function RadarPage() {
             const limit = shown[col.id] ?? 15;
             const visible = cards.slice(0, limit);
             const accent = STAGE_COLORS[col.color].border ?? "#888";
+            const isDropTarget = dropCol === col.id && !!dragId && dragStage !== col.color;
             return (
-              <section key={col.id} className="rounded-lg bg-surface" style={{ border: "0.5px solid var(--border)" }}>
+              <section
+                key={col.id}
+                className="rounded-lg bg-surface transition-colors"
+                style={{
+                  border: isDropTarget ? `1.5px solid ${accent}` : "0.5px solid var(--border)",
+                  backgroundColor: isDropTarget ? `${accent}0D` : undefined,
+                }}
+                onDragOver={(e) => {
+                  if (!dragId) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setDropCol(col.id);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropCol(null);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleStageDrop(col.color);
+                }}
+              >
                 <span className="block h-[3px] rounded-t-lg" style={{ backgroundColor: accent }} />
                 <header className="flex items-center justify-between gap-2 px-3 py-2">
                   <div className="flex items-center gap-2">
@@ -443,6 +510,15 @@ export default function RadarPage() {
                         c={c}
                         watched={watch.has(c.id)}
                         onToggleWatch={() => toggleWatch(c.id)}
+                        draggable
+                        dragging={dragId === c.id}
+                        onCardDragStart={(e) => {
+                          setDragId(c.id);
+                          setDragStage(c.stage);
+                          e.dataTransfer.effectAllowed = "move";
+                          e.dataTransfer.setData("text/plain", c.id);
+                        }}
+                        onCardDragEnd={endDrag}
                       />
                     ))}
                     {cards.length === 0 && <p className="py-8 text-center text-[11px] text-subtle">No companies</p>}

@@ -2,8 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/db";
 
-// Public paths (no auth required).
-const PUBLIC = ["/login", "/signup", "/forgot-password", "/auth"];
+// Public paths (no auth required). /landing is the marketing page.
+const PUBLIC = ["/login", "/signup", "/forgot-password", "/auth", "/landing"];
 
 export async function updateSession(request: NextRequest) {
   // Mock mode: no Supabase env → skip auth entirely so the app stays usable.

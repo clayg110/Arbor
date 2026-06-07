@@ -6,6 +6,7 @@ import { fetchRssSignals } from "@/lib/ingest/rss";
 import { processSignal, type Outcome } from "@/lib/ingest/persist";
 import { cronGuard } from "@/lib/ingest/guard";
 import { acquireLock } from "@/lib/redis/lock";
+import { notifyPipelineFailure, notifyPipelineCrash } from "@/lib/alerts";
 
 export const maxDuration = 60;
 
@@ -96,6 +97,15 @@ async function run(request: NextRequest) {
     ok: counts.errors === 0,
   });
 
+  await notifyPipelineFailure({
+    pipeline: "private-assets",
+    fetched: counts.scanned,
+    created: counts.created,
+    updated: counts.updated,
+    flagged: counts.flagged,
+    errors: counts.errors,
+  });
+
   return NextResponse.json({
     ok: true,
     pipeline: "private-assets",
@@ -103,6 +113,16 @@ async function run(request: NextRequest) {
     rssItems: rss.length,
     ...counts,
   });
+  } catch (err) {
+    try {
+      await createServiceClient()
+        .from("pipeline_runs")
+        .insert({ pipeline: "private-assets", fetched: 0, created: 0, updated: 0, flagged: 0, errors: 1, ok: false });
+    } catch {
+      // recording the failure is best-effort
+    }
+    await notifyPipelineCrash("private-assets", err);
+    return NextResponse.json({ ok: false, error: "Pipeline crashed" }, { status: 500 });
   } finally {
     await lock.release();
   }

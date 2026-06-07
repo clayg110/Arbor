@@ -1,20 +1,10 @@
-import { NextResponse, type NextRequest } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend } from "@/lib/api/respond";
-import { getSessionUser, type SessionUser } from "@/lib/api/auth";
+import { type NextRequest } from "next/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
+import { requireAdmin } from "@/lib/api/auth";
+import { auditAs } from "@/lib/audit";
 
 const ROLES = ["analyst", "admin"];
-
-// Shared admin gate. `res` set → return it; otherwise `user` is the admin.
-async function requireAdmin(): Promise<
-  { res: NextResponse; user: null } | { res: null; user: SessionUser }
-> {
-  const supabase = createClient();
-  const user = await getSessionUser(supabase);
-  if (!user) return { res: fail("Unauthorized", 401), user: null };
-  if (user.role !== "admin") return { res: fail("Forbidden", 403), user: null };
-  return { res: null, user };
-}
 
 // GET /api/admin/users — admin only. Lists auth users via the service role.
 export async function GET() {
@@ -25,7 +15,7 @@ export async function GET() {
 
   const svc = createServiceClient();
   const { data, error } = await svc.auth.admin.listUsers();
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
 
   const users = data.users.map((u) => ({
     id: u.id,
@@ -59,12 +49,18 @@ export async function PATCH(request: NextRequest) {
 
   const svc = createServiceClient();
   const { data: existing, error: getErr } = await svc.auth.admin.getUserById(body.userId);
-  if (getErr) return fail(getErr.message, 500);
+  if (getErr) return serverError(getErr);
 
   const { error } = await svc.auth.admin.updateUserById(body.userId, {
     user_metadata: { ...(existing.user?.user_metadata ?? {}), role: body.role },
   });
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
+
+  await auditAs(gate.user, "user.role_change", {
+    entityType: "user",
+    entityId: body.userId,
+    metadata: { role: body.role },
+  });
 
   return ok({ ok: true, userId: body.userId, role: body.role });
 }
@@ -91,8 +87,17 @@ export async function POST(request: NextRequest) {
     password: body.password,
     email_confirm: true,
     user_metadata: { role, name: body.name?.trim() || body.email.split("@")[0] },
+    // New users inherit the creating admin's org (membership/invite). app_metadata
+    // is not user-editable and rides in the JWT for org-scoped RLS.
+    app_metadata: gate.user.orgId ? { org_id: gate.user.orgId } : {},
   });
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
+
+  await auditAs(gate.user, "user.create", {
+    entityType: "user",
+    entityId: data.user.id,
+    metadata: { email: body.email, role },
+  });
 
   const u = data.user;
   return ok({

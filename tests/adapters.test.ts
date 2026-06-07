@@ -91,7 +91,7 @@ describe("toRangeStats", () => {
 describe("toNotes", () => {
   it("derives initials and carries userId for ownership checks", () => {
     const row: DbNote = {
-      id: "n1", company_id: "uuid-1", user_id: "user-9",
+      id: "n1", company_id: "uuid-1", user_id: "user-9", org_id: null,
       author: "Ashwin Singh", content: "Looks active.",
       created_at: new Date().toISOString(),
     };

@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend, csv } from "@/lib/api/respond";
+import { ok, requireBackend, csv, safeFilterValue, serverError } from "@/lib/api/respond";
 import {
   hasTypesenseEnv,
   typesenseClient,
@@ -85,13 +85,14 @@ export async function GET(request: NextRequest) {
   if (confidence.length) query = query.in("confidence", confidence as Confidence[]);
   if (stages.length) query = query.in("current_stage", stages as Stage[]);
   if (q) {
+    const qq = safeFilterValue(q);
     query = query.or(
-      `name.ilike.%${q}%,sponsor_firm.ilike.%${q}%,parent_company.ilike.%${q}%`
+      `name.ilike.%${qq}%,sponsor_firm.ilike.%${qq}%,parent_company.ilike.%${qq}%`
     );
   }
 
   const { data, error } = await query;
-  if (error) return fail(error.message, 500);
+  if (error) return serverError(error);
 
   const hits = (data ?? []).map((r) => ({
     document: {

@@ -6,6 +6,7 @@ import type { Database, LlmOutput, DbFeedEvent, DbCompany } from "@/types/db";
 import type { Stage, SourceType } from "@/lib/types";
 import type { ExtractedSignal } from "@/lib/extract-signal";
 import { resolveCompany } from "./resolve";
+import { fetchLogoUrl } from "./logo";
 
 type Svc = SupabaseClient<Database>;
 
@@ -135,8 +136,10 @@ export async function processSignal(
     return { outcome: "matched_nochange", companyId: match.id };
   }
 
-  // No match → create a needs_review company.
+  // No match → create a needs_review company. Best-effort logo enrichment
+  // (null on miss → initials placeholder in the UI).
   const stage: Stage = ex.stage ?? "in_market";
+  const logoUrl = await fetchLogoUrl(ex.company_name);
   const { data: created } = await svc
     .from("companies")
     .insert({
@@ -147,6 +150,7 @@ export async function processSignal(
       sponsor_firm: ex.sponsor_firm ?? null,
       confidence: "needs_review",
       current_stage: stage,
+      logo_url: logoUrl,
       ...fin,
     })
     .select("id")
