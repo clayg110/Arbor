@@ -1,10 +1,18 @@
 import { type NextRequest } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
+import { ok, fail, requireBackend, serverError, tooMany } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { auditAs } from "@/lib/audit";
+import { rateLimit } from "@/lib/redis/ratelimit";
+import { parseJson } from "@/lib/validation";
 import { toNotes } from "@/lib/adapters";
 import type { DbNote } from "@/types/db";
+
+const noteSchema = z.object({
+  companyId: z.string().min(1).max(64),
+  content: z.string().trim().min(1, "required").max(5000),
+});
 
 // POST /api/notes — { companyId, content } add an analyst note.
 export async function POST(request: NextRequest) {
@@ -15,15 +23,12 @@ export async function POST(request: NextRequest) {
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
-  let body: { companyId?: string; content?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return fail("Invalid JSON body");
-  }
-  if (!body.companyId || !body.content?.trim()) {
-    return fail("companyId and content required");
-  }
+  const limit = await rateLimit(user.id, { limit: 60, window: "1 m", prefix: "write:note" });
+  if (!limit.ok) return tooMany(limit.reset);
+
+  const parsed = await parseJson(request, noteSchema);
+  if (!parsed.ok) return parsed.res;
+  const body = parsed.data;
 
   const { data, error } = await supabase
     .from("analyst_notes")
@@ -32,7 +37,7 @@ export async function POST(request: NextRequest) {
       user_id: user.id,
       org_id: user.orgId,
       author: user.email,
-      content: body.content.trim(),
+      content: body.content,
     })
     .select("*")
     .single();

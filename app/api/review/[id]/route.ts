@@ -1,9 +1,15 @@
 import { type NextRequest } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { auditAs } from "@/lib/audit";
-import type { Stage } from "@/lib/types";
+import { parseJson, stageEnum } from "@/lib/validation";
+
+const reviewSchema = z.object({
+  action: z.enum(["confirm", "override"]),
+  stage: stageEnum.optional(),
+});
 
 // POST /api/review/[id] — { action: "confirm" | "override", stage? }
 export async function POST(
@@ -17,12 +23,9 @@ export async function POST(
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
-  let body: { action?: string; stage?: Stage };
-  try {
-    body = await request.json();
-  } catch {
-    return fail("Invalid JSON body");
-  }
+  const parsed = await parseJson(request, reviewSchema);
+  if (!parsed.ok) return parsed.res;
+  const body = parsed.data;
 
   if (body.action === "confirm") {
     const { error } = await supabase

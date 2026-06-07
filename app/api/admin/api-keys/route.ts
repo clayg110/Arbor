@@ -1,16 +1,26 @@
 import { type NextRequest } from "next/server";
+import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { requireAdmin } from "@/lib/api/auth";
 import { generateApiKey } from "@/lib/api-keys";
 import { auditAs } from "@/lib/audit";
+import { parseJson } from "@/lib/validation";
 import type { DbApiKey } from "@/types/db";
+
+const createSchema = z.object({
+  name: z.string().trim().min(1, "required").max(80),
+  expiresInDays: z.number().int().positive().max(3650).optional(),
+  scopes: z.array(z.string().max(40)).max(20).optional(),
+});
 
 function publicView(k: DbApiKey) {
   return {
     id: k.id,
     name: k.name,
     prefix: k.key_prefix,
+    scopes: k.scopes ?? [],
+    expiresAt: k.expires_at,
     lastUsedAt: k.last_used_at,
     revokedAt: k.revoked_at,
     createdAt: k.created_at,
@@ -44,14 +54,13 @@ export async function POST(request: NextRequest) {
   if (gate.res) return gate.res;
   if (!gate.user.orgId) return fail("No organization assigned", 409);
 
-  let body: { name?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return fail("Invalid JSON body");
-  }
-  const name = body.name?.trim();
-  if (!name) return fail("name required");
+  const parsed = await parseJson(request, createSchema);
+  if (!parsed.ok) return parsed.res;
+  const { name, expiresInDays, scopes } = parsed.data;
+
+  const expiresAt = expiresInDays
+    ? new Date(Date.now() + expiresInDays * 86_400_000).toISOString()
+    : null;
 
   const key = generateApiKey();
   const svc = createServiceClient();
@@ -63,6 +72,8 @@ export async function POST(request: NextRequest) {
       name,
       key_prefix: key.prefix,
       key_hash: key.hash,
+      scopes: scopes ?? [],
+      expires_at: expiresAt,
     })
     .select("*")
     .single();
@@ -71,7 +82,7 @@ export async function POST(request: NextRequest) {
   await auditAs(gate.user, "api_key.create", {
     entityType: "api_key",
     entityId: (data as DbApiKey).id,
-    metadata: { name },
+    metadata: { name, expiresInDays: expiresInDays ?? null, scopes: scopes ?? [] },
   });
 
   // plaintext is returned here and never again

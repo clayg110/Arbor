@@ -1,8 +1,11 @@
 import { type NextRequest } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend, csv, safeFilterValue, serverError } from "@/lib/api/respond";
+import { ok, fail, requireBackend, csv, safeFilterValue, serverError, tooMany } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { auditAs } from "@/lib/audit";
+import { rateLimit } from "@/lib/redis/ratelimit";
+import { parseJson, sectorEnum, dealTypeEnum, stageEnum, confidenceEnum } from "@/lib/validation";
 import {
   toRadarCompany,
   toSummaryStrip,
@@ -14,15 +17,20 @@ import type {
   SummaryCountsRow,
   SectorStageRow,
 } from "@/types/db";
-import { SECTORS } from "@/lib/colors";
 import type { Confidence, Sector, DealType, Stage } from "@/lib/types";
 
 const CONF_RANK: Record<Confidence, number> = { high: 4, medium: 3, low: 2, needs_review: 1 };
 
-const SECTORS_SET = new Set<Sector>(SECTORS);
-const DEALS_SET = new Set<DealType>(["carveout", "private_asset"]);
-const STAGES_SET = new Set<Stage>(["in_market", "monitor_for_exit", "on_hold", "pulled"]);
-const CONF_SET = new Set<Confidence>(["high", "medium", "low", "needs_review"]);
+const createCompanySchema = z.object({
+  name: z.string().trim().min(1, "required").max(200),
+  sector: sectorEnum,
+  dealType: dealTypeEnum,
+  sponsorFirm: z.string().trim().max(200).nullish(),
+  parentCompany: z.string().trim().max(200).nullish(),
+  stage: stageEnum.optional(),
+  confidence: confidenceEnum.optional(),
+  description: z.string().trim().max(2000).nullish(),
+});
 
 // GET /api/companies — radar list (filters + sort) + summary strip + sector cards.
 export async function GET(request: NextRequest) {
@@ -130,35 +138,20 @@ export async function POST(request: NextRequest) {
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
-  let body: {
-    name?: string;
-    sector?: string;
-    dealType?: string;
-    sponsorFirm?: string | null;
-    parentCompany?: string | null;
-    stage?: string;
-    confidence?: string;
-    description?: string | null;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return fail("Invalid JSON body");
-  }
+  const limit = await rateLimit(user.id, { limit: 30, window: "1 m", prefix: "write:company" });
+  if (!limit.ok) return tooMany(limit.reset);
 
-  if (!body.name?.trim()) return fail("name required");
-  if (!body.sector || !SECTORS_SET.has(body.sector as Sector)) return fail("valid sector required");
-  if (!body.dealType || !DEALS_SET.has(body.dealType as DealType)) return fail("valid dealType required");
-  const stage: Stage = body.stage && STAGES_SET.has(body.stage as Stage) ? (body.stage as Stage) : "in_market";
-  const confidence: Confidence =
-    body.confidence && CONF_SET.has(body.confidence as Confidence)
-      ? (body.confidence as Confidence)
-      : "needs_review";
+  const parsed = await parseJson(request, createCompanySchema);
+  if (!parsed.ok) return parsed.res;
+  const body = parsed.data;
+
+  const stage: Stage = (body.stage as Stage) ?? "in_market";
+  const confidence: Confidence = (body.confidence as Confidence) ?? "needs_review";
 
   const { data: created, error } = await supabase
     .from("companies")
     .insert({
-      name: body.name.trim(),
+      name: body.name,
       sector: body.sector as Sector,
       deal_type: body.dealType as DealType,
       sponsor_firm: body.sponsorFirm?.trim() || null,

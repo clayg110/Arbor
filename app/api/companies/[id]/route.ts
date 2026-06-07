@@ -1,8 +1,10 @@
 import { type NextRequest } from "next/server";
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { auditAs } from "@/lib/audit";
+import { parseJson, stageEnum, confidenceEnum } from "@/lib/validation";
 import {
   toCompanyProfile,
   toStageHistory,
@@ -10,7 +12,13 @@ import {
   toNotes,
 } from "@/lib/adapters";
 import type { DbCompany, DbHistory, DbSignal, DbNote } from "@/types/db";
-import type { Stage, Confidence } from "@/lib/types";
+
+const patchSchema = z.object({
+  action: z.enum(["override", "confirm", "mark_review"]).optional(),
+  stage: stageEnum.optional(),
+  confidence: confidenceEnum.optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
 
 // GET /api/companies/[id] — full profile bundle.
 export async function GET(
@@ -60,12 +68,9 @@ export async function PATCH(
   if (guard) return guard;
 
   const { id } = params;
-  let body: { action?: string; stage?: Stage; confidence?: Confidence; notes?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return fail("Invalid JSON body");
-  }
+  const parsed = await parseJson(request, patchSchema);
+  if (!parsed.ok) return parsed.res;
+  const body = parsed.data;
 
   const supabase = createClient();
   const user = await getSessionUser(supabase);

@@ -1,10 +1,18 @@
 import { type NextRequest } from "next/server";
+import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { requireAdmin } from "@/lib/api/auth";
 import { auditAs } from "@/lib/audit";
+import { parseJson, roleEnum } from "@/lib/validation";
 
-const ROLES = ["analyst", "admin"];
+const roleChangeSchema = z.object({ userId: z.string().min(1), role: roleEnum });
+const createUserSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8, "min 8 chars").max(200),
+  role: roleEnum.optional(),
+  name: z.string().trim().max(120).optional(),
+});
 
 // GET /api/admin/users — admin only. Lists auth users via the service role.
 export async function GET() {
@@ -35,14 +43,9 @@ export async function PATCH(request: NextRequest) {
   const gate = await requireAdmin();
   if (gate.res) return gate.res;
 
-  let body: { userId?: string; role?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return fail("Invalid JSON body");
-  }
-  if (!body.userId || !body.role) return fail("userId and role required");
-  if (!ROLES.includes(body.role)) return fail("Invalid role");
+  const parsed = await parseJson(request, roleChangeSchema);
+  if (!parsed.ok) return parsed.res;
+  const body = parsed.data;
   if (body.userId === gate.user.id && body.role !== "admin") {
     return fail("You cannot remove your own admin role");
   }
@@ -72,14 +75,10 @@ export async function POST(request: NextRequest) {
   const gate = await requireAdmin();
   if (gate.res) return gate.res;
 
-  let body: { email?: string; password?: string; role?: string; name?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return fail("Invalid JSON body");
-  }
-  if (!body.email || !body.password) return fail("email and password required");
-  const role = body.role && ROLES.includes(body.role) ? body.role : "analyst";
+  const parsed = await parseJson(request, createUserSchema);
+  if (!parsed.ok) return parsed.res;
+  const body = parsed.data;
+  const role = body.role ?? "analyst";
 
   const svc = createServiceClient();
   const { data, error } = await svc.auth.admin.createUser({

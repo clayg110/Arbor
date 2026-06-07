@@ -1,18 +1,35 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
+import { fail, requireBackend, serverError, tooMany } from "@/lib/api/respond";
 import { bearerFrom, verifyApiKey } from "@/lib/api-keys";
+import { rateLimit, clientIp } from "@/lib/redis/ratelimit";
 import { logAudit } from "@/lib/audit";
 import type { DbCompany } from "@/types/db";
 import type { Sector, DealType, Stage } from "@/lib/types";
 
 export const maxDuration = 30;
 
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
+// CORS preflight.
+export function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS });
+}
+
 // Public read API. Authenticate with `Authorization: Bearer arbor_...`.
 // GET /api/v1/companies?sector=&deal=&stage=&limit=&offset=
 export async function GET(request: NextRequest) {
   const guard = requireBackend();
   if (guard) return guard;
+
+  // Throttle invalid-key spam by IP before the (hashed) lookup.
+  const ipRl = await rateLimit(clientIp(request), { limit: 300, window: "1 m", prefix: "apiv1:ip" });
+  if (!ipRl.ok) return tooMany(ipRl.reset);
 
   const token = bearerFrom(request.headers.get("authorization"));
   if (!token) return fail("Missing API key", 401);
@@ -21,12 +38,16 @@ export async function GET(request: NextRequest) {
   const key = await verifyApiKey(svc, token);
   if (!key) return fail("Invalid or revoked API key", 401);
 
+  // Per-key quota.
+  const rl = await rateLimit(key.keyId, { limit: 120, window: "1 m", prefix: "apiv1:key" });
+  if (!rl.ok) return tooMany(rl.reset);
+
   const sp = request.nextUrl.searchParams;
   const sector = sp.get("sector");
   const deal = sp.get("deal");
   const stage = sp.get("stage");
-  const limit = Math.min(Number(sp.get("limit") ?? 100), 500);
-  const offset = Number(sp.get("offset") ?? 0);
+  const limit = Math.min(Math.max(Number(sp.get("limit") ?? 100), 1), 500);
+  const offset = Math.max(Number(sp.get("offset") ?? 0), 0);
 
   let query = svc.from("companies").select("*", { count: "exact" });
   if (sector) query = query.eq("sector", sector as Sector);
@@ -59,5 +80,8 @@ export async function GET(request: NextRequest) {
     metadata: { count: companies.length, filters: { sector, deal, stage } },
   });
 
-  return ok({ companies, total: count ?? companies.length, limit, offset });
+  return NextResponse.json(
+    { companies, total: count ?? companies.length, limit, offset },
+    { headers: { ...CORS, "Cache-Control": "no-store" } }
+  );
 }

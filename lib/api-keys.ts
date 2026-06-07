@@ -35,24 +35,26 @@ export function bearerFrom(header: string | null): string | null {
 export interface VerifiedKey {
   keyId: string;
   orgId: string;
+  scopes: string[];
 }
 
-// Verify a presented key against the store. Rejects revoked keys. On success,
-// bumps last_used_at (best-effort) and returns the owning org. Requires a
-// service-role client (api_keys is not client-readable).
+// Verify a presented key against the store. Rejects revoked + expired keys. On
+// success, bumps last_used_at (best-effort) and returns the owning org + scopes.
+// Requires a service-role client (api_keys is not client-readable).
 export async function verifyApiKey(svc: Svc, plaintext: string): Promise<VerifiedKey | null> {
   if (!plaintext.startsWith("arbor_")) return null;
   const hash = hashKey(plaintext);
 
   const { data, error } = await svc
     .from("api_keys")
-    .select("id, org_id, revoked_at")
+    .select("id, org_id, revoked_at, expires_at, scopes")
     .eq("key_hash", hash)
     .maybeSingle();
 
   if (error || !data || data.revoked_at) return null;
+  if (data.expires_at && Date.parse(data.expires_at) < Date.now()) return null;
 
   void svc.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
 
-  return { keyId: data.id, orgId: data.org_id };
+  return { keyId: data.id, orgId: data.org_id, scopes: data.scopes ?? [] };
 }

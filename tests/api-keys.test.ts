@@ -51,17 +51,26 @@ describe("verifyApiKey", () => {
     expect(await verifyApiKey(svc, "nope")).toBeNull();
   });
 
-  it("resolves a valid key to its org + bumps last_used_at", async () => {
+  it("resolves a valid key to its org + scopes + bumps last_used_at", async () => {
     const k = generateApiKey();
-    const { svc, updates } = makeSvc({ id: "key-1", org_id: "org-1", revoked_at: null });
+    const { svc, updates } = makeSvc({
+      id: "key-1", org_id: "org-1", revoked_at: null, expires_at: null, scopes: ["read"],
+    });
     const r = await verifyApiKey(svc, k.plaintext);
-    expect(r).toEqual({ keyId: "key-1", orgId: "org-1" });
+    expect(r).toEqual({ keyId: "key-1", orgId: "org-1", scopes: ["read"] });
     expect(updates[0]).toHaveProperty("last_used_at");
   });
 
   it("rejects revoked keys", async () => {
     const k = generateApiKey();
     const { svc } = makeSvc({ id: "key-1", org_id: "org-1", revoked_at: new Date().toISOString() });
+    expect(await verifyApiKey(svc, k.plaintext)).toBeNull();
+  });
+
+  it("rejects expired keys", async () => {
+    const k = generateApiKey();
+    const past = new Date(Date.now() - 86_400_000).toISOString();
+    const { svc } = makeSvc({ id: "key-1", org_id: "org-1", revoked_at: null, expires_at: past });
     expect(await verifyApiKey(svc, k.plaintext)).toBeNull();
   });
 });

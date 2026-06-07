@@ -163,6 +163,8 @@ export type DbApiKey = {
   name: string;
   key_prefix: string;
   key_hash: string;
+  scopes: string[];
+  expires_at: string | null;
   last_used_at: string | null;
   revoked_at: string | null;
   created_at: string;

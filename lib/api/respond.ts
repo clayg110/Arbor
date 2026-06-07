@@ -41,3 +41,12 @@ export function serverError(e: unknown, message = "Internal server error"): Next
   console.error("[api]", e);
   return NextResponse.json({ error: message }, { status: 500 });
 }
+
+// 429 helper with a Retry-After hint (seconds until the window resets).
+export function tooMany(resetMs = 0): NextResponse {
+  const retry = resetMs ? Math.max(1, Math.ceil((resetMs - Date.now()) / 1000)) : 60;
+  return NextResponse.json(
+    { error: "Rate limit exceeded" },
+    { status: 429, headers: { "Retry-After": String(retry) } }
+  );
+}
