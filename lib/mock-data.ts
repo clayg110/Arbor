@@ -226,8 +226,7 @@ export const mockCompanies: Company[] = [
     sector: "consumer_coatings",
     dealType: "private_asset",
     sponsorFirm: "American Securities",
-    description:
-      "Coating resins and additives platform within the former Hexion estate.",
+    description: "Coating resins and additives platform within the former Hexion estate.",
     confidence: "medium",
     currentStage: "monitor_for_exit",
     daysInStage: 120,
@@ -899,17 +898,15 @@ export interface VelocityWeek {
 }
 
 // 26 weeks of synthetic velocity data.
-export const mockVelocity: VelocityWeek[] = Array.from({ length: 26 }).map(
-  (_, i) => {
-    const seedA = (i * 7 + 3) % 9;
-    const seedB = (i * 5 + 2) % 7;
-    return {
-      week: `W${i + 1}`,
-      carveout: 2 + seedA,
-      private_asset: 1 + seedB,
-    };
-  }
-);
+export const mockVelocity: VelocityWeek[] = Array.from({ length: 26 }).map((_, i) => {
+  const seedA = (i * 7 + 3) % 9;
+  const seedB = (i * 5 + 2) % 7;
+  return {
+    week: `W${i + 1}`,
+    carveout: 2 + seedA,
+    private_asset: 1 + seedB,
+  };
+});
 
 export const mockDealSplit = [
   { name: "Carveouts", value: 58 },

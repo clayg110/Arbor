@@ -1,6 +1,6 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ok, requireBackend, serverError } from "@/lib/api/respond";
+import { cached, requireBackend, serverError } from "@/lib/api/respond";
 import {
   toVelocity,
   toSectorStage,
@@ -80,7 +80,11 @@ export async function GET(request: NextRequest) {
   ]);
 
   const firstError =
-    velocity.error || sectorStage.error || dealSplit.error || metrics.error || heatmap.error;
+    velocity.error ||
+    sectorStage.error ||
+    dealSplit.error ||
+    metrics.error ||
+    heatmap.error;
   if (firstError) return serverError(firstError);
 
   const sectorRows = (sectorStage.data ?? []) as SectorStageRow[];
@@ -88,21 +92,28 @@ export async function GET(request: NextRequest) {
   const metricsRow = (metrics.data?.[0] as SummaryMetricsRow | undefined) ?? null;
   const eventRow = (eventCounts.data?.[0] as EventCountsRow | undefined) ?? null;
 
-  return ok({
-    velocity: toVelocity((velocity.data ?? []) as VelocityRow[]),
-    sectorStage: toSectorStage(sectorRows),
-    dealSplit: toDealSplit((dealSplit.data ?? []) as DealSplitRow[]),
-    confidenceDist: toConfidenceDist((confidenceDist.data ?? []) as ConfidenceDistRow[]),
-    exitFunnel: toExitFunnel((exitFunnel.data ?? []) as ExitFunnelRow[]),
-    topSectors: toTopSectors((topSectors.data ?? []) as TopSectorRow[]),
-    sponsors: toSponsors((sponsors.data ?? []) as SponsorActivityRow[]),
-    signalSources: toSignalSources((signalSources.data ?? []) as SignalSourceRow[]),
-    transitionRates: toTransitionRates((transitionRates.data ?? []) as TransitionRateRow[]),
-    heatmap: toHeatmap((heatmap.data ?? []) as HeatmapRow[]),
-    recentChanges: toRecentChanges((recent.data ?? []) as RecentChangeRow[]),
-    summary: summaryRow ? toSummaryStrip(summaryRow) : null,
-    sectorSummary: toSectorSummary(sectorRows),
-    metrics: metricsRow ? toMetricValues(metricsRow) : null,
-    rangeStats: eventRow ? toRangeStats(eventRow) : null,
-  });
+  return cached(
+    {
+      velocity: toVelocity((velocity.data ?? []) as VelocityRow[]),
+      sectorStage: toSectorStage(sectorRows),
+      dealSplit: toDealSplit((dealSplit.data ?? []) as DealSplitRow[]),
+      confidenceDist: toConfidenceDist(
+        (confidenceDist.data ?? []) as ConfidenceDistRow[]
+      ),
+      exitFunnel: toExitFunnel((exitFunnel.data ?? []) as ExitFunnelRow[]),
+      topSectors: toTopSectors((topSectors.data ?? []) as TopSectorRow[]),
+      sponsors: toSponsors((sponsors.data ?? []) as SponsorActivityRow[]),
+      signalSources: toSignalSources((signalSources.data ?? []) as SignalSourceRow[]),
+      transitionRates: toTransitionRates(
+        (transitionRates.data ?? []) as TransitionRateRow[]
+      ),
+      heatmap: toHeatmap((heatmap.data ?? []) as HeatmapRow[]),
+      recentChanges: toRecentChanges((recent.data ?? []) as RecentChangeRow[]),
+      summary: summaryRow ? toSummaryStrip(summaryRow) : null,
+      sectorSummary: toSectorSummary(sectorRows),
+      metrics: metricsRow ? toMetricValues(metricsRow) : null,
+      rangeStats: eventRow ? toRangeStats(eventRow) : null,
+    },
+    60
+  );
 }

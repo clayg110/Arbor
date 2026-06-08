@@ -1,6 +1,8 @@
 // PE / M&A RSS scraping (PE Wire, Reuters-style feeds). No key required.
 // Override the feed list with INGEST_RSS_FEEDS (comma-separated).
 
+import { withRetry, throwIfRetryableStatus } from "@/lib/retry";
+
 export interface RssItem {
   rawText: string;
   sourceUrl: string;
@@ -15,7 +17,12 @@ const DEFAULT_FEEDS = [
 
 export function rssFeeds(): string[] {
   const env = process.env.INGEST_RSS_FEEDS;
-  return env ? env.split(",").map((s) => s.trim()).filter(Boolean) : DEFAULT_FEEDS;
+  return env
+    ? env
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : DEFAULT_FEEDS;
 }
 
 function clean(s: string): string {
@@ -47,7 +54,16 @@ export async function fetchRssSignals(limitPerFeed = 10): Promise<RssItem[]> {
 
   for (const feed of rssFeeds()) {
     try {
-      const res = await fetch(feed, { headers: { "User-Agent": "Arbor Research" } });
+      const res = await withRetry(
+        async () =>
+          throwIfRetryableStatus(
+            await fetch(feed, {
+              headers: { "User-Agent": "Arbor Research" },
+              signal: AbortSignal.timeout(10000),
+            })
+          ),
+        { retries: 2, baseMs: 400 }
+      );
       if (!res.ok) continue;
       const xml = await res.text();
       const items = xml.split(/<item[ >]/i).slice(1, 1 + limitPerFeed);

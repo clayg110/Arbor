@@ -26,18 +26,17 @@ import {
 } from "@/lib/colors";
 import { formatDate, daysLabel } from "@/lib/format";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
-import {
-  toCompanyProfile,
-  toStageHistory,
-  toSignals,
-  toNotes,
-} from "@/lib/adapters";
+import { toCompanyProfile, toStageHistory, toSignals, toNotes } from "@/lib/adapters";
 import type { DbCompany, DbHistory, DbSignal, DbNote } from "@/types/db";
 import type { Company, StageHistoryRecord, Signal, Note } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function CompanyPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CompanyPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   let company: Company | undefined;
   let history: StageHistoryRecord[] = [];
@@ -53,14 +52,36 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         data: { user },
       } = await sb.auth.getUser();
       currentUserId = user?.id;
-      const { data: c } = await sb.from("companies").select("*").eq("id", id).maybeSingle();
+      const { data: c } = await sb
+        .from("companies")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
       if (c) {
         const cc = c as DbCompany;
         const [{ data: h }, { data: s }, { data: n }, { data: p }] = await Promise.all([
-          sb.from("deal_stage_history").select("*").eq("company_id", cc.id).order("changed_at", { ascending: false }),
-          sb.from("signals_raw").select("*").eq("company_id", cc.id).order("ingested_at", { ascending: false }).limit(8),
-          sb.from("analyst_notes").select("*").eq("company_id", cc.id).order("created_at", { ascending: false }),
-          sb.from("companies").select("*").eq("sector", cc.sector).neq("id", cc.id).limit(4),
+          sb
+            .from("deal_stage_history")
+            .select("*")
+            .eq("company_id", cc.id)
+            .order("changed_at", { ascending: false }),
+          sb
+            .from("signals_raw")
+            .select("*")
+            .eq("company_id", cc.id)
+            .order("ingested_at", { ascending: false })
+            .limit(8),
+          sb
+            .from("analyst_notes")
+            .select("*")
+            .eq("company_id", cc.id)
+            .order("created_at", { ascending: false }),
+          sb
+            .from("companies")
+            .select("*")
+            .eq("sector", cc.sector)
+            .neq("id", cc.id)
+            .limit(4),
         ]);
         company = toCompanyProfile(cc);
         history = toStageHistory((h ?? []) as DbHistory[]);
@@ -147,9 +168,7 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                   style={{ border: "0.5px solid var(--border)" }}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-medium text-ink">
-                      {s.title}
-                    </span>
+                    <span className="text-[13px] font-medium text-ink">{s.title}</span>
                     <span className="text-[11px] font-normal text-subtle">
                       {formatDate(s.ingestedAt)}
                     </span>
@@ -177,7 +196,11 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
           </Section>
 
           <Section title="Analyst notes">
-            <AnalystNoteEditor initialNotes={notes} companyId={company.id} currentUserId={currentUserId} />
+            <AnalystNoteEditor
+              initialNotes={notes}
+              companyId={company.id}
+              currentUserId={currentUserId}
+            />
           </Section>
         </div>
 
@@ -185,20 +208,35 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
         <div className="space-y-6">
           <Section title="Company details">
             <dl className="space-y-2.5 text-[13px]">
-              <Detail label="Sector" value={SECTOR_LABELS[company.sector] ?? company.sector} />
-              {company.subsector && <Detail label="Subsector" value={company.subsector} />}
+              <Detail
+                label="Sector"
+                value={SECTOR_LABELS[company.sector] ?? company.sector}
+              />
+              {company.subsector && (
+                <Detail label="Subsector" value={company.subsector} />
+              )}
               <Detail label="Deal type" value={DEAL_TYPE_LABELS[company.dealType]} />
               <Detail
-                label={company.dealType === "carveout" ? "Parent (owner)" : "Sponsor (owner)"}
+                label={
+                  company.dealType === "carveout" ? "Parent (owner)" : "Sponsor (owner)"
+                }
                 value={company.parentCompany ?? company.sponsorFirm ?? "—"}
               />
               <Detail label="Current stage" value={STAGE_LABELS[company.currentStage]} />
               <Detail label="Confidence" value={CONFIDENCE_LABELS[company.confidence]} />
               {company.revenue && (
-                <FinDetail label="Revenue" value={company.revenue} href={company.revenueSource} />
+                <FinDetail
+                  label="Revenue"
+                  value={company.revenue}
+                  href={company.revenueSource}
+                />
               )}
               {company.ebitda && (
-                <FinDetail label="EBITDA" value={company.ebitda} href={company.ebitdaSource} />
+                <FinDetail
+                  label="EBITDA"
+                  value={company.ebitda}
+                  href={company.ebitdaSource}
+                />
               )}
               {company.margin && <Detail label="Margin" value={company.margin} />}
               <Detail label="First tracked" value={formatDate(company.firstTracked)} />
@@ -226,7 +264,9 @@ export default async function CompanyPage({ params }: { params: Promise<{ id: st
                 </li>
               ))}
               {peers.length === 0 && (
-                <li className="text-[13px] text-subtle">No other companies in this sector.</li>
+                <li className="text-[13px] text-subtle">
+                  No other companies in this sector.
+                </li>
               )}
             </ul>
           </Section>
@@ -255,13 +295,26 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 // Financial figure whose value links to its source filing / press release.
-function FinDetail({ label, value, href }: { label: string; value: string; href?: string | null }) {
+function FinDetail({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string | null;
+}) {
   return (
     <div className="flex items-baseline justify-between gap-3">
       <dt className="text-[12px] font-normal text-subtle">{label}</dt>
       <dd className="text-right font-normal text-ink">
         {href ? (
-          <a href={href} target="_blank" rel="noreferrer" className="text-[#185FA5] hover:underline">
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#185FA5] hover:underline"
+          >
             {value} ↗
           </a>
         ) : (

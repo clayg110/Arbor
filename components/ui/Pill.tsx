@@ -20,9 +20,7 @@ export function Pill({
       style={{
         backgroundColor: bg,
         color: text,
-        ...(border
-          ? { boxShadow: `inset 0 0 0 0.5px ${border}` }
-          : undefined),
+        ...(border ? { boxShadow: `inset 0 0 0 0.5px ${border}` } : undefined),
         ...style,
       }}
     >

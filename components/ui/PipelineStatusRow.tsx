@@ -56,22 +56,12 @@ export function PipelineStatusRow({
           {running ? "Running…" : "Run now"}
         </button>
       </div>
-      <p className="mt-2 text-[11px] font-normal text-subtle">
-        Schedule: {schedule}
-      </p>
+      <p className="mt-2 text-[11px] font-normal text-subtle">Schedule: {schedule}</p>
     </div>
   );
 }
 
-function Stat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color?: string;
-}) {
+function Stat({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <div className="min-w-[80px]">
       <div className="text-[11px] font-normal text-subtle">{label}</div>

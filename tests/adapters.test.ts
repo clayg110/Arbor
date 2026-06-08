@@ -41,7 +41,12 @@ describe("toRadarCompany", () => {
   });
 
   it("falls back to sponsor, then Undisclosed", () => {
-    const priv = { ...company, deal_type: "private_asset" as const, parent_company: null, sponsor_firm: "KKR" };
+    const priv = {
+      ...company,
+      deal_type: "private_asset" as const,
+      parent_company: null,
+      sponsor_firm: "KKR",
+    };
     expect(toRadarCompany(priv).ownerName).toBe("KKR");
     const none = { ...company, parent_company: null, sponsor_firm: null };
     expect(toRadarCompany(none).ownerName).toBe("Undisclosed");
@@ -66,8 +71,14 @@ describe("toCompanyProfile", () => {
 describe("toSummaryStrip", () => {
   it("renames count columns", () => {
     const row: SummaryCountsRow = {
-      total: 1054, in_market: 178, monitor: 354, on_hold: 522,
-      needs_review: 175, new_this_week: 4, new_carveout: 2, new_private: 2,
+      total: 1054,
+      in_market: 178,
+      monitor: 354,
+      on_hold: 522,
+      needs_review: 175,
+      new_this_week: 4,
+      new_carveout: 2,
+      new_private: 2,
     };
     const s = toSummaryStrip(row);
     expect(s.total).toBe(1054);
@@ -80,7 +91,11 @@ describe("toSummaryStrip", () => {
 describe("toRangeStats", () => {
   it("maps event counts (confidence_updates → confidence)", () => {
     const row: EventCountsRow = {
-      stage_changes: 12, new_entries: 5, pulled: 1, flagged: 3, confidence_updates: 7,
+      stage_changes: 12,
+      new_entries: 5,
+      pulled: 1,
+      flagged: 3,
+      confidence_updates: 7,
     };
     const s = toRangeStats(row);
     expect(s.stageChanges).toBe(12);
@@ -91,8 +106,12 @@ describe("toRangeStats", () => {
 describe("toNotes", () => {
   it("derives initials and carries userId for ownership checks", () => {
     const row: DbNote = {
-      id: "n1", company_id: "uuid-1", user_id: "user-9", org_id: null,
-      author: "Ashwin Singh", content: "Looks active.",
+      id: "n1",
+      company_id: "uuid-1",
+      user_id: "user-9",
+      org_id: null,
+      author: "Ashwin Singh",
+      content: "Looks active.",
       created_at: new Date().toISOString(),
     };
     const [n] = toNotes([row]);

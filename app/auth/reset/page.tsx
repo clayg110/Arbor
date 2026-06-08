@@ -55,10 +55,15 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
-      <div className="w-full max-w-sm rounded-xl bg-surface p-6" style={{ border: "0.5px solid var(--border)" }}>
+      <div
+        className="w-full max-w-sm rounded-xl bg-surface p-6"
+        style={{ border: "0.5px solid var(--border)" }}
+      >
         <div className="mb-6">
           <h1 className="text-[16px] font-medium text-ink">Set a new password</h1>
-          <p className="text-[12px] font-normal text-muted">Choose a strong password for your account.</p>
+          <p className="text-[12px] font-normal text-muted">
+            Choose a strong password for your account.
+          </p>
         </div>
 
         {!ready ? (
@@ -69,8 +74,14 @@ export default function ResetPasswordPage() {
           </p>
         ) : (
           <form onSubmit={submit}>
-            <label className="mb-1 block text-[11px] font-normal text-muted">New password</label>
+            <label
+              htmlFor="reset-password"
+              className="mb-1 block text-[11px] font-normal text-muted"
+            >
+              New password
+            </label>
             <input
+              id="reset-password"
               type="password"
               required
               value={password}
@@ -79,10 +90,18 @@ export default function ResetPasswordPage() {
               className="mb-1 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
               style={{ border: "0.5px solid var(--border)" }}
             />
-            <p className="mb-4 text-[10px] font-normal text-subtle">At least 8 characters</p>
+            <p className="mb-4 text-[10px] font-normal text-subtle">
+              At least 8 characters
+            </p>
 
-            <label className="mb-1 block text-[11px] font-normal text-muted">Confirm password</label>
+            <label
+              htmlFor="reset-confirm"
+              className="mb-1 block text-[11px] font-normal text-muted"
+            >
+              Confirm password
+            </label>
             <input
+              id="reset-confirm"
               type="password"
               required
               value={confirm}

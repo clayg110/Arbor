@@ -394,8 +394,18 @@ export interface WatchEntry {
 export const initialWatchlist: WatchEntry[] = [
   { name: "Dow Polyurethanes", companyId: "1", stage: "in_market", eventToday: true },
   { name: "Invista Nylon 6,6", companyId: "7", stage: "on_hold", eventToday: true },
-  { name: "Mosaic Brazil Assets", companyId: "4", stage: "monitor_for_exit", eventToday: true },
-  { name: "GEON Performance Solutions", companyId: "5", stage: "in_market", eventToday: false },
+  {
+    name: "Mosaic Brazil Assets",
+    companyId: "4",
+    stage: "monitor_for_exit",
+    eventToday: true,
+  },
+  {
+    name: "GEON Performance Solutions",
+    companyId: "5",
+    stage: "in_market",
+    eventToday: false,
+  },
   { name: "Sachem", companyId: "6", stage: "in_market", eventToday: false },
 ];
 

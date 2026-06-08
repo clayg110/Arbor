@@ -23,7 +23,11 @@ export async function POST(request: NextRequest) {
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
-  const limit = await rateLimit(user.id, { limit: 60, window: "1 m", prefix: "write:note" });
+  const limit = await rateLimit(user.id, {
+    limit: 60,
+    window: "1 m",
+    prefix: "write:note",
+  });
   if (!limit.ok) return tooMany(limit.reset);
 
   const parsed = await parseJson(request, noteSchema);

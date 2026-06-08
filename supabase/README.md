@@ -18,6 +18,7 @@ Postgres schema for Supabase. Shapes match the frontend data contracts in
 **Supabase SQL editor:** paste each file in order and run.
 
 **Or Supabase CLI:**
+
 ```bash
 supabase db push          # runs migrations/
 psql "$DATABASE_URL" -f supabase/seed.sql
@@ -28,16 +29,16 @@ first (never touches `auth.users`).
 
 ## What the frontend consumes
 
-| Frontend need | Backed by |
-|---|---|
-| Radar cards / table | `companies` + `v_company_last_signal` |
-| Radar summary strip | `v_summary_counts` |
-| Sector cards / stage-by-sector | `v_sector_stage` |
-| Feed items (quote / conflict / new-entry) | `deal_stage_history` ⋈ `signals_raw.llm_output` |
+| Frontend need                                                               | Backed by                                                                                                       |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Radar cards / table                                                         | `companies` + `v_company_last_signal`                                                                           |
+| Radar summary strip                                                         | `v_summary_counts`                                                                                              |
+| Sector cards / stage-by-sector                                              | `v_sector_stage`                                                                                                |
+| Feed items (quote / conflict / new-entry)                                   | `deal_stage_history` ⋈ `signals_raw.llm_output`                                                                 |
 | Analytics doughnut / confidence / funnel / top sectors / sponsors / sources | `v_deal_split`, `v_confidence_dist`, `v_exit_funnel`, `v_top_sectors`, `v_sponsor_activity`, `v_signal_sources` |
-| Analytics velocity / heatmap / metric cards (range) | `rpc_velocity`, `rpc_heatmap`, `rpc_summary_metrics` |
-| Stage transition rates | `v_transition_rates` |
-| Stage override / mark-for-review | `rpc_apply_stage` |
+| Analytics velocity / heatmap / metric cards (range)                         | `rpc_velocity`, `rpc_heatmap`, `rpc_summary_metrics`                                                            |
+| Stage transition rates                                                      | `v_transition_rates`                                                                                            |
+| Stage override / mark-for-review                                            | `rpc_apply_stage`                                                                                               |
 
 ## Auth (Layer 3)
 
@@ -52,6 +53,7 @@ first (never touches `auth.users`).
   (defaults to `analyst`).
 
 ## Notes / decisions baked in
+
 - **UUID ids** → `/company/[id]` becomes dynamic (no static prerender).
 - `signals_raw.llm_output` jsonb schema is the feed/review contract — keep stable
   (see comment in `0001_init.sql`). Extraction (Layer 6) must populate it.

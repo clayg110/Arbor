@@ -66,7 +66,10 @@ export function RadarTable({
   const [page, setPage] = useState(0);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const sorted = useMemo(() => sortRows(rows, sortKey, sortDir), [rows, sortKey, sortDir]);
+  const sorted = useMemo(
+    () => sortRows(rows, sortKey, sortDir),
+    [rows, sortKey, sortDir]
+  );
   const maxDays = Math.max(...rows.map((r) => r.days), 1);
 
   // grouping
@@ -78,19 +81,25 @@ export function RadarTable({
         groupBy === "sector"
           ? SECTOR_LABELS[r.sector]
           : groupBy === "deal_type"
-          ? DEAL_TYPE_LABELS[r.dealType]
-          : r.ownerName;
+            ? DEAL_TYPE_LABELS[r.dealType]
+            : r.ownerName;
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push(r);
     }
-    return Array.from(map.entries()).map(([label, rs]) => ({ key: label, label, rows: rs }));
+    return Array.from(map.entries()).map(([label, rs]) => ({
+      key: label,
+      label,
+      rows: rs,
+    }));
   }, [sorted, groupBy]);
 
   if (rows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <SearchIcon className="h-10 w-10 text-subtle" />
-        <p className="mt-4 text-[14px] font-medium text-ink">No companies match your filters</p>
+        <p className="mt-4 text-[14px] font-medium text-ink">
+          No companies match your filters
+        </p>
         <button
           type="button"
           onClick={onClearFilters}
@@ -104,24 +113,53 @@ export function RadarTable({
   }
 
   // pagination only when ungrouped
-  const paged = groupBy === "none" ? sorted.slice(page * perPage, page * perPage + perPage) : sorted;
+  const paged =
+    groupBy === "none" ? sorted.slice(page * perPage, page * perPage + perPage) : sorted;
   const totalPages = Math.max(1, Math.ceil(sorted.length / perPage));
 
   return (
-    <div className="rounded-lg bg-surface" style={{ border: "0.5px solid var(--border)" }}>
+    <div
+      className="rounded-lg bg-surface"
+      style={{ border: "0.5px solid var(--border)" }}
+    >
       <div className="overflow-x-auto">
         <table className="w-full text-left text-[12px]">
           <thead className="sticky top-[150px] z-[1] bg-[#F5F4EF]">
             <tr className="text-[10px] uppercase tracking-wide text-subtle">
-              <Th sortable label="Company" active={sortKey === "name"} dir={sortDir} onClick={() => onSort("name")} />
+              <Th
+                sortable
+                label="Company"
+                active={sortKey === "name"}
+                dir={sortDir}
+                onClick={() => onSort("name")}
+              />
               <Th label="Deal type" />
               <Th label="Sector" />
               <Th label="Stage" />
               <Th label="Sponsor / Parent" />
-              <Th sortable rightAlign label="Days in stage" active={sortKey === "days"} dir={sortDir} onClick={() => onSort("days")} />
-              <Th sortable label="Confidence" active={sortKey === "confidence"} dir={sortDir} onClick={() => onSort("confidence")} />
+              <Th
+                sortable
+                rightAlign
+                label="Days in stage"
+                active={sortKey === "days"}
+                dir={sortDir}
+                onClick={() => onSort("days")}
+              />
+              <Th
+                sortable
+                label="Confidence"
+                active={sortKey === "confidence"}
+                dir={sortDir}
+                onClick={() => onSort("confidence")}
+              />
               <Th label="Last signal" />
-              <Th sortable label="Added" active={sortKey === "added"} dir={sortDir} onClick={() => onSort("added")} />
+              <Th
+                sortable
+                label="Added"
+                active={sortKey === "added"}
+                dir={sortDir}
+                onClick={() => onSort("added")}
+              />
               <Th label="Actions" />
             </tr>
           </thead>
@@ -131,7 +169,9 @@ export function RadarTable({
               const groupRows = groupBy === "none" ? paged : g.rows;
               const im = g.rows.filter((r) => r.stage === "in_market").length;
               const mo = g.rows.filter((r) => r.stage === "monitor_for_exit").length;
-              const oh = g.rows.filter((r) => r.stage === "on_hold" || r.stage === "pulled").length;
+              const oh = g.rows.filter(
+                (r) => r.stage === "on_hold" || r.stage === "pulled"
+              ).length;
               return (
                 <RowGroup key={g.key}>
                   {groupBy !== "none" && (
@@ -148,9 +188,17 @@ export function RadarTable({
                     >
                       <td colSpan={10} className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          {isCollapsed ? <ChevronRightIcon className="h-3.5 w-3.5 text-muted" /> : <ChevronDownIcon className="h-3.5 w-3.5 text-muted" />}
-                          <span className="text-[12px] font-medium text-ink">{g.label}</span>
-                          <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium text-muted">{g.rows.length}</span>
+                          {isCollapsed ? (
+                            <ChevronRightIcon className="h-3.5 w-3.5 text-muted" />
+                          ) : (
+                            <ChevronDownIcon className="h-3.5 w-3.5 text-muted" />
+                          )}
+                          <span className="text-[12px] font-medium text-ink">
+                            {g.label}
+                          </span>
+                          <span className="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-medium text-muted">
+                            {g.rows.length}
+                          </span>
                           <span className="text-[11px] font-normal text-subtle">
                             {im} in market · {mo} monitoring · {oh} on hold
                           </span>
@@ -167,7 +215,9 @@ export function RadarTable({
                         maxDays={maxDays}
                         watched={watch.has(r.id)}
                         onToggleWatch={() => onToggleWatch(r.id)}
-                        onOpen={() => r.companyId && router.push(`/company/${r.companyId}`)}
+                        onOpen={() =>
+                          r.companyId && router.push(`/company/${r.companyId}`)
+                        }
                       />
                     ))}
                 </RowGroup>
@@ -179,7 +229,10 @@ export function RadarTable({
 
       {/* pagination (ungrouped) */}
       {groupBy === "none" && (
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2" style={{ borderTop: "0.5px solid var(--border)" }}>
+        <div
+          className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
+          style={{ borderTop: "0.5px solid var(--border)" }}
+        >
           <label className="flex items-center gap-1.5 text-[11px] text-muted">
             Rows per page
             <select
@@ -197,13 +250,25 @@ export function RadarTable({
             </select>
           </label>
           <div className="flex items-center gap-3 text-[11px]">
-            <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className="rounded-md px-2 py-1 font-medium text-ink disabled:opacity-40" style={{ border: "0.5px solid var(--border)" }}>
+            <button
+              type="button"
+              disabled={page === 0}
+              onClick={() => setPage((p) => p - 1)}
+              className="rounded-md px-2 py-1 font-medium text-ink disabled:opacity-40"
+              style={{ border: "0.5px solid var(--border)" }}
+            >
               ‹ Previous
             </button>
             <span className="text-muted">
               Page {page + 1} of {totalPages}
             </span>
-            <button type="button" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)} className="rounded-md px-2 py-1 font-medium text-ink disabled:opacity-40" style={{ border: "0.5px solid var(--border)" }}>
+            <button
+              type="button"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-md px-2 py-1 font-medium text-ink disabled:opacity-40"
+              style={{ border: "0.5px solid var(--border)" }}
+            >
               Next ›
             </button>
           </div>
@@ -233,12 +298,23 @@ function Th({
   rightAlign?: boolean;
 }) {
   return (
-    <th className={`whitespace-nowrap px-3 py-2 font-normal ${rightAlign ? "text-right" : ""}`} style={{ borderBottom: "0.5px solid var(--border)" }}>
+    <th
+      className={`whitespace-nowrap px-3 py-2 font-normal ${rightAlign ? "text-right" : ""}`}
+      style={{ borderBottom: "0.5px solid var(--border)" }}
+    >
       {sortable ? (
-        <button type="button" onClick={onClick} className={`inline-flex items-center gap-1 hover:text-ink ${active ? "text-ink" : ""}`}>
+        <button
+          type="button"
+          onClick={onClick}
+          className={`inline-flex items-center gap-1 hover:text-ink ${active ? "text-ink" : ""}`}
+        >
           {label}
           {active ? (
-            dir === "asc" ? <ChevronUpIcon className="h-3 w-3" /> : <ChevronDownIcon className="h-3 w-3" />
+            dir === "asc" ? (
+              <ChevronUpIcon className="h-3 w-3" />
+            ) : (
+              <ChevronDownIcon className="h-3 w-3" />
+            )
           ) : (
             <span className="text-subtle">↕</span>
           )}
@@ -275,21 +351,37 @@ function Row({
       onMouseLeave={() => setHover(false)}
       className={r.companyId ? "cursor-pointer" : ""}
       style={{
-        backgroundColor: hover ? "rgba(230,241,251,0.5)" : even ? "var(--surface)" : "#FAF9F6",
+        backgroundColor: hover
+          ? "rgba(230,241,251,0.5)"
+          : even
+            ? "var(--surface)"
+            : "#FAF9F6",
         borderBottom: "0.5px solid var(--border)",
         opacity: r.pulled ? 0.78 : 1,
       }}
     >
       <td className="px-3 py-2">
-        <span className="font-medium text-ink" style={r.pulled ? { textDecoration: "line-through" } : undefined}>
+        <span
+          className="font-medium text-ink"
+          style={r.pulled ? { textDecoration: "line-through" } : undefined}
+        >
           {r.name}
         </span>
       </td>
-      <td className="px-3 py-2"><DealTypeBadge type={r.dealType} /></td>
-      <td className="px-3 py-2"><SectorBadge sector={r.sector} /></td>
-      <td className="px-3 py-2" style={{ borderLeft: `3px solid ${stageColor.border ?? stageColor.text}` }}>
+      <td className="px-3 py-2">
+        <DealTypeBadge type={r.dealType} />
+      </td>
+      <td className="px-3 py-2">
+        <SectorBadge sector={r.sector} />
+      </td>
+      <td
+        className="px-3 py-2"
+        style={{ borderLeft: `3px solid ${stageColor.border ?? stageColor.text}` }}
+      >
         {r.pulled ? (
-          <span className="inline-flex items-center rounded-full bg-[#EDEBE4] px-2 py-0.5 text-[11px] font-medium text-[#555550]">Pulled</span>
+          <span className="inline-flex items-center rounded-full bg-[#EDEBE4] px-2 py-0.5 text-[11px] font-medium text-[#555550]">
+            Pulled
+          </span>
         ) : (
           <StageBadge stage={r.stage} />
         )}
@@ -299,13 +391,20 @@ function Row({
         <div className="relative inline-flex min-w-[64px] items-center justify-end">
           <span
             className="absolute inset-y-0 left-0 rounded-sm"
-            style={{ width: `${(r.days / maxDays) * 100}%`, backgroundColor: `${stageColor.border ?? stageColor.text}22` }}
+            style={{
+              width: `${(r.days / maxDays) * 100}%`,
+              backgroundColor: `${stageColor.border ?? stageColor.text}22`,
+            }}
           />
           <span className="relative font-medium text-ink">{r.days}</span>
         </div>
       </td>
       <td className="px-3 py-2">
-        {r.pulled ? <span className="text-subtle">—</span> : <ConfidenceBadge confidence={r.confidence} />}
+        {r.pulled ? (
+          <span className="text-subtle">—</span>
+        ) : (
+          <ConfidenceBadge confidence={r.confidence} />
+        )}
       </td>
       <td className="px-3 py-2">
         <span className="inline-flex items-center gap-1.5 text-muted">
@@ -316,11 +415,25 @@ function Row({
       <td className="px-3 py-2 text-muted">{formatDate(r.added)}</td>
       <td className="px-3 py-2">
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <button type="button" onClick={onToggleWatch} aria-label={watched ? "Unwatch" : "Watch"} className="text-muted hover:text-ink">
-            <StarIcon filled={watched} className="h-4 w-4" style={{ color: watched ? "#BA7517" : undefined }} />
+          <button
+            type="button"
+            onClick={onToggleWatch}
+            aria-label={watched ? "Unwatch" : "Watch"}
+            className="text-muted hover:text-ink"
+          >
+            <StarIcon
+              filled={watched}
+              className="h-4 w-4"
+              style={{ color: watched ? "#BA7517" : undefined }}
+            />
           </button>
           {r.companyId && (
-            <button type="button" onClick={onOpen} aria-label="Open profile" className="text-muted hover:text-ink">
+            <button
+              type="button"
+              onClick={onOpen}
+              aria-label="Open profile"
+              className="text-muted hover:text-ink"
+            >
               <ArrowRightIcon className="h-4 w-4" />
             </button>
           )}

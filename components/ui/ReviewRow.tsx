@@ -53,9 +53,7 @@ export function ReviewRow({
               {reason}
             </span>
           </div>
-          <p className="mt-1 text-[12px] font-normal text-muted">
-            {conflictSummary}
-          </p>
+          <p className="mt-1 text-[12px] font-normal text-muted">{conflictSummary}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">

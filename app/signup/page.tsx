@@ -1,10 +1,12 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useId, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { hasPublicSupabaseEnv } from "@/lib/supabase/env-client";
+import { TurnstileWidget } from "@/components/ui/TurnstileWidget";
+import { passesTurnstile } from "@/lib/turnstile-client";
 
 function SignupForm() {
   const router = useRouter();
@@ -17,6 +19,7 @@ function SignupForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  const [botToken, setBotToken] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,6 +29,11 @@ function SignupForm() {
     if (!configured) return setError("Auth is not configured (mock mode).");
 
     setBusy(true);
+    if (!(await passesTurnstile(botToken))) {
+      setError("Bot check failed. Please retry.");
+      setBusy(false);
+      return;
+    }
     const supabase = createClient();
     const { data, error: signErr } = await supabase.auth.signUp({
       email,
@@ -55,8 +63,9 @@ function SignupForm() {
       <Shell>
         <h1 className="text-[16px] font-medium text-ink">Check your email</h1>
         <p className="mt-2 text-[13px] font-normal text-muted">
-          We sent a confirmation link to <span className="font-medium text-ink">{email}</span>.
-          Click it to activate your account, then sign in.
+          We sent a confirmation link to{" "}
+          <span className="font-medium text-ink">{email}</span>. Click it to activate your
+          account, then sign in.
         </p>
         <Link
           href="/login"
@@ -73,20 +82,51 @@ function SignupForm() {
     <Shell>
       <div className="mb-6">
         <h1 className="text-[16px] font-medium text-ink">Create your Arbor account</h1>
-        <p className="text-[12px] font-normal text-muted">PE deal intelligence — sign up</p>
+        <p className="text-[12px] font-normal text-muted">
+          PE deal intelligence — sign up
+        </p>
       </div>
 
       {!configured && (
         <p className="mb-4 rounded-md bg-[#FAEEDA] px-3 py-2 text-[12px] text-[#633806]">
-          Backend not configured — running in mock mode. Set Supabase env to enable accounts.
+          Backend not configured — running in mock mode. Set Supabase env to enable
+          accounts.
         </p>
       )}
 
       <form onSubmit={submit}>
-        <Field label="Name" value={name} onChange={setName} type="text" autoComplete="name" required={false} />
-        <Field label="Email" value={email} onChange={setEmail} type="email" autoComplete="email" />
-        <Field label="Password" value={password} onChange={setPassword} type="password" autoComplete="new-password" hint="At least 8 characters" />
-        <Field label="Confirm password" value={confirm} onChange={setConfirm} type="password" autoComplete="new-password" />
+        <Field
+          label="Name"
+          value={name}
+          onChange={setName}
+          type="text"
+          autoComplete="name"
+          required={false}
+        />
+        <Field
+          label="Email"
+          value={email}
+          onChange={setEmail}
+          type="email"
+          autoComplete="email"
+        />
+        <Field
+          label="Password"
+          value={password}
+          onChange={setPassword}
+          type="password"
+          autoComplete="new-password"
+          hint="At least 8 characters"
+        />
+        <Field
+          label="Confirm password"
+          value={confirm}
+          onChange={setConfirm}
+          type="password"
+          autoComplete="new-password"
+        />
+
+        <TurnstileWidget onToken={setBotToken} />
 
         {error && <p className="mb-3 text-[12px] text-[#791F1F]">{error}</p>}
 
@@ -113,7 +153,10 @@ function SignupForm() {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
-      <div className="w-full max-w-sm rounded-xl bg-surface p-6" style={{ border: "0.5px solid var(--border)" }}>
+      <div
+        className="w-full max-w-sm rounded-xl bg-surface p-6"
+        style={{ border: "0.5px solid var(--border)" }}
+      >
         {children}
       </div>
     </div>
@@ -137,10 +180,14 @@ function Field({
   hint?: string;
   required?: boolean;
 }) {
+  const id = useId();
   return (
     <div className="mb-4">
-      <label className="mb-1 block text-[11px] font-normal text-muted">{label}</label>
+      <label htmlFor={id} className="mb-1 block text-[11px] font-normal text-muted">
+        {label}
+      </label>
       <input
+        id={id}
         type={type}
         required={required}
         value={value}

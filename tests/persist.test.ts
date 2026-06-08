@@ -43,6 +43,17 @@ function makeSvc(opts: Opts = {}) {
               Promise.resolve({ data: null, error: null }).then(res, rej),
           };
         },
+        // signals_raw now goes through upsert (dedupe_key ignore-duplicates).
+        upsert(payload: Record<string, unknown>) {
+          if (table === "signals_raw") captured.signalInserts.push(payload);
+          const idResult = { data: { id: "sig-1" }, error: null };
+          return {
+            select: () => ({
+              maybeSingle: async () => idResult,
+              single: async () => idResult,
+            }),
+          };
+        },
         select() {
           const builder: Record<string, unknown> = {
             eq: () => builder,

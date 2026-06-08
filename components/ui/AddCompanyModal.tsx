@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { api, BackendOff } from "@/lib/api-client";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { XIcon } from "./icons";
-import { SECTORS, SECTOR_LABELS, STAGE_LABELS, CONFIDENCE_LABELS, DEAL_TYPE_LABELS } from "@/lib/colors";
+import {
+  SECTORS,
+  SECTOR_LABELS,
+  STAGE_LABELS,
+  CONFIDENCE_LABELS,
+  DEAL_TYPE_LABELS,
+} from "@/lib/colors";
 import { formatDate } from "@/lib/format";
 import type { RadarCompany } from "@/lib/radar-data";
 import type { Sector, DealType, Stage, Confidence } from "@/lib/types";
@@ -28,6 +35,8 @@ export function AddCompanyModal({
   const [confidence, setConfidence] = useState<Confidence>("needs_review");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useFocusTrap(dialogRef, onClose);
 
   const ownerLabel = dealType === "carveout" ? "Parent company" : "Sponsor firm";
 
@@ -76,15 +85,27 @@ export function AddCompanyModal({
       days: 0,
       added: new Date().toISOString(),
       addedDisplay: formatDate(new Date().toISOString()),
-      lastSignal: { label: "just added", sourceName: "Manual", source: "manual", daysAgo: 0 },
+      lastSignal: {
+        label: "just added",
+        sourceName: "Manual",
+        source: "manual",
+        daysAgo: 0,
+      },
       watchlisted: undefined,
     });
     onClose();
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+      onClick={onClose}
+    >
       <form
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Add company"
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-xl bg-surface p-5"
@@ -92,7 +113,12 @@ export function AddCompanyModal({
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[14px] font-medium text-ink">Add company</h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-subtle hover:text-ink">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="text-subtle hover:text-ink"
+          >
             <XIcon className="h-4 w-4" />
           </button>
         </div>
@@ -110,17 +136,29 @@ export function AddCompanyModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <Label>Deal type</Label>
-            <Select value={dealType} onChange={(v) => setDealType(v as DealType)}>
+            <Select
+              label="Deal type"
+              value={dealType}
+              onChange={(v) => setDealType(v as DealType)}
+            >
               {(["carveout", "private_asset"] as DealType[]).map((d) => (
-                <option key={d} value={d}>{DEAL_TYPE_LABELS[d]}</option>
+                <option key={d} value={d}>
+                  {DEAL_TYPE_LABELS[d]}
+                </option>
               ))}
             </Select>
           </div>
           <div>
             <Label>Sector</Label>
-            <Select value={sector} onChange={(v) => setSector(v as Sector)}>
+            <Select
+              label="Sector"
+              value={sector}
+              onChange={(v) => setSector(v as Sector)}
+            >
               {SECTORS.map((s) => (
-                <option key={s} value={s}>{SECTOR_LABELS[s]}</option>
+                <option key={s} value={s}>
+                  {SECTOR_LABELS[s]}
+                </option>
               ))}
             </Select>
           </div>
@@ -141,17 +179,25 @@ export function AddCompanyModal({
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
             <Label>Stage</Label>
-            <Select value={stage} onChange={(v) => setStage(v as Stage)}>
+            <Select label="Stage" value={stage} onChange={(v) => setStage(v as Stage)}>
               {STAGES.map((s) => (
-                <option key={s} value={s}>{STAGE_LABELS[s]}</option>
+                <option key={s} value={s}>
+                  {STAGE_LABELS[s]}
+                </option>
               ))}
             </Select>
           </div>
           <div>
             <Label>Confidence</Label>
-            <Select value={confidence} onChange={(v) => setConfidence(v as Confidence)}>
+            <Select
+              label="Confidence"
+              value={confidence}
+              onChange={(v) => setConfidence(v as Confidence)}
+            >
               {CONFS.map((c) => (
-                <option key={c} value={c}>{CONFIDENCE_LABELS[c]}</option>
+                <option key={c} value={c}>
+                  {CONFIDENCE_LABELS[c]}
+                </option>
               ))}
             </Select>
           </div>
@@ -183,20 +229,25 @@ export function AddCompanyModal({
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <label className="mb-1 block text-[11px] font-normal text-muted">{children}</label>;
+  return (
+    <label className="mb-1 block text-[11px] font-normal text-muted">{children}</label>
+  );
 }
 
 function Select({
   value,
   onChange,
+  label,
   children,
 }: {
   value: string;
   onChange: (v: string) => void;
+  label: string;
   children: React.ReactNode;
 }) {
   return (
     <select
+      aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="w-full rounded-md bg-surface px-2.5 py-2 text-[13px] text-ink focus:outline-none"

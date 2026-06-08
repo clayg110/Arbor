@@ -1,0 +1,8 @@
+.next
+node_modules
+coverage
+pnpm-lock.yaml
+public
+Landing Page
+supabase/.temp
+*.sql

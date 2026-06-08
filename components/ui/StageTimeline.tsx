@@ -4,11 +4,7 @@ import { STAGE_DOT } from "@/lib/colors";
 import { formatDate } from "@/lib/format";
 import type { StageHistoryRecord } from "@/lib/types";
 
-export function StageTimeline({
-  history,
-}: {
-  history: StageHistoryRecord[];
-}) {
+export function StageTimeline({ history }: { history: StageHistoryRecord[] }) {
   if (history.length === 0) {
     return <p className="text-[13px] text-subtle">No stage history yet.</p>;
   }
@@ -47,9 +43,7 @@ export function StageTimeline({
                 </span>
               </div>
               {h.notes && (
-                <p className="mt-1 text-[12px] font-normal text-muted">
-                  {h.notes}
-                </p>
+                <p className="mt-1 text-[12px] font-normal text-muted">{h.notes}</p>
               )}
               <div className="mt-1 flex items-center gap-2">
                 <SignalSourceBadge source={h.sourceType} />

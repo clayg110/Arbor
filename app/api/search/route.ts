@@ -77,7 +77,9 @@ export async function GET(request: NextRequest) {
   const supabase = await createClient();
   let query = supabase
     .from("companies")
-    .select("id,name,sector,deal_type,sponsor_firm,parent_company,current_stage,confidence")
+    .select(
+      "id,name,sector,deal_type,sponsor_firm,parent_company,current_stage,confidence"
+    )
     .limit(25);
 
   if (sector && sector !== "all") query = query.eq("sector", sector as Sector);

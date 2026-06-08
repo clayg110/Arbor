@@ -1,13 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
 import { hasAnthropicEnv } from "@/lib/extract-signal";
+import { safeEqual } from "@/lib/security";
 
 // Shared guard for ingestion routes: CRON_SECRET (when set) + required env.
 export function cronGuard(request: NextRequest): NextResponse | null {
   const secret = process.env.CRON_SECRET;
   if (secret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
+    const auth = request.headers.get("authorization") ?? "";
+    if (!safeEqual(auth, `Bearer ${secret}`)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }

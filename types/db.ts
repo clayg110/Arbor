@@ -8,13 +8,7 @@
 // an index signature and collapse Insert/Update to `never`.
 // ============================================================================
 
-import type {
-  Sector,
-  DealType,
-  Stage,
-  Confidence,
-  SourceType,
-} from "@/lib/types";
+import type { Sector, DealType, Stage, Confidence, SourceType } from "@/lib/types";
 
 export type ChangedBy = "system_auto" | "analyst_manual";
 
@@ -101,6 +95,7 @@ export type DbSignal = {
   processed: boolean;
   matched_company_id: string | null;
   llm_output: LlmOutput | null;
+  dedupe_key?: string | null;
 };
 
 export type DbHistory = {
@@ -142,6 +137,14 @@ export type DbOrg = {
   id: string;
   name: string;
   created_at: string;
+  // billing (0016) — all nullable / defaulted; absent until Stripe is configured
+  plan?: string;
+  stripe_customer_id?: string | null;
+  stripe_subscription_id?: string | null;
+  subscription_status?: string | null;
+  seats?: number | null;
+  current_period_end?: string | null;
+  scim_token_hash?: string | null; // SCIM provisioning (0021)
 };
 
 export type DbAuditLog = {
@@ -191,6 +194,31 @@ export type DbPipelineRun = {
   errors: number;
   ok: boolean;
 };
+// Dead-letter: signals that could not be processed (extraction hard-failed or the
+// extraction circuit was open). Retained for inspection / replay.
+export type DbSignalFailure = {
+  id: string;
+  source_url: string | null;
+  source_type: string | null;
+  source_name: string | null;
+  doc_type: string | null;
+  raw_text: string | null;
+  reason: string | null;
+  created_at: string;
+};
+export type DbNotification = {
+  id: string;
+  user_id: string;
+  org_id: string | null;
+  type: string;
+  title: string;
+  body: string | null;
+  entity_type: string | null;
+  entity_id: string | null;
+  dedupe_key: string | null;
+  read_at: string | null;
+  created_at: string;
+};
 export type PipelineLatestRow = {
   pipeline: string;
   ran_at: string;
@@ -232,13 +260,32 @@ export type DealSplitRow = { deal_type: DealType; value: number; pct: number };
 export type ConfidenceDistRow = { confidence: Confidence; count: number; pct: number };
 export type ExitFunnelRow = { stage: Stage; avg_days: number; n: number };
 export type TopSectorRow = { sector: Sector; avg_days: number; n: number };
-export type SponsorActivityRow = { sponsor: string; processes: number; top_sector: Sector };
+export type SponsorActivityRow = {
+  sponsor: string;
+  processes: number;
+  top_sector: Sector;
+};
 export type SignalSourceRow = { source_type: SourceType; count: number; pct: number };
-export type TransitionRateRow = { from_stage: Stage; to_stage: Stage; count: number; pct: number };
+export type TransitionRateRow = {
+  from_stage: Stage;
+  to_stage: Stage;
+  count: number;
+  pct: number;
+};
 
 // ---- rpc return rows ----
-export type VelocityRow = { week_start: string; carveout: number; private_asset: number; total: number };
-export type HeatmapRow = { day: string; events: number; stage_changes: number; new_entries: number };
+export type VelocityRow = {
+  week_start: string;
+  carveout: number;
+  private_asset: number;
+  total: number;
+};
+export type HeatmapRow = {
+  day: string;
+  events: number;
+  stage_changes: number;
+  new_entries: number;
+};
 export type SummaryMetricsRow = {
   new_deals: number;
   stage_changes: number;
@@ -274,7 +321,11 @@ export interface Database {
     Tables: {
       companies: {
         Row: DbCompany;
-        Insert: Partial<DbCompany> & { name: string; sector: Sector; deal_type: DealType };
+        Insert: Partial<DbCompany> & {
+          name: string;
+          sector: Sector;
+          deal_type: DealType;
+        };
         Update: Partial<DbCompany>;
         Relationships: Rel;
       };
@@ -298,7 +349,11 @@ export interface Database {
       };
       analyst_notes: {
         Row: DbNote;
-        Insert: Partial<DbNote> & { company_id: string; user_id: string; content: string };
+        Insert: Partial<DbNote> & {
+          company_id: string;
+          user_id: string;
+          content: string;
+        };
         Update: Partial<DbNote>;
         Relationships: Rel;
       };
@@ -312,6 +367,22 @@ export interface Database {
         Row: DbPipelineRun;
         Insert: Partial<DbPipelineRun> & { pipeline: string };
         Update: Partial<DbPipelineRun>;
+        Relationships: Rel;
+      };
+      signal_failures: {
+        Row: DbSignalFailure;
+        Insert: Partial<DbSignalFailure>;
+        Update: Partial<DbSignalFailure>;
+        Relationships: Rel;
+      };
+      notifications: {
+        Row: DbNotification;
+        Insert: Partial<DbNotification> & {
+          user_id: string;
+          type: string;
+          title: string;
+        };
+        Update: Partial<DbNotification>;
         Relationships: Rel;
       };
       universe_companies: {
@@ -334,7 +405,12 @@ export interface Database {
       };
       api_keys: {
         Row: DbApiKey;
-        Insert: Partial<DbApiKey> & { org_id: string; name: string; key_prefix: string; key_hash: string };
+        Insert: Partial<DbApiKey> & {
+          org_id: string;
+          name: string;
+          key_prefix: string;
+          key_hash: string;
+        };
         Update: Partial<DbApiKey>;
         Relationships: Rel;
       };
@@ -357,8 +433,14 @@ export interface Database {
     Functions: {
       rpc_velocity: { Args: { p_from?: string; p_to?: string }; Returns: VelocityRow[] };
       rpc_heatmap: { Args: { p_from?: string; p_to?: string }; Returns: HeatmapRow[] };
-      rpc_summary_metrics: { Args: { p_from?: string; p_to?: string }; Returns: SummaryMetricsRow[] };
-      rpc_event_counts: { Args: { p_from?: string; p_to?: string }; Returns: EventCountsRow[] };
+      rpc_summary_metrics: {
+        Args: { p_from?: string; p_to?: string };
+        Returns: SummaryMetricsRow[];
+      };
+      rpc_event_counts: {
+        Args: { p_from?: string; p_to?: string };
+        Returns: EventCountsRow[];
+      };
       rpc_apply_stage: {
         Args: {
           p_company_id: string;

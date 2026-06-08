@@ -24,9 +24,13 @@ export async function POST(request: NextRequest) {
   if (!path) return fail("Unknown pipeline");
 
   const headers: Record<string, string> = {};
-  if (process.env.CRON_SECRET) headers.authorization = `Bearer ${process.env.CRON_SECRET}`;
+  if (process.env.CRON_SECRET)
+    headers.authorization = `Bearer ${process.env.CRON_SECRET}`;
 
-  const res = await fetch(`${request.nextUrl.origin}${path}`, { method: "POST", headers });
+  const res = await fetch(`${request.nextUrl.origin}${path}`, {
+    method: "POST",
+    headers,
+  });
   const result = await res.json().catch(() => ({}));
   return ok({ pipeline, status: res.status, result }, { status: res.ok ? 200 : 502 });
 }

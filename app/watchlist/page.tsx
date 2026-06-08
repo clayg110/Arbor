@@ -12,11 +12,10 @@ const MOCK_WATCHED: RadarCompany[] = radarCompanies.filter((c) => c.watchlisted)
 
 export default function WatchlistPage() {
   // Mock fallback only used when there's no backend (source stays "mock").
-  const live = useLive(
-    "watchlist",
-    () => api.watchlist(),
-    { ids: MOCK_WATCHED.map((c) => c.id), companies: MOCK_WATCHED }
-  );
+  const live = useLive("watchlist", () => api.watchlist(), {
+    ids: MOCK_WATCHED.map((c) => c.id),
+    companies: MOCK_WATCHED,
+  });
 
   // Optimistic removals layered over live data (no separate copy of the list,
   // so we never flash stale/mock data before the fetch resolves).
@@ -62,7 +61,9 @@ export default function WatchlistPage() {
       ) : list.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <StarIcon className="h-12 w-12 text-subtle" />
-          <p className="mt-4 text-[14px] font-medium text-ink">Nothing on your watchlist yet</p>
+          <p className="mt-4 text-[14px] font-medium text-ink">
+            Nothing on your watchlist yet
+          </p>
           <p className="mt-1 text-[13px] font-normal text-muted">
             Star companies from the radar or feed to track them here.
           </p>
@@ -77,7 +78,12 @@ export default function WatchlistPage() {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((c) => (
-            <RadarCompanyCard key={c.id} c={c} watched onToggleWatch={() => remove(c.id)} />
+            <RadarCompanyCard
+              key={c.id}
+              c={c}
+              watched
+              onToggleWatch={() => remove(c.id)}
+            />
           ))}
         </div>
       )}

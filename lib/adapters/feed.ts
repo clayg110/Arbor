@@ -3,10 +3,7 @@
 // `dateKey` + `dayLabel` (the wired feed page groups by these in Layer 12).
 
 import type { DbHistory, DbFeedEvent, LlmOutput } from "@/types/db";
-import type {
-  FeedItemType,
-  ExpandedContent,
-} from "@/lib/feed-data";
+import type { FeedItemType, ExpandedContent } from "@/lib/feed-data";
 import type { DealType, Sector, Confidence, Stage, SourceType } from "@/lib/types";
 import { SECTOR_LABELS } from "@/lib/colors";
 import { relativeLabel, dayBucketLabel, dateKey } from "./time";
@@ -53,7 +50,11 @@ function buildExpanded(
   sector: Sector
 ): ExpandedContent | undefined {
   if (llm?.conflict) {
-    return { kind: "conflict", signalA: llm.conflict.signalA, signalB: llm.conflict.signalB };
+    return {
+      kind: "conflict",
+      signalA: llm.conflict.signalA,
+      signalB: llm.conflict.signalB,
+    };
   }
   if (llm?.new_entry) {
     return {

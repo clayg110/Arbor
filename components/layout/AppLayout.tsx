@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GlobalSearch } from "@/components/ui/GlobalSearch";
+import { NotificationBell } from "@/components/ui/NotificationBell";
 import { cn } from "@/lib/format";
 
 const NAV = [
@@ -21,7 +22,11 @@ export interface SessionUser {
 function initialsOf(email: string): string {
   const name = email.split("@")[0] ?? "";
   const parts = name.split(/[.\-_]/);
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || name.slice(0, 2).toUpperCase() || "?";
+  return (
+    ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() ||
+    name.slice(0, 2).toUpperCase() ||
+    "?"
+  );
 }
 
 export function AppLayout({
@@ -34,10 +39,21 @@ export function AppLayout({
   const pathname = usePathname();
   const router = useRouter();
 
-  // Auth pages: no app chrome.
-  const AUTH_PATHS = ["/login", "/signup", "/forgot-password", "/auth/reset"];
-  if (AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    return <div className="min-h-screen">{children}</div>;
+  // Auth + legal + public status pages: no app chrome.
+  const BARE_PATHS = [
+    "/login",
+    "/signup",
+    "/forgot-password",
+    "/auth/reset",
+    "/legal",
+    "/status",
+  ];
+  if (BARE_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    return (
+      <div id="main" tabIndex={-1} className="min-h-screen outline-none">
+        {children}
+      </div>
+    );
   }
 
   const nav = [...NAV];
@@ -56,13 +72,17 @@ export function AppLayout({
         style={{ borderBottom: "0.5px solid var(--border)" }}
       >
         <div className="mx-auto grid h-14 max-w-[1320px] grid-cols-[1fr_auto_1fr] items-center px-6">
-          <Link href="/radar" className="justify-self-start text-[15px] font-medium tracking-tight text-ink">
+          <Link
+            href="/radar"
+            className="justify-self-start text-[15px] font-medium tracking-tight text-ink"
+          >
             Arbor
           </Link>
 
           <nav className="flex items-center gap-1 justify-self-center">
             {nav.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(item.href + "/");
+              const active =
+                pathname === item.href || pathname.startsWith(item.href + "/");
               return (
                 <Link
                   key={item.href}
@@ -74,7 +94,10 @@ export function AppLayout({
                 >
                   {item.label}
                   {active && (
-                    <span className="absolute inset-x-3 -bottom-[11px] h-[2px] rounded-full" style={{ backgroundColor: "#185FA5" }} />
+                    <span
+                      className="absolute inset-x-3 -bottom-[11px] h-[2px] rounded-full"
+                      style={{ backgroundColor: "#185FA5" }}
+                    />
                   )}
                 </Link>
               );
@@ -87,9 +110,14 @@ export function AppLayout({
             </div>
             {user ? (
               <>
+                <NotificationBell />
                 <div className="hidden text-right sm:block">
-                  <div className="text-[12px] font-medium leading-tight text-ink">{user.email}</div>
-                  <div className="text-[10px] font-normal uppercase tracking-wide text-subtle">{user.role}</div>
+                  <div className="text-[12px] font-medium leading-tight text-ink">
+                    {user.email}
+                  </div>
+                  <div className="text-[10px] font-normal uppercase tracking-wide text-subtle">
+                    {user.role}
+                  </div>
                 </div>
                 <div
                   className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F1EFE8] text-[11px] font-medium text-[#444441]"
@@ -97,6 +125,13 @@ export function AppLayout({
                 >
                   {initialsOf(user.email)}
                 </div>
+                <Link
+                  href="/settings"
+                  className="rounded-md px-2.5 py-1 text-[12px] font-medium text-muted hover:text-ink"
+                  style={{ border: "0.5px solid var(--border)" }}
+                >
+                  Settings
+                </Link>
                 <button
                   type="button"
                   onClick={signOut}
@@ -118,7 +153,13 @@ export function AppLayout({
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1320px] px-6 py-7">{children}</div>
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto max-w-[1320px] px-6 py-7 outline-none"
+      >
+        {children}
+      </main>
     </div>
   );
 }

@@ -46,7 +46,9 @@ describe("rateLimit", () => {
 
 describe("clientIp", () => {
   it("takes the first x-forwarded-for hop", () => {
-    const r = new Request("http://x", { headers: { "x-forwarded-for": "1.2.3.4, 5.6.7.8" } });
+    const r = new Request("http://x", {
+      headers: { "x-forwarded-for": "1.2.3.4, 5.6.7.8" },
+    });
     expect(clientIp(r)).toBe("1.2.3.4");
   });
   it("falls back to unknown", () => {

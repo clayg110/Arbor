@@ -7,7 +7,7 @@ analytics, a review queue, and automated signal ingestion.
 
 ## Stack
 
-- **Next.js 14** (App Router, TypeScript) · **Tailwind** · **Recharts**
+- **Next.js 15** (App Router, TypeScript) · **Tailwind** · **Recharts**
 - **Supabase** — Postgres, Auth (email/password), Realtime, RLS
 - **Anthropic Claude** — structured signal extraction (forced tool call)
 - **Typesense** — search + entity resolution (optional; Supabase `ilike` fallback)
@@ -37,10 +37,10 @@ No environment needed. Explore /radar, /feed, /analytics, /review, /watchlist,
    fill the Supabase block (`NEXT_PUBLIC_SUPABASE_URL`, `…_ANON_KEY`,
    `SUPABASE_SERVICE_ROLE_KEY`) and `ANTHROPIC_API_KEY`.
 
-2. **Apply migrations** (Supabase SQL editor, in order):
-   `supabase/migrations/0001_init.sql` → `0002_analytics.sql` →
-   `0003_layer5.sql` → `0004_features.sql`, then `supabase/seed.sql`.
-   See `supabase/README.md`.
+2. **Apply migrations** (Supabase SQL editor, in numeric order):
+   every file in `supabase/migrations/` (`0001_init.sql` … `0018_signal_dedupe.sql`),
+   then `supabase/seed.sql`. See `supabase/README.md`. Migrations are additive +
+   idempotent, so re-running is safe.
 
 3. **Create users.** Self-signup is enabled at `/signup` (new users default to
    the `analyst` role). Promote someone to `admin` from the Admin page, or set
@@ -81,25 +81,45 @@ from the Admin page (admin only).
 
 ## Routes
 
-| Route | Description |
-|-------|-------------|
-| `/radar` | Kanban + table radar — filters, summary strip, sector cards, add company |
-| `/feed` | Activity feed grouped by day + sidebar (live, watchlist, range stats) |
-| `/analytics` | Metric cards + Recharts (velocity, splits, funnel, heatmap, sources) |
-| `/watchlist` | Manage watched companies |
-| `/company/[id]` | Profile — timeline, signals, analyst notes (edit/delete), peers |
-| `/review` | Analyst review queue — Confirm / Override |
-| `/admin` | Pipeline health, system stats, user + role management (admin only) |
+| Route           | Description                                                              |
+| --------------- | ------------------------------------------------------------------------ |
+| `/radar`        | Kanban + table radar — filters, summary strip, sector cards, add company |
+| `/feed`         | Activity feed grouped by day + sidebar (live, watchlist, range stats)    |
+| `/analytics`    | Metric cards + Recharts (velocity, splits, funnel, heatmap, sources)     |
+| `/watchlist`    | Manage watched companies                                                 |
+| `/company/[id]` | Profile — timeline, signals, analyst notes (edit/delete), peers          |
+| `/review`       | Analyst review queue — Confirm / Override                                |
+| `/admin`        | Pipeline health, system stats, user + role management (admin only)       |
 
 ## Scripts
 
 ```bash
 pnpm dev            # dev server
 pnpm build          # production build
-pnpm lint           # eslint
+pnpm typecheck      # tsc --noEmit
+pnpm lint           # eslint (max-warnings 0)
+pnpm format         # prettier --write
+pnpm test           # vitest (unit + route)
+pnpm test:coverage  # vitest + coverage gate
+pnpm test:e2e       # Playwright (mock mode)
 pnpm sync:search    # push companies → Typesense
 pnpm extract:test   # smoke-test the LLM extractor
 ```
+
+## Documentation
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — system shape, request lifecycle,
+  multi-tenancy, ingestion data flow, env-gated subsystems, observability.
+- [docs/API.md](docs/API.md) — public API guide (auth, pagination, rate limits,
+  errors). Machine-readable spec at `GET /api/v1/openapi` (OpenAPI 3.1).
+- [docs/RUNBOOK.md](docs/RUNBOOK.md) — incident response, secret rotation,
+  deploy/rollback, on-call checklist.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — setup, scripts, quality gates, conventions.
+- [SECURITY.md](SECURITY.md) — vulnerability disclosure + hardening summary.
+
+Beyond the analyst app, the platform includes: org/team management with email
+invites, role + member admin, Stripe billing (plan-tiered API quotas), a scoped
+public API, GDPR data export + account deletion, and a freshness-SLA monitor.
 
 ## Architecture notes
 

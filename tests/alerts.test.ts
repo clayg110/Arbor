@@ -1,5 +1,10 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { sendAlert, notifyPipelineFailure, notifyPipelineCrash, hasAlertEnv } from "@/lib/alerts";
+import {
+  sendAlert,
+  notifyPipelineFailure,
+  notifyPipelineCrash,
+  hasAlertEnv,
+} from "@/lib/alerts";
 import { transcriptTickers, hasTranscriptEnv } from "@/lib/ingest/transcripts";
 import { logoLookupEnabled } from "@/lib/ingest/logo";
 
@@ -20,7 +25,12 @@ describe("alerts", () => {
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("ALERT_WEBHOOK_URL", "https://hooks.example.com/x");
     const r = await notifyPipelineFailure({
-      pipeline: "carveouts", fetched: 5, created: 1, updated: 2, flagged: 0, errors: 0,
+      pipeline: "carveouts",
+      fetched: 5,
+      created: 1,
+      updated: 2,
+      flagged: 0,
+      errors: 0,
     });
     expect(r).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
@@ -31,7 +41,12 @@ describe("alerts", () => {
     vi.stubGlobal("fetch", fetchMock);
     vi.stubEnv("ALERT_WEBHOOK_URL", "https://hooks.example.com/x");
     const r = await notifyPipelineFailure({
-      pipeline: "carveouts", fetched: 5, created: 1, updated: 2, flagged: 0, errors: 3,
+      pipeline: "carveouts",
+      fetched: 5,
+      created: 1,
+      updated: 2,
+      flagged: 0,
+      errors: 3,
     });
     expect(r).toBe(true);
     expect(fetchMock).toHaveBeenCalledOnce();
@@ -42,7 +57,12 @@ describe("alerts", () => {
   });
 
   it("swallows webhook failures (crash notify)", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network"); }));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("network");
+      })
+    );
     vi.stubEnv("ALERT_WEBHOOK_URL", "https://hooks.example.com/x");
     expect(await notifyPipelineCrash("carveouts", new Error("boom"))).toBe(false);
   });

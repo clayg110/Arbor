@@ -42,7 +42,10 @@ export async function notifyPipelineFailure(r: PipelineReport): Promise<boolean>
 }
 
 // Alert on a hard crash (pipeline threw before completing).
-export async function notifyPipelineCrash(pipeline: string, err: unknown): Promise<boolean> {
+export async function notifyPipelineCrash(
+  pipeline: string,
+  err: unknown
+): Promise<boolean> {
   const msg = err instanceof Error ? err.message : String(err);
   return sendAlert(`🚨 Arbor pipeline "${pipeline}" crashed: ${msg}`);
 }

@@ -1,16 +1,7 @@
-import {
-  DocumentIcon,
-  MicIcon,
-  GlobeIcon,
-  RssIcon,
-  PencilIcon,
-} from "./icons";
+import { DocumentIcon, MicIcon, GlobeIcon, RssIcon, PencilIcon } from "./icons";
 import type { SourceType } from "@/lib/types";
 
-const META: Record<
-  SourceType,
-  { label: string; Icon: typeof DocumentIcon }
-> = {
+const META: Record<SourceType, { label: string; Icon: typeof DocumentIcon }> = {
   sec_filing: { label: "SEC filing", Icon: DocumentIcon },
   earnings_transcript: { label: "Earnings call", Icon: MicIcon },
   google_news: { label: "Google News", Icon: GlobeIcon },

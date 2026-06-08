@@ -2,8 +2,22 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/db";
 
-// Public paths (no auth required). /landing is the marketing page.
-const PUBLIC = ["/login", "/signup", "/forgot-password", "/auth", "/landing"];
+// Public paths (no auth required). /landing is the marketing page, /legal holds
+// the terms + privacy pages, and the crawler/metadata routes must be reachable
+// without a session.
+const PUBLIC = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/auth",
+  "/landing",
+  "/legal",
+  "/status",
+  "/robots.txt",
+  "/sitemap.xml",
+  "/manifest.webmanifest",
+  "/opengraph-image",
+];
 
 export async function updateSession(request: NextRequest) {
   // Mock mode: no Supabase env → skip auth entirely so the app stays usable.
@@ -25,9 +39,7 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)

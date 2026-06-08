@@ -26,7 +26,9 @@ export default function Error({
       <h1 className="mt-4 text-[16px] font-medium text-ink">Something went wrong</h1>
       <p className="mt-1 max-w-md text-[13px] font-normal text-muted">
         An unexpected error occurred while rendering this page.
-        {error.digest && <span className="block text-[11px] text-subtle">Ref: {error.digest}</span>}
+        {error.digest && (
+          <span className="block text-[11px] text-subtle">Ref: {error.digest}</span>
+        )}
       </p>
       <div className="mt-5 flex items-center gap-2">
         <button

@@ -26,10 +26,7 @@ import type { FeedItemType } from "@/lib/feed-data";
 import type { FeedItemData } from "@/lib/adapters/feed";
 import type { SourceType } from "@/lib/types";
 
-const TYPE_VISUAL: Record<
-  FeedItemType,
-  { color: string; Icon: typeof XIcon }
-> = {
+const TYPE_VISUAL: Record<FeedItemType, { color: string; Icon: typeof XIcon }> = {
   to_in_market: { color: "#185FA5", Icon: ArrowsExchangeIcon },
   to_monitor: { color: "#BA7517", Icon: EyeIcon },
   to_on_hold: { color: "#E24B4A", Icon: PauseIcon },
@@ -60,7 +57,10 @@ export function FeedEventCard({
   const SourceIcon = SOURCE_ICON[item.source.sourceType];
 
   return (
-    <div className="flex gap-3 py-3.5" style={{ borderBottom: "0.5px solid var(--border)" }}>
+    <div
+      className="flex gap-3 py-3.5"
+      style={{ borderBottom: "0.5px solid var(--border)" }}
+    >
       {/* ZONE 1 — icon */}
       <div
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
@@ -87,9 +87,7 @@ export function FeedEventCard({
             <span className="font-normal text-muted">{item.headline}</span>
           </p>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="text-[11px] font-normal text-subtle">
-              {item.timeLabel}
-            </span>
+            <span className="text-[11px] font-normal text-subtle">{item.timeLabel}</span>
             <button
               type="button"
               onClick={onToggleWatch}
@@ -149,19 +147,17 @@ export function FeedEventCard({
             {item.expanded.kind === "note" && (
               <div
                 className="rounded-r px-3 py-2 text-[12px] font-normal text-muted"
-                style={{ backgroundColor: "#F5F4EF", borderLeft: "2px solid var(--border)" }}
+                style={{
+                  backgroundColor: "#F5F4EF",
+                  borderLeft: "2px solid var(--border)",
+                }}
               >
                 {item.expanded.text}
               </div>
             )}
-            {item.expanded.kind === "new_entry" && (
-              <NewEntry content={item.expanded} />
-            )}
+            {item.expanded.kind === "new_entry" && <NewEntry content={item.expanded} />}
             {item.expanded.kind === "conflict" && (
-              <Conflict
-                signalA={item.expanded.signalA}
-                signalB={item.expanded.signalB}
-              />
+              <Conflict signalA={item.expanded.signalA} signalB={item.expanded.signalB} />
             )}
           </div>
         )}
@@ -246,7 +242,7 @@ function Conflict({
         <Link
           href="/review"
           className="rounded-md px-2.5 py-1 text-[11px] font-medium text-white"
-          style={{ backgroundColor: "#E24B4A" }}
+          style={{ backgroundColor: "#C0322F" }}
         >
           Review now
         </Link>

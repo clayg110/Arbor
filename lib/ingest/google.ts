@@ -2,6 +2,8 @@
 // GOOGLE_CUSTOM_SEARCH_API_KEY + GOOGLE_CUSTOM_SEARCH_ENGINE_ID; returns [] when
 // unconfigured (pipeline still runs on RSS).
 
+import { withRetry, throwIfRetryableStatus } from "@/lib/retry";
+
 export interface WebSignal {
   rawText: string;
   sourceUrl: string;
@@ -31,7 +33,11 @@ async function cseSearch(query: string, limit: number): Promise<WebSignal[]> {
     `&cx=${process.env.GOOGLE_CUSTOM_SEARCH_ENGINE_ID}` +
     `&q=${encodeURIComponent(query)}&num=${limit}`;
   try {
-    const res = await fetch(url);
+    const res = await withRetry(
+      async () =>
+        throwIfRetryableStatus(await fetch(url, { signal: AbortSignal.timeout(10000) })),
+      { retries: 2, baseMs: 400 }
+    );
     if (!res.ok) return [];
     const json = (await res.json()) as { items?: CseItem[] };
     return (json.items ?? []).slice(0, limit).map((it) => ({

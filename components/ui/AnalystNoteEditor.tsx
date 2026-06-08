@@ -72,7 +72,9 @@ export function AnalystNoteEditor({
     if (isLocal(n.id)) return; // not yet persisted
     api.editNote(n.id, content).catch((e) => {
       if (!(e instanceof BackendOff)) {
-        setNotes((prev) => prev.map((x) => (x.id === n.id ? { ...x, content: prevContent } : x)));
+        setNotes((prev) =>
+          prev.map((x) => (x.id === n.id ? { ...x, content: prevContent } : x))
+        );
       }
     });
   }
@@ -100,7 +102,9 @@ export function AnalystNoteEditor({
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline gap-2">
                 <span className="text-[12px] font-medium text-ink">{n.author}</span>
-                <span className="text-[11px] font-normal text-subtle">{formatDate(n.createdAt)}</span>
+                <span className="text-[11px] font-normal text-subtle">
+                  {formatDate(n.createdAt)}
+                </span>
                 {canManage(n) && editingId !== n.id && (
                   <span className="ml-auto flex items-center gap-1">
                     <button
@@ -161,7 +165,10 @@ export function AnalystNoteEditor({
         {notes.length === 0 && <li className="text-[13px] text-subtle">No notes yet.</li>}
       </ul>
 
-      <div className="rounded-lg bg-surface p-3" style={{ border: "0.5px solid var(--border)" }}>
+      <div
+        className="rounded-lg bg-surface p-3"
+        style={{ border: "0.5px solid var(--border)" }}
+      >
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

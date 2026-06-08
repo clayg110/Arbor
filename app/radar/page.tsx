@@ -2,7 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { RadarCompanyCard } from "@/components/ui/RadarCompanyCard";
-import { RadarTable, type SortKey, type SortDir, type GroupBy } from "@/components/ui/RadarTable";
+import {
+  RadarTable,
+  type SortKey,
+  type SortDir,
+  type GroupBy,
+} from "@/components/ui/RadarTable";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { AddCompanyModal } from "@/components/ui/AddCompanyModal";
 import {
@@ -25,7 +30,12 @@ import { useLive } from "@/lib/use-live";
 import { api, BackendOff } from "@/lib/api-client";
 import type { Sector, DealType, Confidence, Stage } from "@/lib/types";
 
-const CONF_RANK: Record<Confidence, number> = { high: 4, medium: 3, low: 2, needs_review: 1 };
+const CONF_RANK: Record<Confidence, number> = {
+  high: 4,
+  medium: 3,
+  low: 2,
+  needs_review: 1,
+};
 
 function sortList(rows: RadarCompany[], key: SortKey, dir: SortDir): RadarCompany[] {
   const s = [...rows].sort((a, b) => {
@@ -41,8 +51,18 @@ function sortList(rows: RadarCompany[], key: SortKey, dir: SortDir): RadarCompan
 
 const COLUMNS: { id: string; title: string; stages: Stage[]; color: Stage }[] = [
   { id: "in", title: "In market", stages: ["in_market"], color: "in_market" },
-  { id: "mon", title: "Monitor for exit", stages: ["monitor_for_exit"], color: "monitor_for_exit" },
-  { id: "hold", title: "On hold / Pulled", stages: ["on_hold", "pulled"], color: "on_hold" },
+  {
+    id: "mon",
+    title: "Monitor for exit",
+    stages: ["monitor_for_exit"],
+    color: "monitor_for_exit",
+  },
+  {
+    id: "hold",
+    title: "On hold / Pulled",
+    stages: ["on_hold", "pulled"],
+    color: "on_hold",
+  },
 ];
 
 const SORT_OPTIONS: { id: string; label: string; key: SortKey; dir: SortDir }[] = [
@@ -63,13 +83,23 @@ const COL_SORT: { id: string; label: string; key: SortKey; dir: SortDir }[] = [
 
 const ALL_STAGES: Stage[] = ["in_market", "monitor_for_exit", "on_hold", "pulled"];
 const ALL_CONF: Confidence[] = ["high", "medium", "low", "needs_review"];
-const CONF_LABEL: Record<Confidence, string> = { high: "High", medium: "Medium", low: "Low", needs_review: "Needs review" };
+const CONF_LABEL: Record<Confidence, string> = {
+  high: "High",
+  medium: "Medium",
+  low: "Low",
+  needs_review: "Needs review",
+};
 
 export default function RadarPage() {
   const live = useLive(
     "radar",
     () => api.companies("?limit=500"),
-    { companies: radarCompanies, total: radarCompanies.length, summary: null, sectorSummary: [] },
+    {
+      companies: radarCompanies,
+      total: radarCompanies.length,
+      summary: null,
+      sectorSummary: [],
+    },
     { realtime: true }
   );
   const [added, setAdded] = useState<RadarCompany[]>([]);
@@ -86,12 +116,18 @@ export default function RadarPage() {
     if (Object.keys(stageOverride).length === 0) return base;
     return base.map((c) =>
       stageOverride[c.id]
-        ? { ...c, stage: stageOverride[c.id], pulled: stageOverride[c.id] === "pulled" || undefined }
+        ? {
+            ...c,
+            stage: stageOverride[c.id],
+            pulled: stageOverride[c.id] === "pulled" || undefined,
+          }
         : c
     );
   }, [added, liveCompanies, stageOverride]);
   const summary = live.data.summary ?? summaryStrip;
-  const sectors = live.data.sectorSummary.length ? live.data.sectorSummary : sectorSummary;
+  const sectors = live.data.sectorSummary.length
+    ? live.data.sectorSummary
+    : sectorSummary;
   const sponsorOpts = useMemo(
     () => Array.from(new Set(companies.map((c) => c.ownerName))).sort(),
     [companies]
@@ -110,7 +146,11 @@ export default function RadarPage() {
   const [watch, setWatch] = useState<Set<string>>(
     () => new Set(radarCompanies.filter((c) => c.watchlisted).map((c) => c.id))
   );
-  const [colSort, setColSort] = useState<Record<string, string>>({ in: "days", mon: "days", hold: "days" });
+  const [colSort, setColSort] = useState<Record<string, string>>({
+    in: "days",
+    mon: "days",
+    hold: "days",
+  });
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [shown, setShown] = useState<Record<string, number>>({});
   const [showAdd, setShowAdd] = useState(false);
@@ -119,7 +159,8 @@ export default function RadarPage() {
   // "this week" = added on/after 7 days before the mock anchor (2026-06-03)
   const WEEK_CUTOFF = "2026-05-27";
 
-  const sortId = SORT_OPTIONS.find((o) => o.key === sortKey && o.dir === sortDir)?.id ?? "";
+  const sortId =
+    SORT_OPTIONS.find((o) => o.key === sortKey && o.dir === sortDir)?.id ?? "";
 
   // Seed watchlist from live data (mock keeps its own starred set).
   useEffect(() => {
@@ -161,13 +202,11 @@ export default function RadarPage() {
     setDropCol(null);
   }
 
-  // Drop a card on a column → optimistic stage move + persist. BackendOff (mock
-  // mode) keeps the optimistic move; a real failure reverts. In live mode we
-  // refetch then drop the override so the canonical row takes over.
-  function handleStageDrop(target: Stage) {
-    const id = dragId;
-    const from = dragStage;
-    endDrag();
+  // Optimistic stage move + persist, shared by drag-and-drop and the card's
+  // keyboard "Move stage" menu. BackendOff (mock mode) keeps the optimistic move;
+  // a real failure reverts. In live mode we refetch then drop the override so the
+  // canonical row takes over.
+  function moveStage(id: string, from: Stage, target: Stage) {
     if (!id || from === target) return;
     setStageOverride((p) => ({ ...p, [id]: target }));
     api
@@ -179,6 +218,14 @@ export default function RadarPage() {
       .catch((e) => {
         if (!(e instanceof BackendOff)) clearOverride(id);
       });
+  }
+
+  // Drop a card on a column → move it to that column's stage.
+  function handleStageDrop(target: Stage) {
+    const id = dragId;
+    const from = dragStage;
+    endDrag();
+    if (id && from) moveStage(id, from, target);
   }
 
   const filtered = useMemo(() => {
@@ -224,32 +271,43 @@ export default function RadarPage() {
     setDeal("all");
     setSponsor("all");
     setSearch("");
-    setConfidence(kind === "needs_review" ? new Set<Confidence>(["needs_review"]) : new Set());
+    setConfidence(
+      kind === "needs_review" ? new Set<Confidence>(["needs_review"]) : new Set()
+    );
     setStages(
       kind === "in_market"
         ? new Set<Stage>(["in_market"])
         : kind === "monitor"
-        ? new Set<Stage>(["monitor_for_exit"])
-        : kind === "hold"
-        ? new Set<Stage>(["on_hold", "pulled"])
-        : new Set()
+          ? new Set<Stage>(["monitor_for_exit"])
+          : kind === "hold"
+            ? new Set<Stage>(["on_hold", "pulled"])
+            : new Set()
     );
     setNewThisWeek(kind === "new_week");
   }
 
-  const exactStages = (arr: Stage[]) => stages.size === arr.length && arr.every((s) => stages.has(s));
+  const exactStages = (arr: Stage[]) =>
+    stages.size === arr.length && arr.every((s) => stages.has(s));
   const activeQuick: Record<Quick, boolean> = {
     total: activeCount === 0,
     in_market: exactStages(["in_market"]) && confidence.size === 0,
     monitor: exactStages(["monitor_for_exit"]) && confidence.size === 0,
     hold: exactStages(["on_hold", "pulled"]) && confidence.size === 0,
-    needs_review: confidence.has("needs_review") && confidence.size === 1 && stages.size === 0,
+    needs_review:
+      confidence.has("needs_review") && confidence.size === 1 && stages.size === 0,
     new_week: newThisWeek,
   };
 
   function onTableSort(key: SortKey) {
     // toggle direction if same key, else sensible default
-    const dir: SortDir = sortKey === key ? (sortDir === "asc" ? "desc" : "asc") : key === "name" ? "asc" : "desc";
+    const dir: SortDir =
+      sortKey === key
+        ? sortDir === "asc"
+          ? "desc"
+          : "asc"
+        : key === "name"
+          ? "asc"
+          : "desc";
     setSortKey(key);
     setSortDir(dir);
   }
@@ -259,13 +317,24 @@ export default function RadarPage() {
   // blank columns. (Falls back to all columns when nothing matches.)
   const kanbanAll = COLUMNS.map((col) => {
     const cs = COL_SORT.find((o) => o.id === colSort[col.id]) ?? COL_SORT[0];
-    return { col, cards: sortList(filtered.filter((c) => col.stages.includes(c.stage)), cs.key, cs.dir) };
+    return {
+      col,
+      cards: sortList(
+        filtered.filter((c) => col.stages.includes(c.stage)),
+        cs.key,
+        cs.dir
+      ),
+    };
   });
   const kanbanCols = kanbanAll.some((c) => c.cards.length > 0)
     ? kanbanAll.filter((c) => c.cards.length > 0)
     : kanbanAll;
   const kanbanGrid =
-    kanbanCols.length === 1 ? "md:grid-cols-1" : kanbanCols.length === 2 ? "md:grid-cols-2" : "md:grid-cols-3";
+    kanbanCols.length === 1
+      ? "md:grid-cols-1"
+      : kanbanCols.length === 2
+        ? "md:grid-cols-2"
+        : "md:grid-cols-3";
 
   return (
     <div>
@@ -278,19 +347,35 @@ export default function RadarPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="text-[12px] font-normal text-subtle">
-              Arbor <span className="px-1">›</span> <span className="text-muted">Radar</span>
+              Arbor <span className="px-1">›</span>{" "}
+              <span className="text-muted">Radar</span>
             </span>
-            <div className="flex rounded-md p-0.5" style={{ border: "0.5px solid var(--border)" }}>
-              <IconToggle active={view === "kanban"} onClick={() => setView("kanban")} label="Kanban view">
+            <div
+              className="flex rounded-md p-0.5"
+              style={{ border: "0.5px solid var(--border)" }}
+            >
+              <IconToggle
+                active={view === "kanban"}
+                onClick={() => setView("kanban")}
+                label="Kanban view"
+              >
                 <ColumnsIcon className="h-4 w-4" />
               </IconToggle>
-              <IconToggle active={view === "table"} onClick={() => setView("table")} label="Table view">
+              <IconToggle
+                active={view === "table"}
+                onClick={() => setView("table")}
+                label="Table view"
+              >
                 <RowsIcon className="h-4 w-4" />
               </IconToggle>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <SearchBar onSearch={setSearch} className="w-64" placeholder="Search company, sponsor, sector…" />
+            <SearchBar
+              onSearch={setSearch}
+              className="w-64"
+              placeholder="Search company, sponsor, sector…"
+            />
             <button
               type="button"
               onClick={() => setShowAdd(true)}
@@ -309,30 +394,60 @@ export default function RadarPage() {
               Filters {activeCount}
             </span>
           )}
-          <Chip active={sector === "all"} onClick={() => setSector("all")}>All</Chip>
+          <Chip active={sector === "all"} onClick={() => setSector("all")}>
+            All
+          </Chip>
           {SECTORS.map((s) => (
-            <Chip key={s} active={sector === s} onClick={() => setSector(sector === s ? "all" : s)}>
+            <Chip
+              key={s}
+              active={sector === s}
+              onClick={() => setSector(sector === s ? "all" : s)}
+            >
               {SECTOR_LABELS[s]}
             </Chip>
           ))}
           <Divider />
-          <Chip active={deal === "all"} onClick={() => setDeal("all")}>All</Chip>
-          <Chip active={deal === "carveout"} onClick={() => setDeal("carveout")}>Carveouts</Chip>
-          <Chip active={deal === "private_asset"} onClick={() => setDeal("private_asset")}>Private assets</Chip>
+          <Chip active={deal === "all"} onClick={() => setDeal("all")}>
+            All
+          </Chip>
+          <Chip active={deal === "carveout"} onClick={() => setDeal("carveout")}>
+            Carveouts
+          </Chip>
+          <Chip
+            active={deal === "private_asset"}
+            onClick={() => setDeal("private_asset")}
+          >
+            Private assets
+          </Chip>
           <Divider />
           {ALL_CONF.map((cf) => (
-            <Chip key={cf} active={confidence.has(cf)} onClick={() => toggleSet(setConfidence, cf)}>
+            <Chip
+              key={cf}
+              active={confidence.has(cf)}
+              onClick={() => toggleSet(setConfidence, cf)}
+            >
               {CONF_LABEL[cf]}
             </Chip>
           ))}
           <Divider />
           {ALL_STAGES.map((st) => (
-            <Chip key={st} active={stages.has(st)} onClick={() => toggleSet(setStages, st)}>
-              {st === "in_market" ? "In market" : st === "monitor_for_exit" ? "Monitor" : st === "on_hold" ? "On hold" : "Pulled"}
+            <Chip
+              key={st}
+              active={stages.has(st)}
+              onClick={() => toggleSet(setStages, st)}
+            >
+              {st === "in_market"
+                ? "In market"
+                : st === "monitor_for_exit"
+                  ? "Monitor"
+                  : st === "on_hold"
+                    ? "On hold"
+                    : "Pulled"}
             </Chip>
           ))}
           <Divider />
           <select
+            aria-label="Filter by sponsor"
             value={sponsor}
             onChange={(e) => setSponsor(e.target.value)}
             className="shrink-0 rounded-full bg-surface px-2.5 py-1 text-[11px] font-medium text-muted"
@@ -340,11 +455,17 @@ export default function RadarPage() {
           >
             <option value="all">All sponsors</option>
             {sponsorOpts.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>
+                {s}
+              </option>
             ))}
           </select>
           {activeCount > 0 && (
-            <button type="button" onClick={clearAll} className="ml-auto shrink-0 px-2 text-[11px] font-medium text-[#791F1F] hover:underline">
+            <button
+              type="button"
+              onClick={clearAll}
+              className="ml-auto shrink-0 px-2 text-[11px] font-medium text-[#791F1F] hover:underline"
+            >
               Clear all filters
             </button>
           )}
@@ -356,7 +477,10 @@ export default function RadarPage() {
             Showing {filtered.length} of {summary.total.toLocaleString()} companies
             {live.loading && (
               <span className="inline-flex items-center gap-1 text-[#185FA5]">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ backgroundColor: "#185FA5" }} />
+                <span
+                  className="h-1.5 w-1.5 animate-pulse rounded-full"
+                  style={{ backgroundColor: "#185FA5" }}
+                />
                 loading live data…
               </span>
             )}
@@ -376,14 +500,21 @@ export default function RadarPage() {
               style={{ border: "0.5px solid var(--border)" }}
             >
               {SORT_OPTIONS.map((o) => (
-                <option key={o.id} value={o.id}>{o.label}</option>
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
               ))}
             </select>
           </label>
           {view === "table" && (
             <label className="flex items-center gap-1.5 text-muted">
               Group
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className="rounded-md bg-surface px-1.5 py-1 text-ink" style={{ border: "0.5px solid var(--border)" }}>
+              <select
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+                className="rounded-md bg-surface px-1.5 py-1 text-ink"
+                style={{ border: "0.5px solid var(--border)" }}
+              >
                 <option value="none">No grouping</option>
                 <option value="sector">By sector</option>
                 <option value="deal_type">By deal type</option>
@@ -395,11 +526,44 @@ export default function RadarPage() {
       </div>
 
       {/* ===== SECTION 2 — summary strip ===== */}
-      <div className="-mx-6 mb-4 flex flex-wrap bg-[#F5F4EF] px-6 py-3" style={{ borderTop: "0.5px solid var(--border)", borderBottom: "0.5px solid var(--border)" }}>
-        <Block label="Total tracked" value={summary.total.toLocaleString()} sub={`across ${sectors.length} sectors`} active={activeQuick.total} onClick={() => applyQuick("total")} />
-        <Block label="In market" value={String(summary.inMarket)} color="#0C447C" sub="↑ 12 this week" active={activeQuick.in_market} onClick={() => applyQuick("in_market")} />
-        <Block label="Monitor for exit" value={String(summary.monitor)} color="#633806" sub="↓ 4 this week" active={activeQuick.monitor} onClick={() => applyQuick("monitor")} />
-        <Block label="On hold / Pulled" value={String(summary.onHold)} color="#791F1F" sub="→ no change" active={activeQuick.hold} onClick={() => applyQuick("hold")} />
+      <div
+        className="-mx-6 mb-4 flex flex-wrap bg-[#F5F4EF] px-6 py-3"
+        style={{
+          borderTop: "0.5px solid var(--border)",
+          borderBottom: "0.5px solid var(--border)",
+        }}
+      >
+        <Block
+          label="Total tracked"
+          value={summary.total.toLocaleString()}
+          sub={`across ${sectors.length} sectors`}
+          active={activeQuick.total}
+          onClick={() => applyQuick("total")}
+        />
+        <Block
+          label="In market"
+          value={String(summary.inMarket)}
+          color="#0C447C"
+          sub="↑ 12 this week"
+          active={activeQuick.in_market}
+          onClick={() => applyQuick("in_market")}
+        />
+        <Block
+          label="Monitor for exit"
+          value={String(summary.monitor)}
+          color="#633806"
+          sub="↓ 4 this week"
+          active={activeQuick.monitor}
+          onClick={() => applyQuick("monitor")}
+        />
+        <Block
+          label="On hold / Pulled"
+          value={String(summary.onHold)}
+          color="#791F1F"
+          sub="→ no change"
+          active={activeQuick.hold}
+          onClick={() => applyQuick("hold")}
+        />
         <Block
           label="Needs review"
           value={String(summary.needsReview)}
@@ -409,7 +573,15 @@ export default function RadarPage() {
           active={activeQuick.needs_review}
           onClick={() => applyQuick("needs_review")}
         />
-        <Block label="New this week" value={String(summary.newThisWeek)} color="#27500A" sub={`${summary.newCarveout} carveouts · ${summary.newPrivate} private`} last active={activeQuick.new_week} onClick={() => applyQuick("new_week")} />
+        <Block
+          label="New this week"
+          value={String(summary.newThisWeek)}
+          color="#27500A"
+          sub={`${summary.newCarveout} carveouts · ${summary.newPrivate} private`}
+          last
+          active={activeQuick.new_week}
+          onClick={() => applyQuick("new_week")}
+        />
       </div>
 
       {/* ===== sector summary cards ===== */}
@@ -423,19 +595,41 @@ export default function RadarPage() {
               type="button"
               onClick={() => setSector(active ? "all" : (s.key as Sector))}
               className="shrink-0 rounded-lg bg-surface p-3 text-left"
-              style={{ width: 168, border: active ? "1px solid #185FA5" : "0.5px solid var(--border)" }}
+              style={{
+                width: 168,
+                border: active ? "1px solid #185FA5" : "0.5px solid var(--border)",
+              }}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-medium text-ink">{s.label}</span>
                 {s.key === MOST_ACTIVE_SECTOR && (
-                  <span className="rounded bg-[#E6F1FB] px-1 py-0.5 text-[9px] font-medium text-[#0C447C]">Most active</span>
+                  <span className="rounded bg-[#E6F1FB] px-1 py-0.5 text-[9px] font-medium text-[#0C447C]">
+                    Most active
+                  </span>
                 )}
               </div>
-              <div className="mt-1 text-[11px] font-normal text-muted">{s.total} total · {s.inMarket} in market</div>
+              <div className="mt-1 text-[11px] font-normal text-muted">
+                {s.total} total · {s.inMarket} in market
+              </div>
               <div className="mt-2 flex h-1.5 overflow-hidden rounded-full">
-                <span style={{ width: `${(s.inMarket / total) * 100}%`, backgroundColor: STAGE_COLORS.in_market.border ?? "#185FA5" }} />
-                <span style={{ width: `${(s.monitor / total) * 100}%`, backgroundColor: STAGE_COLORS.monitor_for_exit.border ?? "#BA7517" }} />
-                <span style={{ width: `${(s.onHold / total) * 100}%`, backgroundColor: "#B4B2A9" }} />
+                <span
+                  style={{
+                    width: `${(s.inMarket / total) * 100}%`,
+                    backgroundColor: STAGE_COLORS.in_market.border ?? "#185FA5",
+                  }}
+                />
+                <span
+                  style={{
+                    width: `${(s.monitor / total) * 100}%`,
+                    backgroundColor: STAGE_COLORS.monitor_for_exit.border ?? "#BA7517",
+                  }}
+                />
+                <span
+                  style={{
+                    width: `${(s.onHold / total) * 100}%`,
+                    backgroundColor: "#B4B2A9",
+                  }}
+                />
               </div>
             </button>
           );
@@ -450,13 +644,16 @@ export default function RadarPage() {
             const limit = shown[col.id] ?? 15;
             const visible = cards.slice(0, limit);
             const accent = STAGE_COLORS[col.color].border ?? "#888";
-            const isDropTarget = dropCol === col.id && !!dragId && dragStage !== col.color;
+            const isDropTarget =
+              dropCol === col.id && !!dragId && dragStage !== col.color;
             return (
               <section
                 key={col.id}
                 className="rounded-lg bg-surface transition-colors"
                 style={{
-                  border: isDropTarget ? `1.5px solid ${accent}` : "0.5px solid var(--border)",
+                  border: isDropTarget
+                    ? `1.5px solid ${accent}`
+                    : "0.5px solid var(--border)",
                   backgroundColor: isDropTarget ? `${accent}0D` : undefined,
                 }}
                 onDragOver={(e) => {
@@ -466,29 +663,40 @@ export default function RadarPage() {
                   setDropCol(col.id);
                 }}
                 onDragLeave={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropCol(null);
+                  if (!e.currentTarget.contains(e.relatedTarget as Node))
+                    setDropCol(null);
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
                   handleStageDrop(col.color);
                 }}
               >
-                <span className="block h-[3px] rounded-t-lg" style={{ backgroundColor: accent }} />
+                <span
+                  className="block h-[3px] rounded-t-lg"
+                  style={{ backgroundColor: accent }}
+                />
                 <header className="flex items-center justify-between gap-2 px-3 py-2">
                   <div className="flex items-center gap-2">
                     <h2 className="text-[13px] font-medium text-ink">{col.title}</h2>
-                    <span className="rounded-full bg-[#F1EFE8] px-1.5 py-0.5 text-[10px] font-medium text-[#444441]">{cards.length}</span>
+                    <span className="rounded-full bg-[#F1EFE8] px-1.5 py-0.5 text-[10px] font-medium text-[#444441]">
+                      {cards.length}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     {!isCollapsed && (
                       <select
+                        aria-label={`Sort ${col.title} column`}
                         value={colSort[col.id]}
-                        onChange={(e) => setColSort((p) => ({ ...p, [col.id]: e.target.value }))}
+                        onChange={(e) =>
+                          setColSort((p) => ({ ...p, [col.id]: e.target.value }))
+                        }
                         className="rounded bg-surface px-1 py-0.5 text-[10px] text-muted"
                         style={{ border: "0.5px solid var(--border)" }}
                       >
                         {COL_SORT.map((o) => (
-                          <option key={o.id} value={o.id}>{o.label}</option>
+                          <option key={o.id} value={o.id}>
+                            {o.label}
+                          </option>
                         ))}
                       </select>
                     )}
@@ -498,12 +706,19 @@ export default function RadarPage() {
                       onClick={() => toggleSet(setCollapsed, col.id)}
                       className="text-muted hover:text-ink"
                     >
-                      {isCollapsed ? <ChevronDownIcon className="h-4 w-4" /> : <ChevronUpIcon className="h-4 w-4" />}
+                      {isCollapsed ? (
+                        <ChevronDownIcon className="h-4 w-4" />
+                      ) : (
+                        <ChevronUpIcon className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </header>
                 {!isCollapsed && (
-                  <div className="space-y-2 overflow-y-auto px-2 pb-2" style={{ maxHeight: "calc(100vh - 280px)" }}>
+                  <div
+                    className="space-y-2 overflow-y-auto px-2 pb-2"
+                    style={{ maxHeight: "calc(100vh - 280px)" }}
+                  >
                     {visible.map((c) => (
                       <RadarCompanyCard
                         key={c.id}
@@ -519,13 +734,20 @@ export default function RadarPage() {
                           e.dataTransfer.setData("text/plain", c.id);
                         }}
                         onCardDragEnd={endDrag}
+                        onMoveStage={(target) => moveStage(c.id, c.stage, target)}
                       />
                     ))}
-                    {cards.length === 0 && <p className="py-8 text-center text-[11px] text-subtle">No companies</p>}
+                    {cards.length === 0 && (
+                      <p className="py-8 text-center text-[11px] text-subtle">
+                        No companies
+                      </p>
+                    )}
                     {cards.length > limit && (
                       <button
                         type="button"
-                        onClick={() => setShown((p) => ({ ...p, [col.id]: cards.length }))}
+                        onClick={() =>
+                          setShown((p) => ({ ...p, [col.id]: cards.length }))
+                        }
                         className="w-full rounded-md py-1.5 text-[11px] font-medium text-[#185FA5]"
                         style={{ border: "0.5px solid var(--border)" }}
                       >
@@ -566,7 +788,17 @@ export default function RadarPage() {
 }
 
 // ===== helpers =====
-function IconToggle({ active, onClick, label, children }: { active: boolean; onClick: () => void; label: string; children: React.ReactNode }) {
+function IconToggle({
+  active,
+  onClick,
+  label,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
@@ -574,20 +806,44 @@ function IconToggle({ active, onClick, label, children }: { active: boolean; onC
       aria-label={label}
       aria-pressed={active}
       className="rounded p-1.5 transition-colors"
-      style={active ? { backgroundColor: "#E6F1FB", color: "#0C447C" } : { color: "var(--text-muted)" }}
+      style={
+        active
+          ? { backgroundColor: "#E6F1FB", color: "#0C447C" }
+          : { color: "var(--text-muted)" }
+      }
     >
       {children}
     </button>
   );
 }
 
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       onClick={onClick}
       className="shrink-0 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
-      style={active ? { backgroundColor: "#E6F1FB", color: "#0C447C", boxShadow: "inset 0 0 0 0.5px #185FA5" } : { backgroundColor: "var(--surface)", color: "var(--text-muted)", boxShadow: "inset 0 0 0 0.5px var(--border)" }}
+      style={
+        active
+          ? {
+              backgroundColor: "#E6F1FB",
+              color: "#0C447C",
+              boxShadow: "inset 0 0 0 0.5px #185FA5",
+            }
+          : {
+              backgroundColor: "var(--surface)",
+              color: "var(--text-muted)",
+              boxShadow: "inset 0 0 0 0.5px var(--border)",
+            }
+      }
     >
       {children}
     </button>
@@ -595,7 +851,12 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 }
 
 function Divider() {
-  return <span className="mx-0.5 h-4 w-px shrink-0" style={{ backgroundColor: "var(--border)" }} />;
+  return (
+    <span
+      className="mx-0.5 h-4 w-px shrink-0"
+      style={{ backgroundColor: "var(--border)" }}
+    />
+  );
 }
 
 function Block({
@@ -637,12 +898,21 @@ function Block({
         {label}
         <span className="opacity-0 transition-opacity group-hover:opacity-60">→</span>
       </div>
-      <div className="mt-0.5 flex items-center gap-1.5 text-[20px] font-medium leading-tight" style={{ color: color ?? "var(--text)" }}>
+      <div
+        className="mt-0.5 flex items-center gap-1.5 text-[20px] font-medium leading-tight"
+        style={{ color: color ?? "var(--text)" }}
+      >
         {value}
         {pulse && (
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full rounded-full animate-ping-dot" style={{ backgroundColor: "#E24B4A" }} />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#E24B4A" }} />
+            <span
+              className="absolute inline-flex h-full w-full rounded-full animate-ping-dot"
+              style={{ backgroundColor: "#E24B4A" }}
+            />
+            <span
+              className="relative inline-flex h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: "#E24B4A" }}
+            />
           </span>
         )}
       </div>

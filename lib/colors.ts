@@ -1,10 +1,4 @@
-import type {
-  Stage,
-  DealType,
-  Confidence,
-  Sector,
-  FeedEventType,
-} from "./types";
+import type { Stage, DealType, Confidence, Sector, FeedEventType } from "./types";
 
 // Exact hex values from the design system. Inline styles keep them precise
 // (and out of Tailwind's purge guesswork).

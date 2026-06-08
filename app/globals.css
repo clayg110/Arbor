@@ -8,16 +8,27 @@
   --surface: #ffffff;
   --border: #e6e4dd;
   --text: #1a1a18;
-  --text-muted: #6f6e68;
-  --text-subtle: #9a9890;
+  /* Grays meet WCAG 2.1 AA (>=4.5:1) on every surface they're used on — white,
+     the cream bg, and the tinted stage/confidence pills. Verified by the axe
+     audit (e2e/a11y-audit.spec.ts). Do not lighten without re-checking contrast. */
+  --text-muted: #5f5e57;
+  --text-subtle: #6a6963;
 }
 
 html,
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
-    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    var(--font-inter),
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -49,4 +60,17 @@ strong {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #cfcdc3;
+}
+
+/* Respect the OS "reduce motion" setting — neutralizes the pulse dot, feed
+   highlight, and all transitions for users who opt out of animation. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

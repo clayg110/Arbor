@@ -48,7 +48,15 @@ export function rangeDates(p: Preset): { from: string; to: string } {
 
 // range query-param token <-> preset
 export function presetToToken(p: Preset): string {
-  return p === "week" ? "week" : p === "month" ? "month" : p === "30d" ? "30d" : p === "today" ? "today" : "custom";
+  return p === "week"
+    ? "week"
+    : p === "month"
+      ? "month"
+      : p === "30d"
+        ? "30d"
+        : p === "today"
+          ? "today"
+          : "custom";
 }
 export function tokenToPreset(token: string | null | undefined): Preset | null {
   if (!token) return null;
@@ -238,9 +246,20 @@ export function metricValue(m: MetricSpec, p: Preset): number {
 }
 
 // ---- velocity (26 weeks) ----
-const CARVE = [3, 1, 2, 4, 2, 3, 5, 4, 3, 6, 4, 5, 7, 5, 3, 6, 4, 2, 5, 3, 4, 6, 3, 5, 4, 6];
-const PRIV = [2, 1, 1, 3, 0, 2, 3, 2, 4, 3, 2, 4, 4, 3, 2, 3, 3, 1, 4, 2, 3, 3, 2, 4, 3, 4];
-const MONTH_AT: Record<number, string> = { 0: "Jan", 4: "Feb", 8: "Mar", 13: "Apr", 17: "May", 21: "Jun" };
+const CARVE = [
+  3, 1, 2, 4, 2, 3, 5, 4, 3, 6, 4, 5, 7, 5, 3, 6, 4, 2, 5, 3, 4, 6, 3, 5, 4, 6,
+];
+const PRIV = [
+  2, 1, 1, 3, 0, 2, 3, 2, 4, 3, 2, 4, 4, 3, 2, 3, 3, 1, 4, 2, 3, 3, 2, 4, 3, 4,
+];
+const MONTH_AT: Record<number, string> = {
+  0: "Jan",
+  4: "Feb",
+  8: "Mar",
+  13: "Apr",
+  17: "May",
+  21: "Jun",
+};
 
 export interface VelocityPoint {
   i: number;
@@ -257,7 +276,14 @@ export const velocity: VelocityPoint[] = CARVE.map((c, i) => {
   let sum = 0;
   for (let k = start; k <= i; k++) sum += CARVE[k] + PRIV[k];
   const rolling = +(sum / (i - start + 1)).toFixed(1);
-  return { i, label: MONTH_AT[i] ?? "", carveout: c, private_asset: PRIV[i], total, rolling };
+  return {
+    i,
+    label: MONTH_AT[i] ?? "",
+    carveout: c,
+    private_asset: PRIV[i],
+    total,
+    rolling,
+  };
 });
 
 export const velocitySummary = {
@@ -283,14 +309,16 @@ const SECTOR_RAW: [string, string, number, number, number][] = [
   ["Energy & fuels", "energy_fuels", 27, 48, 33],
   ["Pharma inputs", "pharma_inputs", 21, 38, 33],
 ];
-export const sectorStage: SectorStage[] = SECTOR_RAW.map(([sector, sectorKey, a, b, c]) => ({
-  sector,
-  sectorKey,
-  in_market: a,
-  monitor: b,
-  on_hold: c,
-  total: a + b + c,
-}));
+export const sectorStage: SectorStage[] = SECTOR_RAW.map(
+  ([sector, sectorKey, a, b, c]) => ({
+    sector,
+    sectorKey,
+    in_market: a,
+    monitor: b,
+    on_hold: c,
+    total: a + b + c,
+  })
+);
 
 // ---- deal type split ----
 export const dealSplit = {
@@ -302,18 +330,33 @@ export const dealSplit = {
 };
 
 // ---- confidence distribution ----
+// Solid segment colors are AA against the white in-bar labels (>=4.5:1).
 export const confidenceDist = [
-  { label: "High", count: 612, pct: 56, color: "#1D9E75" },
-  { label: "Medium", count: 298, pct: 27, color: "#BA7517" },
-  { label: "Low", count: 98, pct: 9, color: "#E24B4A" },
-  { label: "Needs review", count: 76, pct: 7, color: "#B4B2A9" },
+  { label: "High", count: 612, pct: 56, color: "#157A5A" },
+  { label: "Medium", count: 298, pct: 27, color: "#A8650F" },
+  { label: "Low", count: 98, pct: 9, color: "#C0322F" },
+  { label: "Needs review", count: 76, pct: 7, color: "#8A8880" },
 ];
 
 // ---- exit funnel ----
 export const exitFunnel = [
-  { stage: "Monitor for exit", days: 287, width: 100, n: 436, bg: "#E6F1FB", border: "#185FA5" },
+  {
+    stage: "Monitor for exit",
+    days: 287,
+    width: 100,
+    n: 436,
+    bg: "#E6F1FB",
+    border: "#185FA5",
+  },
   { stage: "In market", days: 47, width: 68, n: 229, bg: "#FAEEDA", border: "#BA7517" },
-  { stage: "Pulled / lapsed", days: 38, width: 38, n: 309, bg: "#FCEBEB", border: "#E24B4A" },
+  {
+    stage: "Pulled / lapsed",
+    days: 38,
+    width: 38,
+    n: 309,
+    bg: "#FCEBEB",
+    border: "#E24B4A",
+  },
 ];
 
 export const transitionRates = [
@@ -334,12 +377,42 @@ export const topSectors = [
 
 // ---- sponsors ----
 export const sponsors = [
-  { rank: 1, name: "Carlyle Group", slug: "carlyle", processes: 4, sector: "Specialty materials" },
+  {
+    rank: 1,
+    name: "Carlyle Group",
+    slug: "carlyle",
+    processes: 4,
+    sector: "Specialty materials",
+  },
   { rank: 2, name: "Bain Capital", slug: "bain", processes: 3, sector: "Pharma inputs" },
-  { rank: 3, name: "One Rock Capital", slug: "one-rock", processes: 2, sector: "Chemicals" },
-  { rank: 4, name: "SK Capital Partners", slug: "sk-capital", processes: 2, sector: "Specialty materials" },
-  { rank: 5, name: "West Street Capital", slug: "west-street", processes: 1, sector: "Chemicals" },
-  { rank: 6, name: "Advent International", slug: "advent", processes: 1, sector: "Industrials" },
+  {
+    rank: 3,
+    name: "One Rock Capital",
+    slug: "one-rock",
+    processes: 2,
+    sector: "Chemicals",
+  },
+  {
+    rank: 4,
+    name: "SK Capital Partners",
+    slug: "sk-capital",
+    processes: 2,
+    sector: "Specialty materials",
+  },
+  {
+    rank: 5,
+    name: "West Street Capital",
+    slug: "west-street",
+    processes: 1,
+    sector: "Chemicals",
+  },
+  {
+    rank: 6,
+    name: "Advent International",
+    slug: "advent",
+    processes: 1,
+    sector: "Industrials",
+  },
 ];
 
 // ---- signal source breakdown ----
@@ -360,14 +433,62 @@ export const signalSources = SIGNAL_RAW.map(([name, short, count]) => ({
 
 // ---- recent stage changes (8) ----
 export const recentChanges = [
-  { company: "Dow Polyurethanes", from: "monitor_for_exit", to: "in_market", source: "sec_filing", time: "2h ago" },
-  { company: "Sachem", from: "monitor_for_exit", to: "in_market", source: "google_news", time: "Yesterday" },
-  { company: "Invista Nylon 6,6", from: "in_market", to: "on_hold", source: "earnings_transcript", time: "Yesterday" },
-  { company: "Mosaic Brazil Assets", from: "on_hold", to: "monitor_for_exit", source: "earnings_transcript", time: "1 Jun" },
-  { company: "Cargill Deicing Salt", from: "in_market", to: "pulled", source: "google_news", time: "1 Jun" },
-  { company: "GEON Performance Solutions", from: "monitor_for_exit", to: "in_market", source: "google_news", time: "31 May" },
-  { company: "W.R. Grace Catalysts", from: "in_market", to: "monitor_for_exit", source: "rss_feed", time: "30 May" },
-  { company: "Lummus Technology", from: "monitor_for_exit", to: "in_market", source: "google_news", time: "29 May" },
+  {
+    company: "Dow Polyurethanes",
+    from: "monitor_for_exit",
+    to: "in_market",
+    source: "sec_filing",
+    time: "2h ago",
+  },
+  {
+    company: "Sachem",
+    from: "monitor_for_exit",
+    to: "in_market",
+    source: "google_news",
+    time: "Yesterday",
+  },
+  {
+    company: "Invista Nylon 6,6",
+    from: "in_market",
+    to: "on_hold",
+    source: "earnings_transcript",
+    time: "Yesterday",
+  },
+  {
+    company: "Mosaic Brazil Assets",
+    from: "on_hold",
+    to: "monitor_for_exit",
+    source: "earnings_transcript",
+    time: "1 Jun",
+  },
+  {
+    company: "Cargill Deicing Salt",
+    from: "in_market",
+    to: "pulled",
+    source: "google_news",
+    time: "1 Jun",
+  },
+  {
+    company: "GEON Performance Solutions",
+    from: "monitor_for_exit",
+    to: "in_market",
+    source: "google_news",
+    time: "31 May",
+  },
+  {
+    company: "W.R. Grace Catalysts",
+    from: "in_market",
+    to: "monitor_for_exit",
+    source: "rss_feed",
+    time: "30 May",
+  },
+  {
+    company: "Lummus Technology",
+    from: "monitor_for_exit",
+    to: "in_market",
+    source: "google_news",
+    time: "29 May",
+  },
 ] as const;
 
 // ---- 90-day activity heatmap ----
@@ -393,8 +514,10 @@ export function buildHeatmap(): HeatDay[] {
     const quietWeek = weekIdx % 4 === 3;
     let count: number;
     if (weekend) count = (off * 7) % 5 === 0 ? 1 : 0;
-    else if (busyWeek) count = 4 + ((off * 13) % 4); // 4-7
-    else if (quietWeek) count = (off * 5) % 2; // 0-1
+    else if (busyWeek)
+      count = 4 + ((off * 13) % 4); // 4-7
+    else if (quietWeek)
+      count = (off * 5) % 2; // 0-1
     else count = 1 + ((off * 11) % 4); // 1-4
     const stageChanges = Math.round(count * 0.6);
     const newEntries = count - stageChanges;

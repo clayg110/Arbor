@@ -1,11 +1,17 @@
 import { type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { ok, requireBackend, csv, serverError } from "@/lib/api/respond";
+import { decodeCursor, encodeCursor, clampLimit, keysetFilter } from "@/lib/pagination";
 import { toFeedItem, type CompanyMin } from "@/lib/adapters";
 import type { DbHistory, DbFeedEvent, LlmOutput } from "@/types/db";
 import type { DealType, Sector, Confidence } from "@/lib/types";
 
-const STAGE_CHANGE: DbFeedEvent[] = ["moved_in_market", "moved_monitor", "moved_on_hold", "pulled"];
+const STAGE_CHANGE: DbFeedEvent[] = [
+  "moved_in_market",
+  "moved_monitor",
+  "moved_on_hold",
+  "pulled",
+];
 
 // Joined history row shape from the embed select.
 type FeedRow = DbHistory & {
@@ -32,7 +38,8 @@ export async function GET(request: NextRequest) {
   const highConfOnly = sp.get("highConf") === "1";
   const from = sp.get("from");
   const to = sp.get("to");
-  const limit = Math.min(Number(sp.get("limit") ?? 150), 400);
+  const limit = clampLimit(sp.get("limit"), 150, 400);
+  const cursor = decodeCursor(sp.get("cursor"));
 
   const supabase = await createClient();
 
@@ -42,6 +49,7 @@ export async function GET(request: NextRequest) {
       "*, company:companies(id,name,deal_type,sector,confidence), signal:signals_raw(llm_output)"
     )
     .order("changed_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(limit);
 
   if (type === "stage_changes") query = query.in("event_type", STAGE_CHANGE);
@@ -50,6 +58,7 @@ export async function GET(request: NextRequest) {
 
   if (from) query = query.gte("changed_at", from);
   if (to) query = query.lte("changed_at", to + "T23:59:59");
+  if (cursor) query = query.or(keysetFilter("changed_at", "id", cursor));
 
   const { data, error } = await query;
   if (error) return serverError(error);
@@ -63,11 +72,21 @@ export async function GET(request: NextRequest) {
 
   const rows = (data ?? []) as unknown as FeedRow[];
 
+  // nextCursor comes from the last RAW row (pre client-side filtering) so paging
+  // stays correct even when some rows are dropped by the sector/deal/watch filters.
+  const last = rows[rows.length - 1];
+  const nextCursor =
+    rows.length === limit && last
+      ? encodeCursor({ ts: last.changed_at, id: last.id })
+      : null;
+
   const items = rows
     .filter((r) => r.company)
     .filter((r) => sectors.length === 0 || sectors.includes(r.company!.sector))
     .filter((r) => deals.length === 0 || deals.includes(r.company!.deal_type))
-    .filter((r) => !highConfOnly || !["needs_review", "low"].includes(r.company!.confidence))
+    .filter(
+      (r) => !highConfOnly || !["needs_review", "low"].includes(r.company!.confidence)
+    )
     .filter((r) => !watchOnly || watched.has(r.company!.id))
     .map((r) => {
       const company: CompanyMin = {
@@ -80,5 +99,5 @@ export async function GET(request: NextRequest) {
       return toFeedItem(r, company, r.signal?.llm_output ?? null);
     });
 
-  return ok({ items });
+  return ok({ items, nextCursor });
 }

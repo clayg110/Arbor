@@ -92,18 +92,54 @@ export const api = {
         llmCallsThisWeek: number;
         avgConfidence: number | null;
       };
-      pipelines: { pipeline: string; ranAt: string; records: number; errors: number; ok: boolean }[];
+      pipelines: {
+        pipeline: string;
+        ranAt: string;
+        records: number;
+        errors: number;
+        ok: boolean;
+      }[];
     }>(`/api/admin/stats`),
   search: (q: string) =>
     jget<{
       found: number;
-      hits: { document: { id: string; name: string; sector: string; dealType: string; currentStage: string; owner: string } }[];
+      hits: {
+        document: {
+          id: string;
+          name: string;
+          sector: string;
+          dealType: string;
+          currentStage: string;
+          owner: string;
+        };
+      }[];
       source: string;
     }>(`/api/search?q=${encodeURIComponent(q)}`),
   setUserRole: (userId: string, role: string) =>
     jsend(`/api/admin/users`, "PATCH", { userId, role }),
   createUser: (body: { email: string; password: string; role: string; name?: string }) =>
     jsend<{ user: unknown }>(`/api/admin/users`, "POST", body),
+  removeUser: (userId: string) =>
+    jsend(`/api/admin/users?userId=${encodeURIComponent(userId)}`, "DELETE"),
+  inviteUser: (body: { email: string; role?: string; name?: string }) =>
+    jsend<{ ok: boolean; userId: string; emailed: boolean; actionLink?: string }>(
+      `/api/admin/invite`,
+      "POST",
+      body
+    ),
+  getOrg: () => jget<{ org: OrgView | null }>(`/api/admin/org`),
+  renameOrg: (name: string) =>
+    jsend<{ ok: boolean; name: string }>(`/api/admin/org`, "PATCH", { name }),
+  createOrg: (name: string) =>
+    jsend<{ ok: boolean; org: { id: string; name: string } }>(`/api/orgs`, "POST", {
+      name,
+    }),
+  generateScimToken: () =>
+    jsend<{ token: string; scimBaseUrl: string }>(`/api/admin/scim-token`, "POST"),
+  billingCheckout: (plan: "pro" | "enterprise") =>
+    jsend<{ url: string | null }>(`/api/billing/checkout`, "POST", { plan }),
+  billingPortal: () => jsend<{ url: string | null }>(`/api/billing/portal`, "POST"),
+  deleteAccount: () => jsend<{ ok: boolean }>(`/api/account/delete`, "POST"),
   triggerPipeline: (name: string) => jsend(`/api/admin/trigger?pipeline=${name}`, "POST"),
   addWatch: (companyId: string) => jsend(`/api/watchlist`, "POST", { companyId }),
   removeWatch: (companyId: string) =>
@@ -123,10 +159,42 @@ export const api = {
     }),
   apiKeys: () => jget<{ keys: ApiKeyView[] }>(`/api/admin/api-keys`),
   createApiKey: (name: string) =>
-    jsend<{ key: ApiKeyView & { plaintext: string } }>(`/api/admin/api-keys`, "POST", { name }),
+    jsend<{ key: ApiKeyView & { plaintext: string } }>(`/api/admin/api-keys`, "POST", {
+      name,
+    }),
   revokeApiKey: (id: string) => jsend(`/api/admin/api-keys?id=${id}`, "DELETE"),
-  auditLog: (limit = 100) => jget<{ entries: AuditEntryView[] }>(`/api/admin/audit?limit=${limit}`),
+  auditLog: (limit = 100) =>
+    jget<{ entries: AuditEntryView[] }>(`/api/admin/audit?limit=${limit}`),
+  notifications: () =>
+    jget<{ notifications: NotificationView[]; unread: number }>(`/api/notifications`),
+  markNotificationsRead: (id?: string) =>
+    jsend(`/api/notifications/read`, "POST", id ? { id } : {}),
+  adminFailures: () => jget<{ failures: FailureView[] }>(`/api/admin/failures`),
+  replayFailure: (id: string) =>
+    jsend<{ ok: boolean }>(`/api/admin/failures`, "POST", { id }),
+  dismissFailure: (id: string) =>
+    jsend(`/api/admin/failures?id=${encodeURIComponent(id)}`, "DELETE"),
 };
+
+export interface NotificationView {
+  id: string;
+  type: string;
+  title: string;
+  body: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+export interface FailureView {
+  id: string;
+  sourceType: string | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
+  reason: string | null;
+  excerpt: string;
+  createdAt: string;
+}
 
 export interface ApiKeyView {
   id: string;
@@ -135,6 +203,17 @@ export interface ApiKeyView {
   lastUsedAt: string | null;
   revokedAt: string | null;
   createdAt: string;
+}
+export interface OrgView {
+  id: string;
+  name: string;
+  createdAt: string;
+  memberCount: number;
+  plan: string;
+  subscriptionStatus: string | null;
+  currentPeriodEnd: string | null;
+  seatsUsed: number;
+  seatLimit: number | null;
 }
 export interface AuditEntryView {
   id: string;

@@ -7,8 +7,7 @@ import type { Database } from "@/types/db";
 // (no backend) until keys are added — auth/middleware become no-ops meanwhile.
 export function hasSupabaseEnv(): boolean {
   return (
-    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 }
 

@@ -18,8 +18,14 @@ export async function GET() {
 
   const [companies, signals, llm, metrics, pipelines] = await Promise.all([
     svc.from("companies").select("id", { count: "exact", head: true }),
-    svc.from("signals_raw").select("id", { count: "exact", head: true }).gte("ingested_at", weekAgo),
-    svc.from("llm_usage").select("id", { count: "exact", head: true }).gte("created_at", weekAgo),
+    svc
+      .from("signals_raw")
+      .select("id", { count: "exact", head: true })
+      .gte("ingested_at", weekAgo),
+    svc
+      .from("llm_usage")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", weekAgo),
     svc.rpc("rpc_summary_metrics", {}),
     svc.from("v_pipeline_latest").select("*"),
   ]);

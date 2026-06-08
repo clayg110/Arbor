@@ -1,16 +1,26 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { ok, fail, requireBackend, csv, safeFilterValue, serverError, tooMany } from "@/lib/api/respond";
+import {
+  ok,
+  fail,
+  requireBackend,
+  csv,
+  safeFilterValue,
+  serverError,
+  tooMany,
+} from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { auditAs } from "@/lib/audit";
 import { rateLimit } from "@/lib/redis/ratelimit";
-import { parseJson, sectorEnum, dealTypeEnum, stageEnum, confidenceEnum } from "@/lib/validation";
 import {
-  toRadarCompany,
-  toSummaryStrip,
-  toSectorSummary,
-} from "@/lib/adapters";
+  parseJson,
+  sectorEnum,
+  dealTypeEnum,
+  stageEnum,
+  confidenceEnum,
+} from "@/lib/validation";
+import { toRadarCompany, toSummaryStrip, toSectorSummary } from "@/lib/adapters";
 import type {
   DbCompany,
   LastSignalRow,
@@ -19,7 +29,12 @@ import type {
 } from "@/types/db";
 import type { Confidence, Sector, DealType, Stage } from "@/lib/types";
 
-const CONF_RANK: Record<Confidence, number> = { high: 4, medium: 3, low: 2, needs_review: 1 };
+const CONF_RANK: Record<Confidence, number> = {
+  high: 4,
+  medium: 3,
+  low: 2,
+  needs_review: 1,
+};
 
 const createCompanySchema = z.object({
   name: z.string().trim().min(1, "required").max(200),
@@ -79,8 +94,10 @@ export async function GET(request: NextRequest) {
   }
 
   // DB-level sort (confidence handled after adapt)
-  if (sort === "days_desc") query = query.order("current_stage_since", { ascending: true });
-  else if (sort === "days_asc") query = query.order("current_stage_since", { ascending: false });
+  if (sort === "days_desc")
+    query = query.order("current_stage_since", { ascending: true });
+  else if (sort === "days_asc")
+    query = query.order("current_stage_since", { ascending: false });
   else if (sort === "name_asc") query = query.order("name", { ascending: true });
   else if (sort === "name_desc") query = query.order("name", { ascending: false });
   else if (sort === "added_desc") query = query.order("created_at", { ascending: false });
@@ -104,7 +121,9 @@ export async function GET(request: NextRequest) {
 
   const lastByCompany = new Map<string, LastSignalRow>();
   for (const s of (sigs ?? []) as LastSignalRow[]) lastByCompany.set(s.company_id, s);
-  const watched = new Set((wl ?? []).map((r) => (r as { company_id: string }).company_id));
+  const watched = new Set(
+    (wl ?? []).map((r) => (r as { company_id: string }).company_id)
+  );
 
   let radar = companies.map((c) =>
     toRadarCompany(c, lastByCompany.get(c.id) ?? null, watched.has(c.id))
@@ -138,7 +157,11 @@ export async function POST(request: NextRequest) {
   const user = await getSessionUser(supabase);
   if (!user) return fail("Unauthorized", 401);
 
-  const limit = await rateLimit(user.id, { limit: 30, window: "1 m", prefix: "write:company" });
+  const limit = await rateLimit(user.id, {
+    limit: 30,
+    window: "1 m",
+    prefix: "write:company",
+  });
   if (!limit.ok) return tooMany(limit.reset);
 
   const parsed = await parseJson(request, createCompanySchema);

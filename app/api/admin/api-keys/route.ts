@@ -86,7 +86,10 @@ export async function POST(request: NextRequest) {
   });
 
   // plaintext is returned here and never again
-  return ok({ key: { ...publicView(data as DbApiKey), plaintext: key.plaintext } }, { status: 201 });
+  return ok(
+    { key: { ...publicView(data as DbApiKey), plaintext: key.plaintext } },
+    { status: 201 }
+  );
 }
 
 // DELETE /api/admin/api-keys?id= — revoke (soft) a key.

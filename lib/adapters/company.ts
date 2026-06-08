@@ -34,8 +34,8 @@ export function toRadarCompany(
     lastSignal == null
       ? undefined
       : "llm_output" in lastSignal
-      ? lastSignal.llm_output?.key_quote ?? undefined
-      : lastSignal.key_quote ?? undefined;
+        ? (lastSignal.llm_output?.key_quote ?? undefined)
+        : (lastSignal.key_quote ?? undefined);
 
   return {
     id: c.id,

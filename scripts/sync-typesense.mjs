@@ -65,7 +65,9 @@ async function* fetchCompanies(pageSize = 1000) {
   for (;;) {
     const { data, error } = await supabase
       .from("companies")
-      .select("id,name,sector,deal_type,sponsor_firm,parent_company,current_stage,confidence")
+      .select(
+        "id,name,sector,deal_type,sponsor_firm,parent_company,current_stage,confidence"
+      )
       .range(from, from + pageSize - 1);
     if (error) throw error;
     if (!data || data.length === 0) return;

@@ -76,11 +76,7 @@ export const BellIcon = (p: P) => (
 );
 
 export const StarIcon = ({ filled, ...p }: P & { filled?: boolean }) => (
-  <svg
-    {...base}
-    {...p}
-    fill={filled ? "currentColor" : "none"}
-  >
+  <svg {...base} {...p} fill={filled ? "currentColor" : "none"}>
     <path d="m12 3 2.7 5.5 6 .9-4.3 4.2 1 6L12 17l-5.4 2.6 1-6L3.3 9.4l6-.9L12 3Z" />
   </svg>
 );

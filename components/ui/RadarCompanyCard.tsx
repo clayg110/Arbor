@@ -8,11 +8,13 @@ import { ConfidenceBadge } from "./ConfidenceBadge";
 import { SignalSourceBadge } from "./SignalSourceBadge";
 import { Tooltip } from "./Tooltip";
 import { StarIcon, ChevronRightIcon, GripIcon, ClockIcon } from "./icons";
-import { STAGE_COLORS, CONFIDENCE_LABELS } from "@/lib/colors";
+import { STAGE_COLORS, STAGE_LABELS, CONFIDENCE_LABELS } from "@/lib/colors";
 import { daysLabel } from "@/lib/format";
 import type { RadarCompany } from "@/lib/radar-data";
+import type { Stage } from "@/lib/types";
 
 const PULLED_ACCENT = "#6f6e68";
+const ALL_STAGES: Stage[] = ["in_market", "monitor_for_exit", "on_hold", "pulled"];
 
 export function RadarCompanyCard({
   c,
@@ -22,6 +24,7 @@ export function RadarCompanyCard({
   dragging = false,
   onCardDragStart,
   onCardDragEnd,
+  onMoveStage,
 }: {
   c: RadarCompany;
   watched: boolean;
@@ -30,10 +33,13 @@ export function RadarCompanyCard({
   dragging?: boolean;
   onCardDragStart?: (e: React.DragEvent) => void;
   onCardDragEnd?: () => void;
+  // Keyboard-accessible equivalent of dragging the card to another column.
+  onMoveStage?: (target: Stage) => void;
 }) {
   const [hover, setHover] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
   const ownerLabel = c.dealType === "carveout" ? "Parent" : "Sponsor";
-  const accent = c.pulled ? PULLED_ACCENT : STAGE_COLORS[c.stage].border ?? "#888";
+  const accent = c.pulled ? PULLED_ACCENT : (STAGE_COLORS[c.stage].border ?? "#888");
   const isCol3 = c.stage === "on_hold" || c.stage === "pulled";
   const stale = c.lastSignal.daysAgo > 30;
   const urgent = c.stage === "in_market" && c.days > 60;
@@ -120,7 +126,9 @@ export function RadarCompanyCard({
 
       {/* description */}
       {c.description && (
-        <p className="mt-1.5 line-clamp-2 text-[11px] font-normal text-subtle">{c.description}</p>
+        <p className="mt-1.5 line-clamp-2 text-[11px] font-normal text-subtle">
+          {c.description}
+        </p>
       )}
 
       <div className="my-2 h-px" style={{ backgroundColor: "var(--border)" }} />
@@ -131,7 +139,10 @@ export function RadarCompanyCard({
       </p>
       {urgent && (
         <Tooltip text="Unusually long in market — process may be stalling." width={210}>
-          <span className="mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: "#FAEEDA", color: "#633806" }}>
+          <span
+            className="mt-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium"
+            style={{ backgroundColor: "#FAEEDA", color: "#633806" }}
+          >
             ⚠ 60d+
           </span>
         </Tooltip>
@@ -140,13 +151,74 @@ export function RadarCompanyCard({
       {/* last signal */}
       <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-normal text-muted">
         <SignalSourceBadge source={c.lastSignal.source} />
-        <span>Last signal: {c.lastSignal.label} ({c.lastSignal.sourceName})</span>
+        <span>
+          Last signal: {c.lastSignal.label} ({c.lastSignal.sourceName})
+        </span>
         {stale && (
-          <Tooltip text="No recent signals — stage may be outdated. Consider manual review." width={220}>
+          <Tooltip
+            text="No recent signals — stage may be outdated. Consider manual review."
+            width={220}
+          >
             <ClockIcon className="h-3.5 w-3.5" style={{ color: "#BA7517" }} />
           </Tooltip>
         )}
       </div>
+
+      {/* keyboard-accessible stage move (parity with drag-and-drop) */}
+      {onMoveStage && (
+        <div
+          className="relative mt-2"
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && moveOpen) {
+              e.preventDefault();
+              setMoveOpen(false);
+            }
+          }}
+        >
+          <button
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={moveOpen}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMoveOpen((o) => !o);
+            }}
+            className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium text-muted hover:text-ink"
+            style={{ border: "0.5px solid var(--border)" }}
+          >
+            Move stage ▾
+          </button>
+          {moveOpen && (
+            <div
+              role="menu"
+              aria-label="Move to stage"
+              className="absolute left-0 z-10 mt-1 w-40 overflow-hidden rounded-md bg-surface py-1"
+              style={{
+                border: "0.5px solid var(--border)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+              }}
+            >
+              {ALL_STAGES.filter((s) => s !== c.stage).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  role="menuitem"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setMoveOpen(false);
+                    onMoveStage(s);
+                  }}
+                  className="block w-full px-3 py-1.5 text-left text-[12px] text-ink hover:bg-[#F5F4EF]"
+                >
+                  {STAGE_LABELS[s]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* expanded (watchlisted) */}
       {watched && (
@@ -162,7 +234,9 @@ export function RadarCompanyCard({
           )}
           {c.companyId && (
             <div className="mt-1.5 text-right">
-              <span className="text-[11px] font-normal text-[#185FA5]">View profile →</span>
+              <span className="text-[11px] font-normal text-[#185FA5]">
+                View profile →
+              </span>
             </div>
           )}
         </div>
@@ -181,7 +255,10 @@ export function RadarCompanyCard({
   const style: React.CSSProperties = {
     border: `0.5px solid ${hover ? accent : "var(--border)"}`,
     backgroundColor: hover ? `${accent}0D` : "var(--surface)",
-    opacity: dragging ? 0.4 : c.pulled ? 0.78 : 1,
+    // Pulled cards are signalled by the line-through name + "Pulled" badge +
+    // muted accent — not a card-wide opacity dim, which would drop text below
+    // the WCAG AA contrast floor. Dragging still dims (transient, non-text-critical).
+    opacity: dragging ? 0.4 : 1,
     cursor: draggable ? "grab" : undefined,
   };
 
@@ -195,7 +272,13 @@ export function RadarCompanyCard({
     : {};
 
   return c.companyId ? (
-    <Link href={`/company/${c.companyId}`} className={className} style={style} {...handlers} {...dragProps}>
+    <Link
+      href={`/company/${c.companyId}`}
+      className={className}
+      style={style}
+      {...handlers}
+      {...dragProps}
+    >
       {body}
     </Link>
   ) : (
@@ -247,9 +330,19 @@ function CardStat({ label, value }: { label: string; value: string }) {
 }
 
 // mini journey: Monitor → In market → Exit
-function StageProgress({ stage, accent }: { stage: RadarCompany["stage"]; accent: string }) {
+function StageProgress({
+  stage,
+  accent,
+}: {
+  stage: RadarCompany["stage"];
+  accent: string;
+}) {
   const steps = ["Monitor", "In market", "Exit"];
   const current = stage === "monitor_for_exit" ? 0 : stage === "in_market" ? 1 : 2;
+  // The bar uses the (possibly light) accent; the label uses the stage's dark
+  // swatch text color so the 8px text clears WCAG AA. Inactive labels track the
+  // AA-compliant --text-subtle token.
+  const currentText = STAGE_COLORS[stage].text;
   return (
     <div className="flex items-center gap-1">
       {steps.map((s, i) => (
@@ -260,7 +353,7 @@ function StageProgress({ stage, accent }: { stage: RadarCompany["stage"]; accent
           />
           <span
             className="text-[8px] font-normal"
-            style={{ color: i === current ? accent : "#9a9890" }}
+            style={{ color: i === current ? currentText : "var(--text-subtle)" }}
           >
             {s}
           </span>

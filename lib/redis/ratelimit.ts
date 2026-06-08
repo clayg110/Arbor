@@ -7,10 +7,7 @@ function limiter(): Ratelimit {
   if (!_rl) {
     _rl = new Ratelimit({
       redis: redis(),
-      limiter: Ratelimit.slidingWindow(
-        Number(process.env.LLM_RATE_PER_MIN ?? 60),
-        "1 m"
-      ),
+      limiter: Ratelimit.slidingWindow(Number(process.env.LLM_RATE_PER_MIN ?? 60), "1 m"),
       prefix: "arbor:llm",
     });
   }

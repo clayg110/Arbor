@@ -17,16 +17,28 @@ function need(name) {
   return v;
 }
 
-const svc = createClient(need("NEXT_PUBLIC_SUPABASE_URL"), need("SUPABASE_SERVICE_ROLE_KEY"), {
-  auth: { persistSession: false },
-});
+const svc = createClient(
+  need("NEXT_PUBLIC_SUPABASE_URL"),
+  need("SUPABASE_SERVICE_ROLE_KEY"),
+  {
+    auth: { persistSession: false },
+  }
+);
 
 const ORG_NAME = process.env.DEFAULT_ORG_NAME ?? "Default Org";
 
 async function getOrCreateOrg() {
-  const { data: existing } = await svc.from("orgs").select("id").eq("name", ORG_NAME).maybeSingle();
+  const { data: existing } = await svc
+    .from("orgs")
+    .select("id")
+    .eq("name", ORG_NAME)
+    .maybeSingle();
   if (existing) return existing.id;
-  const { data, error } = await svc.from("orgs").insert({ name: ORG_NAME }).select("id").single();
+  const { data, error } = await svc
+    .from("orgs")
+    .insert({ name: ORG_NAME })
+    .select("id")
+    .single();
   if (error) throw error;
   return data.id;
 }

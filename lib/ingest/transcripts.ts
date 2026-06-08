@@ -16,7 +16,10 @@ const BASE = process.env.FMP_BASE_URL ?? "https://financialmodelingprep.com";
 export function transcriptTickers(): string[] {
   const env = process.env.TRANSCRIPT_TICKERS;
   return env
-    ? env.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean)
+    ? env
+        .split(",")
+        .map((s) => s.trim().toUpperCase())
+        .filter(Boolean)
     : [];
 }
 

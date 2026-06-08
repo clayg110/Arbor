@@ -5,12 +5,7 @@ import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { auditAs } from "@/lib/audit";
 import { parseJson, stageEnum, confidenceEnum } from "@/lib/validation";
-import {
-  toCompanyProfile,
-  toStageHistory,
-  toSignals,
-  toNotes,
-} from "@/lib/adapters";
+import { toCompanyProfile, toStageHistory, toSignals, toNotes } from "@/lib/adapters";
 import type { DbCompany, DbHistory, DbSignal, DbNote } from "@/types/db";
 
 const patchSchema = z.object({
@@ -40,14 +35,32 @@ export async function GET(
   if (!company) return fail("Not found", 404);
   const c = company as DbCompany;
 
-  const [{ data: history }, { data: signals }, { data: notes }, { data: peers }, { data: wl }] =
-    await Promise.all([
-      supabase.from("deal_stage_history").select("*").eq("company_id", id).order("changed_at", { ascending: false }),
-      supabase.from("signals_raw").select("*").eq("company_id", id).order("ingested_at", { ascending: false }).limit(8),
-      supabase.from("analyst_notes").select("*").eq("company_id", id).order("created_at", { ascending: false }),
-      supabase.from("companies").select("*").eq("sector", c.sector).neq("id", id).limit(4),
-      supabase.from("watchlist").select("id").eq("company_id", id).maybeSingle(),
-    ]);
+  const [
+    { data: history },
+    { data: signals },
+    { data: notes },
+    { data: peers },
+    { data: wl },
+  ] = await Promise.all([
+    supabase
+      .from("deal_stage_history")
+      .select("*")
+      .eq("company_id", id)
+      .order("changed_at", { ascending: false }),
+    supabase
+      .from("signals_raw")
+      .select("*")
+      .eq("company_id", id)
+      .order("ingested_at", { ascending: false })
+      .limit(8),
+    supabase
+      .from("analyst_notes")
+      .select("*")
+      .eq("company_id", id)
+      .order("created_at", { ascending: false }),
+    supabase.from("companies").select("*").eq("sector", c.sector).neq("id", id).limit(4),
+    supabase.from("watchlist").select("id").eq("company_id", id).maybeSingle(),
+  ]);
 
   return ok({
     company: toCompanyProfile(c),
@@ -98,14 +111,20 @@ export async function PATCH(
   }
 
   if (action === "confirm") {
-    const { error } = await supabase.from("companies").update({ confidence: "high" }).eq("id", id);
+    const { error } = await supabase
+      .from("companies")
+      .update({ confidence: "high" })
+      .eq("id", id);
     if (error) return serverError(error);
     await auditAs(user, "company.confirm", { entityType: "company", entityId: id });
     return ok({ ok: true });
   }
 
   if (action === "mark_review") {
-    const { error } = await supabase.from("companies").update({ confidence: "needs_review" }).eq("id", id);
+    const { error } = await supabase
+      .from("companies")
+      .update({ confidence: "needs_review" })
+      .eq("id", id);
     if (error) return serverError(error);
     await auditAs(user, "company.mark_review", { entityType: "company", entityId: id });
     return ok({ ok: true });

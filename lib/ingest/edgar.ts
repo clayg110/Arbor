@@ -1,6 +1,8 @@
 // SEC EDGAR full-text search → recent filing text. No key required, but SEC
 // requires a descriptive User-Agent (set SEC_USER_AGENT).
 
+import { withRetry, throwIfRetryableStatus } from "@/lib/retry";
+
 export interface Filing {
   rawText: string;
   sourceUrl: string;
@@ -39,12 +41,23 @@ export async function fetchRecentCarveoutFilings(
 ): Promise<Filing[]> {
   const startdt = new Date(Date.now() - hoursBack * 3_600_000).toISOString().slice(0, 10);
   const enddt = new Date().toISOString().slice(0, 10);
-  const q = encodeURIComponent('"strategic alternatives" OR "divestiture" OR "carve-out"');
+  const q = encodeURIComponent(
+    '"strategic alternatives" OR "divestiture" OR "carve-out"'
+  );
   const url = `https://efts.sec.gov/LATEST/search-index?q=${q}&startdt=${startdt}&enddt=${enddt}&forms=8-K`;
 
   let json: { hits?: { hits?: EftsHit[] } };
   try {
-    const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "application/json" } });
+    const res = await withRetry(
+      async () =>
+        throwIfRetryableStatus(
+          await fetch(url, {
+            headers: { "User-Agent": UA, Accept: "application/json" },
+            signal: AbortSignal.timeout(10000),
+          })
+        ),
+      { retries: 2, baseMs: 400 }
+    );
     if (!res.ok) return [];
     json = await res.json();
   } catch {
@@ -65,7 +78,10 @@ export async function fetchRecentCarveoutFilings(
 
     let text = "";
     try {
-      const d = await fetch(docUrl, { headers: { "User-Agent": UA } });
+      const d = await fetch(docUrl, {
+        headers: { "User-Agent": UA },
+        signal: AbortSignal.timeout(10000),
+      });
       if (d.ok) text = stripHtml(await d.text()).slice(0, 6000);
     } catch {
       // keep going with metadata-only text

@@ -33,13 +33,17 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-[70vh] items-center justify-center">
-      <div className="w-full max-w-sm rounded-xl bg-surface p-6" style={{ border: "0.5px solid var(--border)" }}>
+      <div
+        className="w-full max-w-sm rounded-xl bg-surface p-6"
+        style={{ border: "0.5px solid var(--border)" }}
+      >
         {sent ? (
           <>
             <h1 className="text-[16px] font-medium text-ink">Check your email</h1>
             <p className="mt-2 text-[13px] font-normal text-muted">
-              If an account exists for <span className="font-medium text-ink">{email}</span>, a
-              password-reset link is on its way.
+              If an account exists for{" "}
+              <span className="font-medium text-ink">{email}</span>, a password-reset link
+              is on its way.
             </p>
             <Link
               href="/login"
@@ -53,12 +57,20 @@ export default function ForgotPasswordPage() {
           <>
             <div className="mb-6">
               <h1 className="text-[16px] font-medium text-ink">Reset your password</h1>
-              <p className="text-[12px] font-normal text-muted">We&apos;ll email you a reset link.</p>
+              <p className="text-[12px] font-normal text-muted">
+                We&apos;ll email you a reset link.
+              </p>
             </div>
 
             <form onSubmit={submit}>
-              <label className="mb-1 block text-[11px] font-normal text-muted">Email</label>
+              <label
+                htmlFor="forgot-email"
+                className="mb-1 block text-[11px] font-normal text-muted"
+              >
+                Email
+              </label>
               <input
+                id="forgot-email"
                 type="email"
                 required
                 value={email}

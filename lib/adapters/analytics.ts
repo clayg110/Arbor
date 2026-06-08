@@ -20,7 +20,20 @@ import type { Stage, Sector, SourceType } from "@/lib/types";
 import { SECTOR_LABELS, DEAL_TYPE_LABELS, CHART } from "@/lib/colors";
 import { relativeLabel } from "./time";
 
-const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTH = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 
 export interface VelocityPointData {
   i: number;
@@ -40,7 +53,14 @@ export function toVelocity(rows: VelocityRow[]): VelocityPointData[] {
     const month = new Date(r.week_start + "T12:00:00").getMonth();
     const label = month !== prevMonth ? MONTH[month] : "";
     prevMonth = month;
-    return { i, label, carveout: r.carveout, private_asset: r.private_asset, total: r.total, rolling };
+    return {
+      i,
+      label,
+      carveout: r.carveout,
+      private_asset: r.private_asset,
+      total: r.total,
+      rolling,
+    };
   });
 }
 
@@ -104,7 +124,9 @@ const STAGE_SHORT: Record<Stage, string> = {
 };
 export function toExitFunnel(rows: ExitFunnelRow[]) {
   const byStage = new Map(rows.map((r) => [r.stage, r]));
-  const picked = FUNNEL_ORDER.map((s) => byStage.get(s)).filter(Boolean) as ExitFunnelRow[];
+  const picked = FUNNEL_ORDER.map((s) => byStage.get(s)).filter(
+    Boolean
+  ) as ExitFunnelRow[];
   const max = Math.max(...picked.map((r) => r.avg_days), 1);
   return picked.map((r) => ({
     stage: STAGE_SHORT[r.stage],
@@ -125,7 +147,10 @@ export function toTopSectors(rows: TopSectorRow[]) {
 }
 
 function slugify(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 export function toSponsors(rows: SponsorActivityRow[]) {
   return rows.slice(0, 6).map((r, i) => ({

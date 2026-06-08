@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { daysSince, relativeLabel, stageDaysLabel, initialsOf } from "@/lib/adapters/time";
+import {
+  daysSince,
+  relativeLabel,
+  stageDaysLabel,
+  initialsOf,
+} from "@/lib/adapters/time";
 
 describe("time helpers", () => {
   it("daysSince counts whole days, never negative", () => {
@@ -10,8 +15,12 @@ describe("time helpers", () => {
 
   it("relativeLabel buckets sensibly", () => {
     expect(relativeLabel(new Date().toISOString())).toBe("today");
-    expect(relativeLabel(new Date(Date.now() - 86_400_000).toISOString())).toBe("1 day ago");
-    expect(relativeLabel(new Date(Date.now() - 21 * 86_400_000).toISOString())).toBe("3 weeks ago");
+    expect(relativeLabel(new Date(Date.now() - 86_400_000).toISOString())).toBe(
+      "1 day ago"
+    );
+    expect(relativeLabel(new Date(Date.now() - 21 * 86_400_000).toISOString())).toBe(
+      "3 weeks ago"
+    );
   });
 
   it("stageDaysLabel switches to months past 31 days", () => {

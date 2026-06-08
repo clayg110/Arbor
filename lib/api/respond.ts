@@ -1,8 +1,21 @@
 import { NextResponse } from "next/server";
 import { hasSupabaseEnv } from "@/lib/supabase/server";
+import { captureException } from "@/lib/observability";
 
 export function ok<T>(data: T, init?: ResponseInit) {
   return NextResponse.json(data, init);
+}
+
+// Per-client cached read response. `private` keeps it out of shared CDN caches
+// (these payloads are scoped to the signed-in user); SWR lets the browser serve
+// a slightly stale copy while revalidating. Use only for heavy, non-realtime
+// aggregations (analytics / stats), never for the live feed.
+export function cached<T>(data: T, seconds: number): NextResponse {
+  return NextResponse.json(data, {
+    headers: {
+      "Cache-Control": `private, max-age=${seconds}, stale-while-revalidate=${seconds * 5}`,
+    },
+  });
 }
 
 export function fail(message: string, status = 400) {
@@ -19,7 +32,12 @@ export function requireBackend(): NextResponse | null {
 
 // CSV query param → string[].
 export function csv(v: string | null): string[] {
-  return v ? v.split(",").map((s) => s.trim()).filter(Boolean) : [];
+  return v
+    ? v
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
 }
 
 // Strip PostgREST filter-grammar control characters from user input that gets
@@ -35,10 +53,10 @@ export function safeFilterValue(v: string, max = 80): string {
     .slice(0, max);
 }
 
-// 500 helper: log the real error server-side, return a generic message so DB /
-// internal details never reach the client (info disclosure).
+// 500 helper: capture the real error server-side (structured log + Sentry),
+// return a generic message so DB / internal details never reach the client.
 export function serverError(e: unknown, message = "Internal server error"): NextResponse {
-  console.error("[api]", e);
+  captureException(e, { scope: "api" });
   return NextResponse.json({ error: message }, { status: 500 });
 }
 

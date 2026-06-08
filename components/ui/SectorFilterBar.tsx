@@ -27,8 +27,16 @@ export function SectorFilterBar({
             className="whitespace-nowrap rounded-full px-3 py-1 text-[12px] font-medium transition-colors"
             style={
               isActive
-                ? { backgroundColor: blue.bg, color: blue.text, boxShadow: `inset 0 0 0 0.5px ${blue.border}` }
-                : { backgroundColor: "var(--surface)", color: "var(--text-muted)", boxShadow: "inset 0 0 0 0.5px var(--border)" }
+                ? {
+                    backgroundColor: blue.bg,
+                    color: blue.text,
+                    boxShadow: `inset 0 0 0 0.5px ${blue.border}`,
+                  }
+                : {
+                    backgroundColor: "var(--surface)",
+                    color: "var(--text-muted)",
+                    boxShadow: "inset 0 0 0 0.5px var(--border)",
+                  }
             }
           >
             {s === "all" ? "All sectors" : SECTOR_LABELS[s]}

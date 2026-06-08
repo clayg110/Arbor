@@ -32,6 +32,14 @@ export function bearerFrom(header: string | null): string | null {
   return m ? m[1].trim() : null;
 }
 
+// Scope check for the public API. A key with NO scopes is treated as full
+// access (legacy keys predate scoping); a scoped key must list the needed scope
+// (or a "*" wildcard).
+export function keyHasScope(scopes: string[], needed: string): boolean {
+  if (scopes.length === 0) return true;
+  return scopes.includes("*") || scopes.includes(needed);
+}
+
 export interface VerifiedKey {
   keyId: string;
   orgId: string;
@@ -41,7 +49,10 @@ export interface VerifiedKey {
 // Verify a presented key against the store. Rejects revoked + expired keys. On
 // success, bumps last_used_at (best-effort) and returns the owning org + scopes.
 // Requires a service-role client (api_keys is not client-readable).
-export async function verifyApiKey(svc: Svc, plaintext: string): Promise<VerifiedKey | null> {
+export async function verifyApiKey(
+  svc: Svc,
+  plaintext: string
+): Promise<VerifiedKey | null> {
   if (!plaintext.startsWith("arbor_")) return null;
   const hash = hashKey(plaintext);
 
@@ -54,7 +65,10 @@ export async function verifyApiKey(svc: Svc, plaintext: string): Promise<Verifie
   if (error || !data || data.revoked_at) return null;
   if (data.expires_at && Date.parse(data.expires_at) < Date.now()) return null;
 
-  void svc.from("api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", data.id);
+  void svc
+    .from("api_keys")
+    .update({ last_used_at: new Date().toISOString() })
+    .eq("id", data.id);
 
   return { keyId: data.id, orgId: data.org_id, scopes: data.scopes ?? [] };
 }

@@ -38,7 +38,11 @@ export function DateRangeControl({
               style={
                 active
                   ? { backgroundColor: "#185FA5", color: "#fff" }
-                  : { backgroundColor: "var(--surface)", color: "var(--text-muted)", boxShadow: "inset 0 0 0 0.5px var(--border)" }
+                  : {
+                      backgroundColor: "var(--surface)",
+                      color: "var(--text-muted)",
+                      boxShadow: "inset 0 0 0 0.5px var(--border)",
+                    }
               }
             >
               {p.label}
@@ -49,8 +53,17 @@ export function DateRangeControl({
 
       {selected === "custom" && (
         <div className={variant === "bar" ? "mt-2 flex items-end gap-2" : "mt-2"}>
-          <div className={variant === "bar" ? "flex items-end gap-2" : "grid grid-cols-2 gap-2"}>
-            <DateField label="From" value={from} onChange={onFromChange} variant={variant} />
+          <div
+            className={
+              variant === "bar" ? "flex items-end gap-2" : "grid grid-cols-2 gap-2"
+            }
+          >
+            <DateField
+              label="From"
+              value={from}
+              onChange={onFromChange}
+              variant={variant}
+            />
             <DateField label="To" value={to} onChange={onToChange} variant={variant} />
           </div>
           <button

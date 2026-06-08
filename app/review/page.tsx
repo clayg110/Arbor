@@ -10,7 +10,11 @@ import type { ReviewRowData } from "@/lib/adapters/review";
 import type { Sector, Stage } from "@/lib/types";
 
 const MOCK_ROWS: ReviewRowData[] = mockReviewItems
-  .map((i) => ({ company: getCompany(i.companyId), reason: i.reason, conflictSummary: i.conflictSummary }))
+  .map((i) => ({
+    company: getCompany(i.companyId),
+    reason: i.reason,
+    conflictSummary: i.conflictSummary,
+  }))
   .filter((r): r is ReviewRowData => !!r.company);
 
 export default function ReviewPage() {
@@ -45,6 +49,7 @@ export default function ReviewPage() {
           {rows.length} companies flagged for analyst review
         </p>
         <select
+          aria-label="Filter by sector"
           value={sector}
           onChange={(e) => setSector(e.target.value as Sector | "all")}
           className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] font-normal text-ink focus:outline-none"

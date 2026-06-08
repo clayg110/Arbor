@@ -7,12 +7,7 @@ import { FeedEventCard } from "@/components/ui/FeedEventCard";
 import { StageBadge } from "@/components/ui/StageBadge";
 import { DateRangeControl } from "@/components/ui/DateRangeControl";
 import { useDateRange, type CommittedRange } from "@/components/ui/useDateRange";
-import {
-  BellIcon,
-  RefreshIcon,
-  StarIcon,
-  InboxIcon,
-} from "@/components/ui/icons";
+import { BellIcon, RefreshIcon, StarIcon, InboxIcon } from "@/components/ui/icons";
 import {
   feedItems,
   DAY_LABELS,
@@ -120,7 +115,12 @@ function FeedInner() {
     () => new Set(initialWatchlist.map((w) => w.name))
   );
 
-  const live = useLive("feed", () => api.feed("?limit=150"), { items: MOCK_ITEMS }, { realtime: true });
+  const live = useLive(
+    "feed",
+    () => api.feed("?limit=150"),
+    { items: MOCK_ITEMS },
+    { realtime: true }
+  );
   const items = live.data.items;
 
   const isWatched = (name: string) => watch.has(name);
@@ -224,10 +224,7 @@ function FeedInner() {
         <Chip active={deal === "carveout"} onClick={() => setDeal("carveout")}>
           Carveouts
         </Chip>
-        <Chip
-          active={deal === "private_asset"}
-          onClick={() => setDeal("private_asset")}
-        >
+        <Chip active={deal === "private_asset"} onClick={() => setDeal("private_asset")}>
           Private assets
         </Chip>
         <span className="mx-1 h-4 w-px" style={{ backgroundColor: "var(--border)" }} />
@@ -260,7 +257,9 @@ function FeedInner() {
                     key={it.id}
                     item={it}
                     isWatched={isWatched(it.company)}
-                    onToggleWatch={() => toggleWatch(it.company, it.companyId || undefined)}
+                    onToggleWatch={() =>
+                      toggleWatch(it.company, it.companyId || undefined)
+                    }
                   />
                 ))}
               </DayGroup>
@@ -275,8 +274,14 @@ function FeedInner() {
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5 text-[13px] font-medium text-ink">
                 <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full rounded-full animate-ping-dot" style={{ backgroundColor: "#E24B4A" }} />
-                  <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: "#E24B4A" }} />
+                  <span
+                    className="absolute inline-flex h-full w-full rounded-full animate-ping-dot"
+                    style={{ backgroundColor: "#E24B4A" }}
+                  />
+                  <span
+                    className="relative inline-flex h-2 w-2 rounded-full"
+                    style={{ backgroundColor: "#E24B4A" }}
+                  />
                 </span>
                 Live
               </span>
@@ -380,7 +385,10 @@ function FeedInner() {
                     <div className="h-1.5 flex-1 rounded-full bg-[#F1EFE8]">
                       <div
                         className="h-1.5 rounded-full"
-                        style={{ width: `${(s.count / max) * 100}%`, backgroundColor: "#185FA5" }}
+                        style={{
+                          width: `${(s.count / max) * 100}%`,
+                          backgroundColor: "#185FA5",
+                        }}
                       />
                     </div>
                     <span className="w-4 shrink-0 text-right text-[11px] font-medium text-ink">
@@ -411,7 +419,8 @@ function DayGroup({
   const newEntries = items.filter((i) => i.type === "new_entry").length;
   const flagged = items.filter((i) => i.type === "flagged").length;
   const parts: string[] = [];
-  if (stageChanges) parts.push(`${stageChanges} stage change${stageChanges > 1 ? "s" : ""}`);
+  if (stageChanges)
+    parts.push(`${stageChanges} stage change${stageChanges > 1 ? "s" : ""}`);
   if (newEntries) parts.push(`${newEntries} new ${newEntries > 1 ? "entries" : "entry"}`);
   if (flagged) parts.push(`${flagged} flagged`);
 
@@ -475,8 +484,16 @@ function Chip({
       className="rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors"
       style={
         active
-          ? { backgroundColor: "#E6F1FB", color: "#0C447C", boxShadow: "inset 0 0 0 0.5px #185FA5" }
-          : { backgroundColor: "var(--surface)", color: "var(--text-muted)", boxShadow: "inset 0 0 0 0.5px var(--border)" }
+          ? {
+              backgroundColor: "#E6F1FB",
+              color: "#0C447C",
+              boxShadow: "inset 0 0 0 0.5px #185FA5",
+            }
+          : {
+              backgroundColor: "var(--surface)",
+              color: "var(--text-muted)",
+              boxShadow: "inset 0 0 0 0.5px var(--border)",
+            }
       }
     >
       {children}
@@ -486,7 +503,10 @@ function Chip({
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-surface p-3" style={{ border: "0.5px solid var(--border)" }}>
+    <div
+      className="rounded-lg bg-surface p-3"
+      style={{ border: "0.5px solid var(--border)" }}
+    >
       {children}
     </div>
   );
@@ -503,7 +523,8 @@ function ActivitySummary({ initial }: { initial?: CommittedRange }) {
   // Live range-aware event counts from /api/stats/summary; mock fallback.
   const liveStats = useLive(
     `feed-rangestats-${r.committed.from}-${r.committed.to}`,
-    async () => (await api.stats(`?from=${r.committed.from}&to=${r.committed.to}`)).rangeStats,
+    async () =>
+      (await api.stats(`?from=${r.committed.from}&to=${r.committed.to}`)).rangeStats,
     null as null | {
       stageChanges: number;
       newEntries: number;
@@ -563,7 +584,10 @@ function ActivitySummary({ initial }: { initial?: CommittedRange }) {
       {/* distribution */}
       <div className="mt-3 flex items-end gap-1.5" style={{ height: 48 }}>
         {dist.map((d, i) => (
-          <div key={`${d.label}-${i}`} className="flex flex-1 flex-col items-center gap-1">
+          <div
+            key={`${d.label}-${i}`}
+            className="flex flex-1 flex-col items-center gap-1"
+          >
             <div className="flex h-9 w-full items-end">
               <div
                 className="w-full rounded-sm"

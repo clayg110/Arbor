@@ -7,6 +7,7 @@ import type { Stage, SourceType } from "@/lib/types";
 import type { ExtractedSignal } from "@/lib/extract-signal";
 import { resolveCompany } from "./resolve";
 import { fetchLogoUrl } from "./logo";
+import { dedupeKey } from "@/lib/dedupe";
 
 type Svc = SupabaseClient<Database>;
 
@@ -63,21 +64,28 @@ async function insertSignal(
   meta: SignalMeta,
   llm: LlmOutput
 ): Promise<string | null> {
+  // Upsert-ignore on the dedupe key: a re-ingested (url, text) pair is a no-op
+  // instead of a duplicate row. A conflict returns no row → null id (the caller
+  // then writes history with a null signal_id, which is fine).
   const { data } = await svc
     .from("signals_raw")
-    .insert({
-      company_id: companyId,
-      raw_text: meta.rawText.slice(0, 8000),
-      source_url: meta.sourceUrl,
-      source_type: meta.sourceType,
-      source_name: meta.sourceName,
-      doc_type: meta.docType,
-      processed: true,
-      matched_company_id: companyId,
-      llm_output: llm,
-    })
+    .upsert(
+      {
+        company_id: companyId,
+        raw_text: meta.rawText.slice(0, 8000),
+        source_url: meta.sourceUrl,
+        source_type: meta.sourceType,
+        source_name: meta.sourceName,
+        doc_type: meta.docType,
+        processed: true,
+        matched_company_id: companyId,
+        llm_output: llm,
+        dedupe_key: dedupeKey(meta.sourceUrl, meta.rawText),
+      },
+      { onConflict: "dedupe_key", ignoreDuplicates: true }
+    )
     .select("id")
-    .single();
+    .maybeSingle();
   return data?.id ?? null;
 }
 
@@ -99,20 +107,31 @@ export async function processSignal(
   const lowConf = ex.confidence === "low" || ex.confidence === "needs_review";
 
   if (match) {
-    const { data: co } = await svc.from("companies").select("*").eq("id", match.id).maybeSingle();
+    const { data: co } = await svc
+      .from("companies")
+      .select("*")
+      .eq("id", match.id)
+      .maybeSingle();
     const sigId = await insertSignal(svc, match.id, meta, llm);
     if (!co) return { outcome: "skipped", companyId: match.id };
 
     // Low-confidence signal → flag for analyst, no stage change.
     if (lowConf) {
-      await svc.from("companies").update({ confidence: "needs_review", ...fin }).eq("id", match.id);
+      await svc
+        .from("companies")
+        .update({ confidence: "needs_review", ...fin })
+        .eq("id", match.id);
       return { outcome: "flagged", companyId: match.id };
     }
 
     if (ex.stage && ex.stage !== co.current_stage) {
       await svc
         .from("companies")
-        .update({ current_stage: ex.stage, confidence: ex.confidence ?? co.confidence, ...fin })
+        .update({
+          current_stage: ex.stage,
+          confidence: ex.confidence ?? co.confidence,
+          ...fin,
+        })
         .eq("id", match.id);
       await svc.from("deal_stage_history").insert({
         company_id: match.id,

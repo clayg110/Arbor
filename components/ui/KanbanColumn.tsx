@@ -32,15 +32,17 @@ export function KanbanColumn({
       {/* body */}
       <div
         className="flex flex-1 flex-col gap-2 rounded-b-lg p-2"
-        style={{ backgroundColor: "#F5F4EF", border: "0.5px solid var(--border)", borderTop: "none" }}
+        style={{
+          backgroundColor: "#F5F4EF",
+          border: "0.5px solid var(--border)",
+          borderTop: "none",
+        }}
       >
         {companies.map((co) => (
           <CompanyCard key={co.id} company={co} />
         ))}
         {companies.length === 0 && (
-          <p className="px-1 py-8 text-center text-[11px] text-subtle">
-            No companies
-          </p>
+          <p className="px-1 py-8 text-center text-[11px] text-subtle">No companies</p>
         )}
       </div>
     </div>
