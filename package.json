@@ -31,10 +31,10 @@
     ]
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.100.1",
+    "@anthropic-ai/sdk": "^0.102.0",
     "@sentry/nextjs": "^10.56.0",
     "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.106.2",
+    "@supabase/supabase-js": "^2.107.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "next": "15.5.19",
@@ -65,7 +65,7 @@
     "lint-staged": "^17.0.7",
     "postcss": "^8.5.15",
     "prettier": "^3.8.3",
-    "supabase": "^2.104.0",
+    "supabase": "^2.105.0",
     "tailwindcss": "^3.4.1",
     "tsx": "^4.22.4",
     "typescript": "^5",
