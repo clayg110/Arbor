@@ -1,11 +1,15 @@
 import { type NextRequest } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
+import type { SessionUser } from "@/lib/api/auth";
 import { parseJson } from "@/lib/validation";
 import type { OutreachEntry } from "@/lib/deal-tasks";
 import type { DbOutreachLog } from "@/types/db";
+import { extractMentionHandles, nameToHandle } from "@/lib/mentions";
+import { upsertNotificationRows } from "@/lib/notifications";
+import type { NotificationRow } from "@/lib/notifications";
 
 const OUTREACH_TYPES = ["call", "email", "meeting", "other"] as const;
 
@@ -80,7 +84,53 @@ export async function POST(
     .single();
   if (error) return serverError(error);
 
+  // Fire-and-forget: resolve @mentions and notify mentioned teammates.
+  void fireMentionNotifications(id, user, parsed.data.note, (data as DbOutreachLog).id);
+
   return ok({ entry: toEntry(data as DbOutreachLog, "You") }, { status: 201 });
+}
+
+async function fireMentionNotifications(
+  companyId: string,
+  author: SessionUser,
+  note: string,
+  entryId: string
+): Promise<void> {
+  const handles = extractMentionHandles(note);
+  if (handles.length === 0) return;
+  const orgId = author.orgId ?? null;
+  if (!orgId) return;
+
+  try {
+    const svc = createServiceClient();
+    const { data } = await svc.auth.admin.listUsers({ perPage: 200 });
+    const orgUsers = (data?.users ?? []).filter(
+      (u) => (u.app_metadata?.org_id as string | undefined) === orgId
+    );
+
+    const rows: NotificationRow[] = [];
+    for (const handle of handles) {
+      const match = orgUsers.find((u) => {
+        const rawName =
+          (u.user_metadata?.name as string | undefined) ?? u.email?.split("@")[0] ?? "";
+        return nameToHandle(rawName) === handle;
+      });
+      if (!match || match.id === author.id) continue;
+      rows.push({
+        user_id: match.id,
+        type: "mention",
+        title: author.email ?? "A teammate",
+        body: "mentioned you in an outreach note",
+        entity_type: "company",
+        entity_id: companyId,
+        dedupe_key: `mention:${entryId}:${match.id}`,
+      });
+    }
+
+    await upsertNotificationRows(svc, rows);
+  } catch {
+    // non-fatal — notification failures must not affect the main response
+  }
 }
 
 // DELETE /api/companies/[id]/outreach?entryId=…

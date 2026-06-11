@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, BackendOff } from "@/lib/api-client";
 import type { DealTask, OutreachEntry } from "@/lib/deal-tasks";
 import { sortTasks, isOverdue, formatDue, OUTREACH_TYPES } from "@/lib/deal-tasks";
 import { XIcon } from "@/components/ui/icons";
+
+interface OrgMember {
+  id: string;
+  name: string;
+  handle: string;
+}
 
 // ── Owner assignment ──────────────────────────────────────────────────────────
 
@@ -313,6 +319,12 @@ export function OutreachLogSection({
   const [draft, setDraft] = useState<string | null>(null);
   const [drafting, setDrafting] = useState(false);
 
+  // @mention autocomplete
+  const noteRef = useRef<HTMLTextAreaElement>(null);
+  const [members, setMembers] = useState<OrgMember[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIdx, setMentionIdx] = useState(0);
+
   useEffect(() => {
     api
       .listOutreach(companyId)
@@ -325,6 +337,70 @@ export function OutreachLogSection({
         setLoaded(true);
       });
   }, [companyId]);
+
+  useEffect(() => {
+    api
+      .getOrgMembers()
+      .then((r) => setMembers(r.members))
+      .catch(() => {});
+  }, []);
+
+  function handleNoteChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setNote(e.target.value);
+    const cursor = e.target.selectionStart ?? e.target.value.length;
+    const before = e.target.value.slice(0, cursor);
+    const m = before.match(/@([A-Za-z0-9._-]*)$/);
+    if (m) {
+      setMentionQuery(m[1].toLowerCase());
+      setMentionIdx(0);
+    } else {
+      setMentionQuery(null);
+    }
+  }
+
+  const mentionSuggestions =
+    mentionQuery !== null
+      ? members.filter((m) => m.handle.startsWith(mentionQuery)).slice(0, 8)
+      : [];
+
+  function insertMention(member: OrgMember) {
+    const ta = noteRef.current;
+    if (!ta) return;
+    const cursor = ta.selectionStart ?? note.length;
+    const before = note.slice(0, cursor);
+    const after = note.slice(cursor);
+    const match = before.match(/@([A-Za-z0-9._-]*)$/);
+    if (!match) return;
+    const start = cursor - match[0].length;
+    const inserted = `@${member.handle} `;
+    setNote(note.slice(0, start) + inserted + after);
+    setMentionQuery(null);
+    requestAnimationFrame(() => {
+      if (!noteRef.current) return;
+      const pos = start + inserted.length;
+      noteRef.current.selectionStart = pos;
+      noteRef.current.selectionEnd = pos;
+      noteRef.current.focus();
+    });
+  }
+
+  function handleNoteKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionSuggestions.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setMentionIdx((i) => (i + 1) % mentionSuggestions.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setMentionIdx(
+        (i) => (i - 1 + mentionSuggestions.length) % mentionSuggestions.length
+      );
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      insertMention(mentionSuggestions[mentionIdx]);
+    } else if (e.key === "Escape") {
+      setMentionQuery(null);
+    }
+  }
 
   async function log() {
     if (!note.trim()) return;
@@ -480,16 +556,48 @@ export function OutreachLogSection({
               ))}
             </select>
           </div>
-          <textarea
-            autoFocus
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Notes… Use @name to mention a teammate."
-            rows={3}
-            maxLength={2000}
-            className="w-full rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none"
-            style={{ border: "0.5px solid var(--border)" }}
-          />
+          <div className="relative">
+            <textarea
+              ref={noteRef}
+              autoFocus
+              value={note}
+              onChange={handleNoteChange}
+              onKeyDown={handleNoteKeyDown}
+              placeholder="Notes… Use @name to mention a teammate."
+              rows={3}
+              maxLength={2000}
+              className="w-full rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none"
+              style={{ border: "0.5px solid var(--border)" }}
+            />
+            {mentionSuggestions.length > 0 && (
+              <ul
+                role="listbox"
+                aria-label="Mention suggestions"
+                className="absolute left-0 z-10 mt-0.5 max-h-40 w-full overflow-y-auto rounded-md bg-surface shadow-md"
+                style={{ border: "0.5px solid var(--border)" }}
+              >
+                {mentionSuggestions.map((m, i) => (
+                  <li key={m.id} role="option" aria-selected={i === mentionIdx}>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // keep textarea focused
+                        insertMention(m);
+                      }}
+                      className={`w-full px-3 py-1.5 text-left text-[12px] ${
+                        i === mentionIdx
+                          ? "bg-[#E6F1FB] text-[#185FA5]"
+                          : "text-ink hover:bg-[#E6F1FB]"
+                      }`}
+                    >
+                      <span className="font-medium">@{m.handle}</span>
+                      <span className="ml-2 text-muted">{m.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"

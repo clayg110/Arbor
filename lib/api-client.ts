@@ -303,6 +303,10 @@ export const api = {
     jsend<{ view: SavedView }>(`/api/saved-views`, "POST", body),
   deleteSavedView: (id: string) =>
     jsend<{ ok: boolean }>(`/api/saved-views?id=${encodeURIComponent(id)}`, "DELETE"),
+  getOrgMembers: () =>
+    jget<{ members: { id: string; name: string; handle: string }[] }>(
+      `/api/orgs/members`
+    ),
 };
 
 export type { SavedView, SavedViewFilters };

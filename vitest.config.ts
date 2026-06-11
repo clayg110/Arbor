@@ -72,6 +72,7 @@ export default defineConfig({
         "lib/corroboration.ts",
         "lib/win-loss.ts",
         "lib/report.ts",
+        "lib/mentions.ts",
       ],
       exclude: ["**/*.d.ts"],
       // Honest ratchet floor: the suite currently clears this; raise it as

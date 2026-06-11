@@ -58,13 +58,19 @@ export async function updateSession(request: NextRequest) {
 
   // Unauthenticated. API routes get a clean 401 JSON (so client fetchers fall
   // back to mock instead of parsing a login HTML redirect); pages redirect.
+  // Root path redirects to the marketing landing page instead of login.
   if (!user && !isPublic) {
     if (path.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("redirectTo", path);
+    if (path === "/") {
+      url.pathname = "/landing.html";
+      url.search = "";
+    } else {
+      url.pathname = "/login";
+      url.searchParams.set("redirectTo", path);
+    }
     return NextResponse.redirect(url);
   }
 
