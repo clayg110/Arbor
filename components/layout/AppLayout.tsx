@@ -14,6 +14,7 @@ const NAV = [
   { href: "/radar", label: "Radar" },
   { href: "/feed", label: "Feed" },
   { href: "/analytics", label: "Analytics" },
+  { href: "/contacts", label: "Contacts" },
   { href: "/watchlist", label: "Watchlist" },
 ];
 

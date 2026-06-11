@@ -4,3 +4,4 @@ export * from "./company";
 export * from "./feed";
 export * from "./analytics";
 export * from "./review";
+export * from "./contacts";

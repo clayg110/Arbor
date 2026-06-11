@@ -10,6 +10,12 @@ import type {
   AlertPredicate as AlertPredicateView,
 } from "@/lib/alert-rules";
 import type { SavedView, SavedViewFilters } from "@/lib/saved-views";
+import type {
+  OurProcessStage,
+  ProcessHistoryEntry,
+  ProcessKeyDates,
+} from "@/lib/process-stage";
+import type { Contact, CompanyContact, ContactRole, FirmActivity } from "@/lib/contacts";
 
 export class BackendOff extends Error {
   constructor() {
@@ -172,6 +178,13 @@ export const api = {
       cached: boolean;
       generatedAt: string | null;
     }>(`/api/companies/${companyId}/memo`, "POST"),
+  icMemo: (companyId: string) =>
+    jsend<{
+      sections: { title: string; body: string }[] | null;
+      configured: boolean;
+      cached: boolean;
+      generatedAt: string | null;
+    }>(`/api/companies/${companyId}/ic-memo`, "POST"),
   askCompany: (companyId: string, question: string) =>
     jsend<{
       answer: string | null;
@@ -307,6 +320,55 @@ export const api = {
     jget<{ members: { id: string; name: string; handle: string }[] }>(
       `/api/orgs/members`
     ),
+  getProcessStage: (id: string) =>
+    jget<{
+      stage: OurProcessStage | null;
+      keyDates: ProcessKeyDates;
+      history: ProcessHistoryEntry[];
+    }>(`/api/companies/${id}/process-stage`),
+  setProcessStage: (
+    id: string,
+    body: { stage: OurProcessStage | null; notes?: string }
+  ) =>
+    jsend<{ stage: OurProcessStage | null }>(
+      `/api/companies/${id}/process-stage`,
+      "PATCH",
+      body
+    ),
+  updateProcessKeyDate: (id: string, body: { stage: string; date: string | null }) =>
+    jsend<{ keyDates: ProcessKeyDates }>(
+      `/api/companies/${id}/process-stage/key-dates`,
+      "PATCH",
+      body
+    ),
+  // ---- contacts ----
+  listContacts: (qs = "") => jget<{ contacts: Contact[] }>(`/api/contacts${qs}`),
+  createContact: (body: Partial<Contact> & { name: string }) =>
+    jsend<{ contact: Contact }>(`/api/contacts`, "POST", body),
+  updateContact: (id: string, body: Partial<Contact>) =>
+    jsend<{ contact: Contact }>(`/api/contacts/${id}`, "PATCH", body),
+  deleteContact: (id: string) => jsend<{ ok: boolean }>(`/api/contacts/${id}`, "DELETE"),
+  companyContacts: (companyId: string) =>
+    jget<{ contacts: CompanyContact[]; suggestions: string[] }>(
+      `/api/companies/${companyId}/contacts`
+    ),
+  addCompanyContact: (
+    companyId: string,
+    body:
+      | { contactId: string; role: ContactRole }
+      | (Partial<Contact> & { name: string; role: ContactRole })
+  ) =>
+    jsend<{ contact: CompanyContact }>(
+      `/api/companies/${companyId}/contacts`,
+      "POST",
+      body
+    ),
+  removeCompanyContact: (companyId: string, linkId: string) =>
+    jsend<{ ok: boolean }>(
+      `/api/companies/${companyId}/contacts?linkId=${encodeURIComponent(linkId)}`,
+      "DELETE"
+    ),
+  firmActivity: () => jget<{ firms: FirmActivity[] }>(`/api/contacts/firms`),
 };
 
 export type { SavedView, SavedViewFilters };

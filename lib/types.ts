@@ -1,3 +1,5 @@
+export type { OurProcessStage } from "@/lib/process-stage";
+
 // ---- enums ----
 export type Sector =
   // legacy demo sectors

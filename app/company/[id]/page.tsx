@@ -7,6 +7,7 @@ import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
 import { StageTimeline } from "@/components/ui/StageTimeline";
 import { SignalCard } from "@/components/ui/SignalCard";
 import { DealMemo, CompanyQa } from "@/components/ui/AiBriefing";
+import { IcMemo } from "@/components/ui/IcMemo";
 import { AnalystNoteEditor } from "@/components/ui/AnalystNoteEditor";
 import { WatchlistButton } from "@/components/ui/WatchlistButton";
 import { OutcomeForm } from "@/components/ui/OutcomeForm";
@@ -17,6 +18,8 @@ import {
   DealTasksSection,
   OutreachLogSection,
 } from "@/components/ui/DealWorkflowSection";
+import { ProcessStageSection } from "@/components/ui/ProcessStageSection";
+import { CompanyContactsSection } from "@/components/ui/CompanyContactsSection";
 import {
   getCompany,
   getStageHistory,
@@ -24,6 +27,7 @@ import {
   getNotes,
   getSectorPeers,
   getComps,
+  getCompanyContacts,
 } from "@/lib/mock-data";
 import {
   SECTOR_LABELS,
@@ -217,6 +221,7 @@ export default async function CompanyPage({
           <Section title="AI analyst">
             <DealMemo companyId={company.id} />
             <CompanyQa companyId={company.id} />
+            <IcMemo companyId={company.id} companyName={company.name} />
           </Section>
 
           <Section title="Key signals">
@@ -295,6 +300,17 @@ export default async function CompanyPage({
                 />
               )}
             </dl>
+          </Section>
+
+          <Section title="Our process">
+            <ProcessStageSection companyId={company.id} />
+          </Section>
+
+          <Section title="Advisors & key contacts">
+            <CompanyContactsSection
+              companyId={company.id}
+              fallback={getCompanyContacts(company.id)}
+            />
           </Section>
 
           <Section title="Deal owner">

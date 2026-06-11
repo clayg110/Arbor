@@ -17,7 +17,15 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   XIcon,
+  PipelineIcon,
 } from "@/components/ui/icons";
+import {
+  PROCESS_STAGES,
+  PROCESS_STAGE_LABELS,
+  PROCESS_STAGE_COLORS,
+  processStripSummary,
+  type OurProcessStage,
+} from "@/lib/process-stage";
 import { NewAlertForm, type NewAlertInitial } from "@/components/ui/AlertsSection";
 import { SavedViewsMenu } from "@/components/ui/SavedViewsMenu";
 import { useFocusTrap } from "@/lib/use-focus-trap";
@@ -142,7 +150,7 @@ export default function RadarPage() {
     [companies]
   );
 
-  const [view, setView] = useState<"kanban" | "table">("kanban");
+  const [view, setView] = useState<"kanban" | "table" | "process">("kanban");
   const [sector, setSector] = useState<Sector | "all">("all");
   const [deal, setDeal] = useState<DealType | "all">("all");
   const [confidence, setConfidence] = useState<Set<Confidence>>(new Set());
@@ -396,6 +404,18 @@ export default function RadarPage() {
         ? "md:grid-cols-2"
         : "md:grid-cols-3";
 
+  // Process view: group companies by our_process_stage
+  const processCompanies = companies.filter((c) => c.ourProcessStage);
+  const processStageCounts = processCompanies.reduce<
+    Partial<Record<OurProcessStage, number>>
+  >((acc, c) => {
+    const s = c.ourProcessStage!;
+    acc[s] = (acc[s] ?? 0) + 1;
+    return acc;
+  }, {});
+  const processColumns = PROCESS_STAGES.filter((s) => processStageCounts[s]);
+  const processStrip = processStripSummary(processStageCounts);
+
   return (
     <div>
       {/* ===== SECTION 1 — control bar (sticky) ===== */}
@@ -427,6 +447,13 @@ export default function RadarPage() {
                 label="Table view"
               >
                 <RowsIcon className="h-4 w-4" />
+              </IconToggle>
+              <IconToggle
+                active={view === "process"}
+                onClick={() => setView("process")}
+                label="Our process"
+              >
+                <PipelineIcon className="h-4 w-4" />
               </IconToggle>
             </div>
           </div>
@@ -727,6 +754,18 @@ export default function RadarPage() {
       </div>
 
       {/* ===== SECTION 3 — main ===== */}
+      {/* process summary strip */}
+      {view === "process" && (
+        <div
+          className="mb-4 flex items-center gap-2 rounded-lg px-4 py-2.5 text-[12px] text-[#5f5e57]"
+          style={{ border: "0.5px solid var(--border)", background: "var(--surface)" }}
+        >
+          <PipelineIcon className="h-3.5 w-3.5 shrink-0 text-[#185FA5]" />
+          <span className="font-medium text-[#185FA5]">Our process:</span>
+          <span>{processStrip}</span>
+        </div>
+      )}
+
       {view === "kanban" ? (
         <div className={`grid grid-cols-1 gap-4 ${kanbanGrid}`}>
           {kanbanCols.map(({ col, cards }) => {
@@ -850,7 +889,7 @@ export default function RadarPage() {
             );
           })}
         </div>
-      ) : (
+      ) : view === "table" ? (
         <RadarTable
           rows={filtered}
           sortKey={sortKey}
@@ -861,6 +900,70 @@ export default function RadarPage() {
           onToggleWatch={(id) => toggleWatch(id)}
           onClearFilters={clearAll}
         />
+      ) : /* ===== process kanban ===== */
+      processColumns.length === 0 ? (
+        <div className="py-16 text-center text-[13px] text-muted">
+          No active processes tracked.{" "}
+          <span className="text-[#5f5e57]">
+            Open a company profile and set your team&apos;s process stage.
+          </span>
+        </div>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-4">
+          {processColumns.map((s) => {
+            const cards = processCompanies.filter((c) => c.ourProcessStage === s);
+            const c = PROCESS_STAGE_COLORS[s];
+            return (
+              <div
+                key={s}
+                className="flex w-52 shrink-0 flex-col rounded-lg"
+                style={{ border: "0.5px solid var(--border)" }}
+              >
+                <header
+                  className="flex items-center justify-between rounded-t-lg px-3 py-2"
+                  style={{ backgroundColor: c.bg, borderBottom: `1px solid ${c.border}` }}
+                >
+                  <span className="text-[12px] font-medium" style={{ color: c.text }}>
+                    {PROCESS_STAGE_LABELS[s]}
+                  </span>
+                  <span
+                    className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                    style={{ backgroundColor: c.border, color: c.text }}
+                  >
+                    {cards.length}
+                  </span>
+                </header>
+                <div className="flex flex-col gap-2 p-2">
+                  {cards.map((co) => {
+                    const kd = co.processKeyDates?.[s];
+                    return (
+                      <a
+                        key={co.id}
+                        href={co.companyId ? `/company/${co.companyId}` : undefined}
+                        className="block rounded border border-[#e5e5e2] bg-white px-3 py-2.5 text-left hover:border-[#c5c4c0] hover:shadow-sm"
+                      >
+                        <p className="text-[12px] font-medium text-[#1a1917] leading-tight">
+                          {co.name}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-[#5f5e57]">
+                          {co.ownerName}
+                        </p>
+                        {kd && (
+                          <p
+                            className="mt-1 text-[10px] font-medium"
+                            style={{ color: c.text }}
+                          >
+                            Due {kd}
+                          </p>
+                        )}
+                      </a>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {live.source === "live" && (

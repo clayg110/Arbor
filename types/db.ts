@@ -9,6 +9,8 @@
 // ============================================================================
 
 import type { Sector, DealType, Stage, Confidence, SourceType } from "@/lib/types";
+import type { OurProcessStage } from "@/lib/process-stage";
+import type { ContactRole } from "@/lib/contacts";
 
 export type ChangedBy = "system_auto" | "analyst_manual";
 
@@ -74,6 +76,9 @@ export type DbCompany = {
   // deal workflow (migration 0030)
   owner_id?: string | null;
   org_id?: string | null;
+  // deal process stage (migration 0035)
+  our_process_stage?: OurProcessStage | null;
+  process_key_dates?: Record<string, string> | null;
 };
 
 // Monitored company universe (Backend §2.1) — no deal stage.
@@ -148,6 +153,15 @@ export type DbCompanyMemo = {
   generated_at: string;
 };
 
+// Structured IC memo cache (0038) — same shape as DbCompanyMemo, separate table.
+export type DbCompanyIcMemo = {
+  company_id: string;
+  memo: string;
+  signals_hash: string;
+  model: string | null;
+  generated_at: string;
+};
+
 export type DbAlertRule = {
   id: string;
   user_id: string;
@@ -180,6 +194,42 @@ export type DbOutreachLog = {
   type: "call" | "email" | "meeting" | "other";
   note: string;
   contacted_at: string;
+  created_at: string;
+};
+
+// ---- deal process history (0035) ----
+export type DbProcessHistory = {
+  id: string;
+  company_id: string;
+  user_id: string;
+  org_id: string | null;
+  stage: OurProcessStage;
+  notes: string | null;
+  changed_at: string;
+  created_at: string;
+};
+
+// ---- contacts / banker relationship layer (0036 + 0037) ----
+export type DbContact = {
+  id: string;
+  org_id: string | null;
+  created_by: string | null;
+  name: string;
+  title: string | null;
+  firm: string | null;
+  email: string | null;
+  phone: string | null;
+  linkedin_url: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type DbCompanyContact = {
+  id: string;
+  company_id: string;
+  contact_id: string;
+  org_id: string | null;
+  role: ContactRole;
   created_at: string;
 };
 
@@ -478,6 +528,16 @@ export interface Database {
         Update: Partial<DbCompanyMemo>;
         Relationships: Rel;
       };
+      company_ic_memos: {
+        Row: DbCompanyIcMemo;
+        Insert: Partial<DbCompanyIcMemo> & {
+          company_id: string;
+          memo: string;
+          signals_hash: string;
+        };
+        Update: Partial<DbCompanyIcMemo>;
+        Relationships: Rel;
+      };
       alert_rules: {
         Row: DbAlertRule;
         Insert: Partial<DbAlertRule> & { user_id: string; name: string };
@@ -578,6 +638,31 @@ export interface Database {
         Update: Partial<DbOutreachLog>;
         Relationships: Rel;
       };
+      deal_process_history: {
+        Row: DbProcessHistory;
+        Insert: Partial<DbProcessHistory> & {
+          company_id: string;
+          user_id: string;
+          stage: OurProcessStage;
+        };
+        Update: Partial<DbProcessHistory>;
+        Relationships: Rel;
+      };
+      contacts: {
+        Row: DbContact;
+        Insert: Partial<DbContact> & { name: string };
+        Update: Partial<DbContact>;
+        Relationships: Rel;
+      };
+      company_contacts: {
+        Row: DbCompanyContact;
+        Insert: Partial<DbCompanyContact> & {
+          company_id: string;
+          contact_id: string;
+        };
+        Update: Partial<DbCompanyContact>;
+        Relationships: Rel;
+      };
     };
     Views: {
       v_company_last_signal: { Row: LastSignalRow; Relationships: Rel };
@@ -631,6 +716,8 @@ export interface Database {
       changed_by_enum: ChangedBy;
       source_type_enum: SourceType;
       feed_event_enum: DbFeedEvent;
+      our_process_stage_enum: OurProcessStage;
+      contact_role_enum: ContactRole;
     };
     CompositeTypes: Record<string, never>;
   };

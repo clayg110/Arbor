@@ -7,6 +7,7 @@ import type {
   ReviewItem,
 } from "./types";
 import { topComps, type CompInput, type CompResult } from "./comps";
+import { bankerIntelligence, type Contact, type CompanyContact } from "./contacts";
 
 // All dates are anchored around "today" = 2026-06-02 for realistic relative ages.
 
@@ -1008,3 +1009,95 @@ export const mockUsers = [
     lastActive: "3 days ago",
   },
 ];
+
+// ---- contacts / banker relationship layer ----
+export const mockContacts: Contact[] = [
+  {
+    id: "ct1",
+    name: "Daniel Reyes",
+    title: "Managing Director, M&A",
+    firm: "Goldman Sachs",
+    email: "d.reyes@gs.example",
+    phone: "+1 212-555-0142",
+    linkedinUrl: "https://linkedin.com/in/danielreyes",
+    notes: "Lead banker on the Dow Polyurethanes carve-out. Responsive, prefers email.",
+    createdAt: "2026-03-18",
+  },
+  {
+    id: "ct2",
+    name: "Aisha Bello",
+    title: "Partner",
+    firm: "Jefferies",
+    email: "a.bello@jefferies.example",
+    phone: null,
+    linkedinUrl: null,
+    notes: "Running the Nouryon Surfactants process.",
+    createdAt: "2026-04-02",
+  },
+  {
+    id: "ct3",
+    name: "Tom Halloran",
+    title: "Director",
+    firm: "Houlihan Lokey",
+    email: "t.halloran@hl.example",
+    phone: "+1 310-555-0190",
+    linkedinUrl: null,
+    notes: "GEON sale process. First-round bids late Q3.",
+    createdAt: "2026-05-16",
+  },
+  {
+    id: "ct4",
+    name: "Margaret Chen",
+    title: "Chief Financial Officer",
+    firm: "Sachem",
+    email: "m.chen@sachem.example",
+    phone: null,
+    linkedinUrl: null,
+    notes: "Direct line to management on the Sachem asset.",
+    createdAt: "2026-05-21",
+  },
+  {
+    id: "ct5",
+    name: "Robert Vance",
+    title: "Managing Director",
+    firm: "Goldman Sachs",
+    email: "r.vance@gs.example",
+    phone: null,
+    linkedinUrl: null,
+    notes: "Covers industrials carve-outs alongside Daniel.",
+    createdAt: "2026-04-29",
+  },
+  {
+    id: "ct6",
+    name: "Elena Petrova",
+    title: "Partner, Corporate",
+    firm: "Kirkland & Ellis",
+    email: "e.petrova@kirkland.example",
+    phone: null,
+    linkedinUrl: null,
+    notes: "Deal counsel on multiple sponsor exits.",
+    createdAt: "2026-03-30",
+  },
+];
+
+// company id -> attached contacts (with link id + role).
+const MOCK_COMPANY_CONTACTS: Record<string, CompanyContact[]> = {
+  "1": [
+    { ...mockContacts[0], linkId: "lc1", role: "M&A Advisor" },
+    { ...mockContacts[4], linkId: "lc2", role: "M&A Advisor" },
+    { ...mockContacts[5], linkId: "lc3", role: "Counsel" },
+  ],
+  "6": [{ ...mockContacts[3], linkId: "lc4", role: "CFO" }],
+  "5": [{ ...mockContacts[2], linkId: "lc5", role: "M&A Advisor" }],
+};
+
+export function getCompanyContacts(companyId: string): CompanyContact[] {
+  return MOCK_COMPANY_CONTACTS[companyId] ?? [];
+}
+
+// Banker intelligence over the mock links (mirrors /api/contacts/firms).
+export const mockFirmActivity = bankerIntelligence(
+  Object.entries(MOCK_COMPANY_CONTACTS).flatMap(([companyId, links]) =>
+    links.map((l) => ({ companyId, firm: l.firm, role: l.role }))
+  )
+);

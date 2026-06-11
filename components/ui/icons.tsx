@@ -239,3 +239,11 @@ export const ClockIcon = (p: P) => (
     <path d="M12 7v5l3 2" />
   </svg>
 );
+
+export const PipelineIcon = (p: P) => (
+  <svg {...base} {...p}>
+    <rect x="2" y="8" width="5" height="8" rx="1" />
+    <rect x="9.5" y="6" width="5" height="12" rx="1" />
+    <rect x="17" y="4" width="5" height="16" rx="1" />
+  </svg>
+);

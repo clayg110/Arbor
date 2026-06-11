@@ -73,6 +73,9 @@ export default defineConfig({
         "lib/win-loss.ts",
         "lib/report.ts",
         "lib/mentions.ts",
+        "lib/process-stage.ts",
+        "lib/contacts.ts",
+        "lib/adapters/contacts.ts",
       ],
       exclude: ["**/*.d.ts"],
       // Honest ratchet floor: the suite currently clears this; raise it as

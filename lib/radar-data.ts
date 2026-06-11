@@ -1,4 +1,5 @@
 import type { DealType, Sector, Confidence, Stage, SourceType } from "./types";
+import type { OurProcessStage, ProcessKeyDates } from "./process-stage";
 import { computeConviction, type Conviction } from "./conviction";
 
 export interface LastSignal {
@@ -36,6 +37,8 @@ export interface RadarCompany {
   revenueSource?: string | null;
   ebitdaSource?: string | null;
   conviction?: Conviction; // 0–100 "likely to transact" + band
+  ourProcessStage?: OurProcessStage | null;
+  processKeyDates?: ProcessKeyDates | null;
 }
 
 const sig = (
@@ -63,6 +66,8 @@ const baseRadarCompanies: RadarCompany[] = [
     watchlisted: true,
     quote:
       "Goldman Sachs and Morgan Stanley engaged as advisors to explore strategic alternatives for the Polyurethanes segment.",
+    ourProcessStage: "first_round_bid",
+    processKeyDates: { first_round_bid: "2026-06-25" },
   },
   {
     id: "r2",
@@ -79,6 +84,7 @@ const baseRadarCompanies: RadarCompany[] = [
     lastSignal: sig("4 days ago", "Bloomberg", "google_news", 4),
     watchlisted: true,
     quote: "Sale process could value the business at more than $600 million.",
+    ourProcessStage: "nda_signed",
   },
   {
     id: "r3",
@@ -93,6 +99,7 @@ const baseRadarCompanies: RadarCompany[] = [
     added: "2026-05-26",
     addedDisplay: "May 26 2026",
     lastSignal: sig("1 day ago", "PE Wire", "google_news", 1),
+    ourProcessStage: "cim_received",
   },
   {
     id: "r4",
@@ -108,6 +115,7 @@ const baseRadarCompanies: RadarCompany[] = [
     lastSignal: sig("3 days ago", "PE Wire", "google_news", 3),
     quote:
       "Jefferies mandated to run formal sale process. Estimated deal size: $800M–$1.2B.",
+    ourProcessStage: "watching",
   },
   {
     id: "r5",
@@ -125,6 +133,8 @@ const baseRadarCompanies: RadarCompany[] = [
     watchlisted: true,
     quote:
       "Houlihan Lokey hired to run sale process. First round bids expected late Q3 2026.",
+    ourProcessStage: "exclusivity",
+    processKeyDates: { exclusivity: "2026-06-30" },
   },
   {
     id: "r6",

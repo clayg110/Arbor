@@ -85,6 +85,8 @@ export function toRadarCompany(
     description: c.description,
     revenueSource: c.revenue_source_url,
     ebitdaSource: c.ebitda_source_url,
+    ourProcessStage: c.our_process_stage ?? null,
+    processKeyDates: c.process_key_dates ?? null,
   };
 }
 

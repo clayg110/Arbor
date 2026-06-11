@@ -25,24 +25,26 @@ no Claude co-author footer. User is the sole git author.
 
 `pnpm format:check && pnpm tsc --noEmit && pnpm lint && pnpm test:coverage && pnpm build && pnpm test:e2e`
 Coverage floors (vitest.config.ts thresholds — never lower): lines 65, functions 48, statements 65, branches 55.
-All 431 unit + 24 E2E must pass.
+All 486 unit + 25 E2E must pass.
 
-### Node/pnpm not on PATH
+### Node/pnpm setup (Linux)
 
-Node installed via winget. Prepend this to PATH at the start of every shell session:
-`C:\Users\clayg\AppData\Local\Microsoft\WinGet\Packages\OpenJS.NodeJS.LTS_Microsoft.Winget.Source_8wekyb3d8bbwe\node_modules\.bin`
-
-In Bash: `export PATH="C:/Users/clayg/AppData/Local/Microsoft/WinGet/Packages/OpenJS.NodeJS.LTS_Microsoft.Winget.Source_8wekyb3d8bbwe/node_modules/.bin:$PATH"`
+Node v24 via system package. pnpm 11 installed globally via `npm install -g pnpm@11`.
+Both on PATH — no export needed.
 
 pnpm 11 quirks:
 
 - Build-script approval in `pnpm-workspace.yaml` (`allowBuilds`), not package.json.
 - `.npmrc` has `verify-deps-before-run=false` so `pnpm build` doesn't re-run install.
 
+Playwright browsers are NOT in `node_modules` — install once per machine with
+`pnpm exec playwright install chromium` or `pnpm test:e2e` fails with
+"Executable doesn't exist at …/chromium_headless_shell".
+
 ### .next cache corruption
 
 Symptom: `TypeError: __webpack_modules__[moduleId] is not a function`.
-Fix: `Remove-Item -Recurse -Force .next` then restart dev server.
+Fix: `rm -rf .next` then restart dev server.
 
 ---
 
@@ -51,9 +53,12 @@ Fix: `Remove-Item -Recurse -Force .next` then restart dev server.
 **As of 2026-06-11:**
 
 - ALL 8 phases + full backlog (hardening + @mention + landing page) DONE + green.
+- Tier 1 feature 1 (Deal Process Stage Tracker) DONE + green (migration 0035).
+- Tier 1 feature 2 (Contact / Banker Relationship Manager) DONE + green (migrations 0036–0037).
+- Tier 1 feature 3 (Structured IC Memo Generator) DONE + green (migration 0038).
 - Changes are **UNCOMMITTED** — waiting for user commit approval.
-- 431 unit tests, 24 E2E, prod build all passing.
-- Migration counter: **next is 0035** (last used: 0034 = outreach_log_update_policy).
+- 486 unit tests, 25 E2E, prod build all passing.
+- Migration counter: **next is 0039** (last used: 0038 = company_ic_memos).
 
 **What was just built (uncommitted):**
 
@@ -86,7 +91,7 @@ Fix: `Remove-Item -Recurse -Force .next` then restart dev server.
 
 **Stack:** Next.js 15 App Router, Supabase (PostgreSQL + Auth + RLS), TypeScript, Tailwind, Recharts, Vitest, Playwright.
 
-**Project path:** `B:\Projects\Arbor`
+**Project path:** `/home/seraphim/Coding/VSCode/Arbor`
 
 **Pattern:** Pure logic in `lib/*.ts` → thin route handlers in `app/api/**` → thin components. Never put business logic in routes or components.
 
@@ -142,17 +147,20 @@ Row types in `types/db.ts` MUST be `type X = {...}`, NOT `interface X`. Using `i
 | `lib/notifications.ts`       | `upsertNotificationRows`, `NotificationRow` shape                 |
 | `lib/alerts.ts`              | `sendEmail`, `sendSlackAlert`, `sendTeamsAlert`, `sendAllAlerts`  |
 | `lib/mentions.ts`            | `nameToHandle`, `extractMentionHandles`, `resolveHandles`         |
+| `lib/process-stage.ts`       | Internal deal process stages, labels, colors, strip summary       |
+| `lib/contacts.ts`            | Contact roles, `bankerIntelligence`, `suggestAdvisorsFromSignals` |
+| `lib/ic-memo.ts`             | Structured IC memo: sections, context, parse, markdown (LLM)      |
 | `lib/supabase/middleware.ts` | Auth redirect logic, PUBLIC paths list                            |
 | `middleware.ts`              | Root: request-id, CSP nonce, matcher config                       |
 | `vitest.config.ts`           | Coverage includes + thresholds                                    |
-| `supabase/migrations/`       | SQL migrations, next counter is 0035                              |
+| `supabase/migrations/`       | SQL migrations, next counter is 0039                              |
 
 ---
 
 ## Migration convention
 
-Files: `supabase/migrations/NNNN_slug.sql`. Next number is **0035**.
-Used through 0034 (0022=conviction, 0023=company_memos, 0024=alert_rules, 0025=sponsor_holding, 0026=outcomes, 0027=calibration, 0028=user_preferences, 0029=saved_views, 0030=deal_workflow, 0031=alert_email_delivery, 0032=analytics_views, 0033=report_prefs, 0034=outreach_log_update_policy).
+Files: `supabase/migrations/NNNN_slug.sql`. Next number is **0039**.
+Used through 0038 (0022=conviction, 0023=company_memos, 0024=alert_rules, 0025=sponsor_holding, 0026=outcomes, 0027=calibration, 0028=user_preferences, 0029=saved_views, 0030=deal_workflow, 0031=alert_email_delivery, 0032=analytics_views, 0033=report_prefs, 0034=outreach_log_update_policy, 0035=deal_process_stage, 0036=contacts, 0037=company_contacts, 0038=company_ic_memos).
 
 ---
 
@@ -177,32 +185,32 @@ Nothing below is built. Build in the recommended order when user asks.
 
 ### Tier 1 — Build first (highest impact, most differentiating)
 
-**1. Deal Process Stage Tracker** ★★★ — M/L
-The #1 gap. Radar tracks the _market's_ stage. PE teams need to track _their own_ process stage. This is the spreadsheet killer.
+**1. Deal Process Stage Tracker** ★★★ — M/L — ✅ DONE (migration 0035)
+Files: `lib/process-stage.ts` (pure: stages/labels/colors/`processStripSummary`),
+`app/api/companies/[id]/process-stage/route.ts` (GET+PATCH, records history),
+`.../process-stage/key-dates/route.ts` (PATCH per-stage dates),
+`components/ui/ProcessStageSection.tsx` (stepper + inline key dates + history log),
+`PipelineIcon`, radar 3rd view toggle + process kanban + summary strip,
+`our_process_stage`/`process_key_dates` on companies, `deal_process_history` table.
 
-- New `our_process_stage` column on `companies` (nullable): `watching → teaser_received → nda_signed → cim_received → first_round_bid → management_presentation → second_round_bid → exclusivity → loi_signed → due_diligence → won | passed`
-- Milestone log: every stage change stamped with date + author (like `deal_stage_history` but internal)
-- Key dates per stage (e.g. "Bids due: June 25") — editable inline
-- Second kanban view on radar: "View by: Our Process"
-- Process summary strip: "5 NDAs · 2 First-round bids due · 1 In exclusivity"
-- Migration 0035
+**2. Contact / Banker Relationship Manager** ★★★ — M/L — ✅ DONE (migrations 0036–0037)
+Files: `lib/contacts.ts` (pure: roles, `roleColor`, `contactInitials`, `bankerIntelligence`,
+`suggestAdvisorsFromSignals`), `lib/adapters/contacts.ts` (`toContact`, `toCompanyContact`),
+`app/api/contacts` (GET/POST), `app/api/contacts/[id]` (PATCH/DELETE),
+`app/api/contacts/firms` (banker intel), `app/api/companies/[id]/contacts` (GET+suggestions/POST/DELETE),
+`components/ui/CompanyContactsSection.tsx` ("Advisors & key contacts" on profile),
+`app/contacts/page.tsx` (directory + banker-intelligence tab), nav item + a11y page added.
+Auto-suggest is a pure regex over signal excerpts (no LLM call) — swap for LLM later.
+Note: `company_contacts` is org-scoped only (no per-user owner); null-org rows are
+visible across no-org users — fine for the org model, tighten if solo tenants matter.
 
-**2. Contact / Banker Relationship Manager** ★★★ — M/L
-PE is a relationship business. No structured contact layer exists anywhere — advisors only appear as quoted text in signals.
-
-- New `contacts` table: `id, name, title, firm, email, phone, linkedin_url, notes, created_at` — migration 0036
-- Join table `company_contacts`: `company_id, contact_id, role (M&A Advisor | CFO | CEO | Partner | Counsel | Other)` — migration 0037
-- "Advisors & Key Contacts" section on company profile page
-- Contact directory page (`/contacts`) — filterable by firm, role
-- Auto-suggest: LLM already extracts banker names from signals (e.g. "Goldman Sachs engaged as advisor") → offer to create contact
-- Bonus: Banker Intelligence view — "Which banks are running the most processes in industrials?" (group company_contacts by firm where role=M&A Advisor)
-
-**3. Structured IC Memo Generator** ★★★ — M
-Current AI memo (`lib/memo.ts`) is free-form text. IC memos have defined sections.
-
-- New structured prompt in `lib/memo.ts` (or `lib/ic-memo.ts`) producing: Executive Summary · Business Description · Investment Thesis · Key Risks · Comparable Transactions · Process Status (pulls `our_process_stage`) · Conviction & Signals · Recommendation
-- Route: `POST /api/companies/[id]/ic-memo` (cached like existing memo)
-- UI: "Generate IC Memo" button → formatted card + "Copy as Markdown" + "Download" (browser `window.print()` + print CSS, no external dep)
+**3. Structured IC Memo Generator** ★★★ — M — ✅ DONE (migration 0038)
+Files: `lib/ic-memo.ts` (pure: `IC_SECTIONS`, `buildIcContext`, `icMemoHash`, `parseIcMemo`,
+`formatIcMemoMarkdown`; LLM `generateIcMemo` dormant w/o key — NOT in coverage include, like
+`lib/memo.ts`), `app/api/companies/[id]/ic-memo/route.ts` (POST, cached in `company_ic_memos`,
+folds signals + `our_process_stage` + comps into the hash), `components/ui/IcMemo.tsx`
+(8 titled section cards, Copy-as-Markdown + Download .md; markdown builder duplicated client-side
+so the Anthropic SDK never enters the client bundle). Mounted in profile "AI analyst" section.
 
 ### Tier 2 — High value, clear scope
 
