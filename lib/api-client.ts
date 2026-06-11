@@ -16,6 +16,8 @@ import type {
   ProcessKeyDates,
 } from "@/lib/process-stage";
 import type { Contact, CompanyContact, ContactRole, FirmActivity } from "@/lib/contacts";
+import type { Bid, BidType, BidRound } from "@/lib/bids";
+import type { PipelineDeal } from "@/lib/pipeline";
 
 export class BackendOff extends Error {
   constructor() {
@@ -369,6 +371,26 @@ export const api = {
       "DELETE"
     ),
   firmActivity: () => jget<{ firms: FirmActivity[] }>(`/api/contacts/firms`),
+
+  // ---- bids ----
+  listBids: (companyId: string) =>
+    jget<{ bids: Bid[] }>(`/api/companies/${companyId}/bids`),
+  recordBid: (
+    companyId: string,
+    body: {
+      bidType: BidType;
+      round: BidRound;
+      bidDate: string;
+      amountUsd: number | null;
+      multipleOnEbitda: number | null;
+      rationale: string | null;
+    }
+  ) => jsend<{ bid: Bid }>(`/api/companies/${companyId}/bids`, "POST", body),
+  deleteBid: (companyId: string, bidId: string) =>
+    jsend<{ ok: boolean }>(`/api/companies/${companyId}/bids/${bidId}`, "DELETE"),
+
+  // ---- pipeline dashboard ----
+  getPipelineDeals: () => jget<{ deals: PipelineDeal[] }>(`/api/pipeline`),
 };
 
 export type { SavedView, SavedViewFilters };

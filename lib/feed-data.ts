@@ -10,7 +10,8 @@ export type FeedItemType =
   | "pulled"
   | "new_entry"
   | "flagged"
-  | "confidence_update";
+  | "confidence_update"
+  | "hsr_filed";
 
 export type DayKey = "today" | "yesterday" | "d2" | "d3";
 

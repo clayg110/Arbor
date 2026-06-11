@@ -1063,6 +1063,7 @@ const SOURCE_ICON: Record<SourceType, typeof DocumentIcon> = {
   google_news: GlobeIcon,
   rss_feed: RssIcon,
   manual: PencilIcon,
+  hsr_filing: DocumentIcon,
 };
 function SourceIcon({ source }: { source: SourceType }) {
   const Icon = SOURCE_ICON[source];

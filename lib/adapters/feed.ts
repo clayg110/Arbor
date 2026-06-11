@@ -42,6 +42,7 @@ const EVENT_MAP: Record<DbFeedEvent, FeedItemType> = {
   new_entry: "new_entry",
   flagged: "flagged",
   confidence_update: "confidence_update",
+  hsr_filed: "hsr_filed",
 };
 
 function buildExpanded(

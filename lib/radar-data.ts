@@ -48,7 +48,7 @@ const sig = (
   daysAgo: number
 ): LastSignal => ({ label, sourceName, source, daysAgo });
 
-const baseRadarCompanies: RadarCompany[] = [
+export const baseRadarCompanies: RadarCompany[] = [
   // ---------------- IN MARKET ----------------
   {
     id: "r1",

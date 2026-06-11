@@ -34,6 +34,7 @@ const TYPE_VISUAL: Record<FeedItemType, { color: string; Icon: typeof XIcon }> =
   new_entry: { color: "#27500A", Icon: BuildingIcon },
   flagged: { color: "#BA7517", Icon: AlertTriangleIcon },
   confidence_update: { color: "#9A9890", Icon: ShieldIcon },
+  hsr_filed: { color: "#185FA5", Icon: DocumentIcon },
 };
 
 const SOURCE_ICON: Record<SourceType, typeof DocumentIcon> = {
@@ -42,6 +43,7 @@ const SOURCE_ICON: Record<SourceType, typeof DocumentIcon> = {
   google_news: GlobeIcon,
   rss_feed: RssIcon,
   manual: PencilIcon,
+  hsr_filing: DocumentIcon,
 };
 
 export function FeedEventCard({

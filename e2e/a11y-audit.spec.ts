@@ -12,6 +12,7 @@ const PAGES = [
   "/radar",
   "/feed",
   "/analytics",
+  "/pipeline",
   "/contacts",
   "/review",
   "/watchlist",

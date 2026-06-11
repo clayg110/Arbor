@@ -14,6 +14,8 @@ export interface CompInput {
   revenue?: string | null;
   ebitda?: string | null;
   outcome?: string | null;
+  closedAt?: string | null;
+  closeMultiple?: string | null;
 }
 
 export interface CompResult extends CompInput {
@@ -82,6 +84,85 @@ export function scoreComp(
   }
 
   return { score, matchReasons };
+}
+
+export interface CompsFilter {
+  sector: string; // "" = all
+  sizeBand: "small" | "mid" | "large" | ""; // "" = all
+  dealType: string; // "" = all
+  outcome: string; // "" = all
+  closedAfter: string; // ISO date or ""
+  closedBefore: string; // ISO date or ""
+}
+
+export const EMPTY_FILTER: CompsFilter = {
+  sector: "",
+  sizeBand: "",
+  dealType: "",
+  outcome: "",
+  closedAfter: "",
+  closedBefore: "",
+};
+
+export function applyCompsFilter(comps: CompResult[], f: CompsFilter): CompResult[] {
+  return comps.filter((c) => {
+    if (f.sector && c.sector !== f.sector) return false;
+    if (f.dealType && c.dealType !== f.dealType) return false;
+    if (f.outcome && c.outcome !== f.outcome) return false;
+    if (f.sizeBand) {
+      const band = sizeBand(c.revenue) ?? sizeBand(c.ebitda);
+      if (band !== f.sizeBand) return false;
+    }
+    if (f.closedAfter) {
+      if (!c.closedAt || c.closedAt < f.closedAfter) return false;
+    }
+    if (f.closedBefore) {
+      if (!c.closedAt || c.closedAt > f.closedBefore) return false;
+    }
+    return true;
+  });
+}
+
+export function compsToCSV(comps: CompResult[]): string {
+  const HEADERS = [
+    "Name",
+    "Sector",
+    "Deal Type",
+    "Stage",
+    "Revenue",
+    "EBITDA",
+    "Exit Multiple",
+    "Outcome",
+    "Closed",
+    "Score",
+    "Match Reasons",
+  ];
+
+  function esc(v: string | null | undefined): string {
+    if (!v) return "";
+    const s = String(v);
+    return s.includes(",") || s.includes('"') || s.includes("\n")
+      ? `"${s.replace(/"/g, '""')}"`
+      : s;
+  }
+
+  const rows = comps.map((c) =>
+    [
+      esc(c.name),
+      esc(c.sector),
+      esc(c.dealType),
+      esc(c.stage),
+      esc(c.revenue),
+      esc(c.ebitda),
+      esc(c.closeMultiple),
+      esc(c.outcome),
+      esc(c.closedAt),
+      String(c.score),
+      esc(c.matchReasons.join("; ")),
+    ].join(",")
+  );
+
+  return [HEADERS.join(","), ...rows].join("\n");
 }
 
 // Rank all candidates against a target and return the top N with score >= 30.

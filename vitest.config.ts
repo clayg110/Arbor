@@ -76,6 +76,11 @@ export default defineConfig({
         "lib/process-stage.ts",
         "lib/contacts.ts",
         "lib/adapters/contacts.ts",
+        "lib/bids.ts",
+        "lib/pipeline.ts",
+        "lib/ingest/hsr.ts",
+        "lib/signal-timeline.ts",
+        "lib/comps.ts",
       ],
       exclude: ["**/*.d.ts"],
       // Honest ratchet floor: the suite currently clears this; raise it as

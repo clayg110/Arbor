@@ -173,6 +173,7 @@ const SOURCE_META: Record<SourceType, { name: string; short: string }> = {
   google_news: { name: "Google News", short: "News" },
   rss_feed: { name: "RSS / PE Wire", short: "RSS" },
   manual: { name: "Manual entry", short: "Manual" },
+  hsr_filing: { name: "HSR Filings", short: "HSR" },
 };
 export function toSignalSources(rows: SignalSourceRow[]) {
   return rows.map((r) => ({ ...SOURCE_META[r.source_type], count: r.count, pct: r.pct }));

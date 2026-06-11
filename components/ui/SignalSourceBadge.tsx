@@ -7,6 +7,7 @@ const META: Record<SourceType, { label: string; Icon: typeof DocumentIcon }> = {
   google_news: { label: "Google News", Icon: GlobeIcon },
   rss_feed: { label: "RSS feed", Icon: RssIcon },
   manual: { label: "Manual", Icon: PencilIcon },
+  hsr_filing: { label: "HSR filing", Icon: DocumentIcon },
 };
 
 export function SignalSourceBadge({ source }: { source: SourceType }) {

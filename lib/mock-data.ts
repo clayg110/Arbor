@@ -8,6 +8,8 @@ import type {
 } from "./types";
 import { topComps, type CompInput, type CompResult } from "./comps";
 import { bankerIntelligence, type Contact, type CompanyContact } from "./contacts";
+import type { Bid } from "./bids";
+import type { PipelineDeal } from "./pipeline";
 
 // All dates are anchored around "today" = 2026-06-02 for realistic relative ages.
 
@@ -696,6 +698,8 @@ export function getComps(companyId: string, limit = 5): CompResult[] {
     revenue: mc.revenue,
     ebitda: mc.ebitda,
     outcome: mc.outcome,
+    closedAt: mc.closedAt ?? null,
+    closeMultiple: mc.closeMultiple ?? null,
   }));
   return topComps(target, candidates, limit);
 }
@@ -1101,3 +1105,68 @@ export const mockFirmActivity = bankerIntelligence(
     links.map((l) => ({ companyId, firm: l.firm, role: l.role }))
   )
 );
+
+// ---- mock bids ----
+const MOCK_BIDS: Record<string, Bid[]> = {
+  "1": [
+    {
+      id: "bid-1-a",
+      companyId: "1",
+      userId: "mock-user",
+      orgId: null,
+      bidType: "indicative",
+      round: "1",
+      bidDate: "2026-05-15",
+      amountUsd: 420,
+      multipleOnEbitda: 10.5,
+      rationale: "Strong sector tailwinds; management quality above average.",
+      createdAt: "2026-05-15T10:00:00Z",
+    },
+    {
+      id: "bid-1-b",
+      companyId: "1",
+      userId: "mock-user",
+      orgId: null,
+      bidType: "final",
+      round: "2",
+      bidDate: "2026-06-01",
+      amountUsd: 445,
+      multipleOnEbitda: 11.1,
+      rationale: "Increased conviction post-management presentation.",
+      createdAt: "2026-06-01T14:30:00Z",
+    },
+  ],
+};
+
+export function getMockBids(companyId: string): Bid[] {
+  return MOCK_BIDS[companyId] ?? [];
+}
+
+// ---- mock pipeline deals (derived from radar companies with process stages) ----
+import { baseRadarCompanies } from "./radar-data";
+
+export function getMockPipelineDeals(): PipelineDeal[] {
+  return baseRadarCompanies
+    .filter((c) => c.ourProcessStage)
+    .map((c, i) => {
+      const compBids = c.companyId ? (MOCK_BIDS[c.companyId] ?? []) : [];
+      const multipleAvg =
+        compBids.length > 0
+          ? compBids.reduce((s, b) => s + (b.multipleOnEbitda ?? 0), 0) /
+              compBids.filter((b) => b.multipleOnEbitda !== null).length || null
+          : null;
+      return {
+        companyId: c.companyId ?? c.id,
+        companyName: c.name,
+        sector: c.sector,
+        dealType: c.dealType,
+        ourProcessStage: c.ourProcessStage!,
+        keyDates: c.processKeyDates ?? {},
+        daysInStage: [12, 5, 18, 3, 30, 8, 45, 2][i % 8],
+        ownerId: null,
+        ownerEmail: null,
+        bidCount: compBids.length,
+        avgBidMultiple: multipleAvg ?? null,
+      } satisfies PipelineDeal;
+    });
+}

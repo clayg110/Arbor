@@ -28,7 +28,8 @@ export type SourceType =
   | "earnings_transcript"
   | "google_news"
   | "rss_feed"
-  | "manual";
+  | "manual"
+  | "hsr_filing";
 
 export type ChangedBy = "system_auto" | "analyst_manual";
 
@@ -38,7 +39,8 @@ export type FeedEventType =
   | "moved_on_hold"
   | "pulled"
   | "new_entry"
-  | "flagged";
+  | "flagged"
+  | "hsr_filed";
 
 // ---- entities ----
 export interface Company {

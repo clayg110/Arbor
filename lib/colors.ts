@@ -86,6 +86,7 @@ export const EVENT_ICON_COLOR: Record<FeedEventType, string> = {
   pulled: "#E24B4A",
   new_entry: "#27500A",
   flagged: "#BA7517",
+  hsr_filed: "#185FA5",
 };
 
 // Chart palette.

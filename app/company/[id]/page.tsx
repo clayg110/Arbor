@@ -20,6 +20,9 @@ import {
 } from "@/components/ui/DealWorkflowSection";
 import { ProcessStageSection } from "@/components/ui/ProcessStageSection";
 import { CompanyContactsSection } from "@/components/ui/CompanyContactsSection";
+import { BidTrackerSection } from "@/components/ui/BidTrackerSection";
+import { SignalTimeline } from "@/components/ui/SignalTimeline";
+import { CompsSection } from "@/components/ui/CompsSection";
 import {
   getCompany,
   getStageHistory,
@@ -28,6 +31,7 @@ import {
   getSectorPeers,
   getComps,
   getCompanyContacts,
+  getMockBids,
 } from "@/lib/mock-data";
 import {
   SECTOR_LABELS,
@@ -106,7 +110,9 @@ export default async function CompanyPage({
               .limit(4),
             sb
               .from("companies")
-              .select("id,name,sector,deal_type,current_stage,revenue,ebitda,outcome")
+              .select(
+                "id,name,sector,deal_type,current_stage,revenue,ebitda,outcome,closed_at,close_multiple"
+              )
               .or(`sector.eq.${cc.sector},deal_type.eq.${cc.deal_type}`)
               .neq("id", cc.id)
               .limit(80),
@@ -140,6 +146,8 @@ export default async function CompanyPage({
             revenue: r.revenue,
             ebitda: r.ebitda,
             outcome: r.outcome,
+            closedAt: r.closed_at ?? null,
+            closeMultiple: r.close_multiple ?? null,
           }))
         );
       }
@@ -225,6 +233,7 @@ export default async function CompanyPage({
           </Section>
 
           <Section title="Key signals">
+            <SignalTimeline signals={signals} />
             <div className="space-y-3">
               {signals.map((s) => (
                 <SignalCard key={s.id} signal={s} />
@@ -306,6 +315,13 @@ export default async function CompanyPage({
             <ProcessStageSection companyId={company.id} />
           </Section>
 
+          <Section title="Bids & offers">
+            <BidTrackerSection
+              companyId={company.id}
+              fallback={getMockBids(company.id)}
+            />
+          </Section>
+
           <Section title="Advisors & key contacts">
             <CompanyContactsSection
               companyId={company.id}
@@ -358,37 +374,7 @@ export default async function CompanyPage({
 
           {comps.length > 0 && (
             <Section title="Comparable deals">
-              <ul className="space-y-2">
-                {comps.map((c) => (
-                  <li key={c.id}>
-                    <Link
-                      href={`/company/${c.id}`}
-                      className="block rounded-md px-2 py-2 hover:bg-[#F5F4EF]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{
-                            backgroundColor:
-                              STAGE_DOT[c.stage as import("@/lib/types").Stage],
-                          }}
-                        />
-                        <span className="truncate text-[13px] font-normal text-ink">
-                          {c.name}
-                        </span>
-                        <span className="ml-auto shrink-0">
-                          <DealTypeBadge
-                            type={c.dealType as import("@/lib/types").DealType}
-                          />
-                        </span>
-                      </div>
-                      <p className="ml-3 mt-0.5 text-[11px] font-normal text-subtle">
-                        {c.matchReasons.join(" · ")}
-                      </p>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              <CompsSection comps={comps} />
             </Section>
           )}
         </div>

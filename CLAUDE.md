@@ -25,12 +25,19 @@ no Claude co-author footer. User is the sole git author.
 
 `pnpm format:check && pnpm tsc --noEmit && pnpm lint && pnpm test:coverage && pnpm build && pnpm test:e2e`
 Coverage floors (vitest.config.ts thresholds — never lower): lines 65, functions 48, statements 65, branches 55.
-All 486 unit + 25 E2E must pass.
+All 558 unit + 26 E2E must pass.
 
-### Node/pnpm setup (Linux)
+### Node/pnpm setup
 
-Node v24 via system package. pnpm 11 installed globally via `npm install -g pnpm@11`.
-Both on PATH — no export needed.
+**Linux (Mint):** Node v24 via system package, pnpm 11 via `npm install -g pnpm@11`. Both on PATH — no export needed.
+
+**Windows (winget):** Node not on PATH. Prepend at start of every shell session:
+
+```
+export PATH="C:/Users/clayg/AppData/Local/Microsoft/WinGet/Packages/OpenJS.NodeJS.LTS_Microsoft.Winget.Source_8wekyb3d8bbwe/node_modules/.bin:$PATH"
+```
+
+In PowerShell: `$env:PATH = "C:\Users\clayg\AppData\Local\Microsoft\WinGet\Packages\OpenJS.NodeJS.LTS_Microsoft.Winget.Source_8wekyb3d8bbwe\node_modules\.bin;$env:PATH"`
 
 pnpm 11 quirks:
 
@@ -50,20 +57,21 @@ Fix: `rm -rf .next` then restart dev server.
 
 ## Current state (resume here)
 
-**As of 2026-06-11:**
+**As of 2026-06-12:**
 
-- ALL 8 phases + full backlog (hardening + @mention + landing page) DONE + green.
-- Tier 1 feature 1 (Deal Process Stage Tracker) DONE + green (migration 0035).
-- Tier 1 feature 2 (Contact / Banker Relationship Manager) DONE + green (migrations 0036–0037).
-- Tier 1 feature 3 (Structured IC Memo Generator) DONE + green (migration 0038).
-- Changes are **UNCOMMITTED** — waiting for user commit approval.
-- 486 unit tests, 25 E2E, prod build all passing.
-- Migration counter: **next is 0039** (last used: 0038 = company_ic_memos).
+- ALL 8 phases + full backlog (hardening + @mention + landing page) DONE + green. **COMMITTED.**
+- Tier 1 features 1–3 DONE + green. **COMMITTED.**
+- Tier 2 features 1–3 + Tier 3 features 1–2 DONE + green. **COMMITTED.** (latest commit: see `git log`)
+- 558 unit tests, 26 E2E, prod build all passing.
+- Migration counter: **next is 0040** (last used: 0039 = deal_bids).
 
-**What was just built (uncommitted):**
+**What was built in latest commit:**
 
-1. **@mention resolution (Medium)** — `lib/mentions.ts` (pure: nameToHandle, extractMentionHandles, resolveHandles, tested), `app/api/orgs/members/route.ts` (GET, non-admin, returns org member handles for autocomplete), autocomplete dropdown in `DealWorkflowSection.tsx` (type `@` → dropdown, arrow/enter/tab/esc, `onMouseDown` keeps focus), mention notifications in outreach POST (fire-and-forget: resolves handles via auth.admin.listUsers, `upsertNotificationRows` with type="mention").
-2. **Landing page wiring (Small)** — `lib/supabase/middleware.ts`: unauthenticated `/` → `/landing.html` (static marketing page); all other protected paths still → `/login?redirectTo=…`. Mock mode unaffected (middleware returns early before auth check).
+1. **Bid / Offer Tracker** — `lib/bids.ts`, migration 0039, `BidTrackerSection.tsx`, `/api/companies/[id]/bids` + `/[bidId]`. Record indicative/final bids with amount, EBITDA multiple, rationale. Avg multiple strip on pipeline dashboard.
+2. **Pipeline-Level Partner Dashboard** — `lib/pipeline.ts`, `app/pipeline/page.tsx`, `/api/pipeline`. Funnel viz by process stage, upcoming key dates (30d), deal table, team workload bars, sector BarChart.
+3. **Regulatory Filing Tracker (HSR/FTC)** — `lib/ingest/hsr.ts`, `/api/ingest/hsr`. Fetches FTC public HSR data, fuzzy-matches acquirer/target to companies, forces confidence `high` + stage `in_market` on match. Daily cron 06:00. Dormant without `HSR_SOURCE_URL`.
+4. **Per-Company Signal Timeline** — `lib/signal-timeline.ts`, `SignalTimeline.tsx`. Horizontal 12-month timeline above Key Signals list; dots colored by source type, sized by signal density, hover tooltip.
+5. **Comps Database Filter UI + CSV Export** — `CompsSection.tsx`. Sector/size/dealType/outcome filters + date range (when closedAt data exists). Export CSV button. Replaces static comps list on company profile.
 
 **The 8-phase feature roadmap (all done):**
 
@@ -91,7 +99,7 @@ Fix: `rm -rf .next` then restart dev server.
 
 **Stack:** Next.js 15 App Router, Supabase (PostgreSQL + Auth + RLS), TypeScript, Tailwind, Recharts, Vitest, Playwright.
 
-**Project path:** `/home/seraphim/Coding/VSCode/Arbor`
+**Project path:** `B:\Projects\Arbor` (Windows) / `/home/seraphim/Coding/VSCode/Arbor` (Linux Mint)
 
 **Pattern:** Pure logic in `lib/*.ts` → thin route handlers in `app/api/**` → thin components. Never put business logic in routes or components.
 
@@ -179,75 +187,26 @@ All cron routes in `app/api/cron/` require `Authorization: Bearer <CRON_SECRET>`
 
 ---
 
-## Remaining work (nothing built yet)
+## Remaining work
 
-Nothing below is built. Build in the recommended order when user asks.
+Tier 1 complete. Build Tier 2 next.
 
-### Tier 1 — Build first (highest impact, most differentiating)
+### Tier 1 — ✅ ALL DONE
 
-**1. Deal Process Stage Tracker** ★★★ — M/L — ✅ DONE (migration 0035)
-Files: `lib/process-stage.ts` (pure: stages/labels/colors/`processStripSummary`),
-`app/api/companies/[id]/process-stage/route.ts` (GET+PATCH, records history),
-`.../process-stage/key-dates/route.ts` (PATCH per-stage dates),
-`components/ui/ProcessStageSection.tsx` (stepper + inline key dates + history log),
-`PipelineIcon`, radar 3rd view toggle + process kanban + summary strip,
-`our_process_stage`/`process_key_dates` on companies, `deal_process_history` table.
+1. **Deal Process Stage Tracker** — DONE (migration 0035). `lib/process-stage.ts`, `ProcessStageSection.tsx`, `/api/companies/[id]/process-stage` + `/key-dates`, "Our Process" kanban + summary strip on radar.
+2. **Contact / Banker Relationship Manager** — DONE (migrations 0036–0037). `lib/contacts.ts`, `CompanyContactsSection.tsx`, `/api/contacts`, `/contacts` page (directory + banker intelligence tab).
+3. **Structured IC Memo Generator** — DONE (migration 0038). `lib/ic-memo.ts`, `IcMemo.tsx`, `/api/companies/[id]/ic-memo` (POST, cached). 8 structured sections + Copy as Markdown + Download .md.
 
-**2. Contact / Banker Relationship Manager** ★★★ — M/L — ✅ DONE (migrations 0036–0037)
-Files: `lib/contacts.ts` (pure: roles, `roleColor`, `contactInitials`, `bankerIntelligence`,
-`suggestAdvisorsFromSignals`), `lib/adapters/contacts.ts` (`toContact`, `toCompanyContact`),
-`app/api/contacts` (GET/POST), `app/api/contacts/[id]` (PATCH/DELETE),
-`app/api/contacts/firms` (banker intel), `app/api/companies/[id]/contacts` (GET+suggestions/POST/DELETE),
-`components/ui/CompanyContactsSection.tsx` ("Advisors & key contacts" on profile),
-`app/contacts/page.tsx` (directory + banker-intelligence tab), nav item + a11y page added.
-Auto-suggest is a pure regex over signal excerpts (no LLM call) — swap for LLM later.
-Note: `company_contacts` is org-scoped only (no per-user owner); null-org rows are
-visible across no-org users — fine for the org model, tighten if solo tenants matter.
+### Tier 2 — High value, clear scope (ALL DONE — COMMITTED)
 
-**3. Structured IC Memo Generator** ★★★ — M — ✅ DONE (migration 0038)
-Files: `lib/ic-memo.ts` (pure: `IC_SECTIONS`, `buildIcContext`, `icMemoHash`, `parseIcMemo`,
-`formatIcMemoMarkdown`; LLM `generateIcMemo` dormant w/o key — NOT in coverage include, like
-`lib/memo.ts`), `app/api/companies/[id]/ic-memo/route.ts` (POST, cached in `company_ic_memos`,
-folds signals + `our_process_stage` + comps into the hash), `components/ui/IcMemo.tsx`
-(8 titled section cards, Copy-as-Markdown + Download .md; markdown builder duplicated client-side
-so the Anthropic SDK never enters the client bundle). Mounted in profile "AI analyst" section.
-
-### Tier 2 — High value, clear scope
-
-**4. Bid / Offer Tracker** ★★ — S/M
-Record actual bids. Builds proprietary pricing benchmarks over time.
-
-- New `deal_bids` table: `id, company_id, user_id, org_id, bid_type (indicative|final), bid_date, amount_usd?, multiple_on_ebitda?, round (1|2|final), rationale?` — migration 0038
-- Requires Deal Process Stage Tracker (feature 1) to be contextually useful
-- Analytics: avg multiple bid per sector, win rate vs bid price
-
-**5. Pipeline-Level Partner Dashboard** ★★ — M
-Distinct from `/analytics` (market-wide). Shows _the team's_ active pipeline.
-
-- Only companies where `our_process_stage` is set
-- Funnel viz per process stage, time-in-stage per deal, upcoming key dates
-- Team workload (deals per owner), sector concentration of active processes
-- Requires Deal Process Stage Tracker (feature 1)
-
-**6. Regulatory Filing Tracker (HSR/FTC)** ★★ — M
-HSR filings = public disclosure a transaction ≥$119M is occurring. Highest-confidence deal signal.
-
-- New source type: `hsr_filing` (add to `SourceType` enum)
-- Ingest route: `POST /api/ingest/hsr` — pulls FTC public HSR data
-- LLM extraction matches to companies in tracker
-- On match: auto-bump confidence to `high`, emit `hsr_filed` event type
-
-**7. LinkedIn Hiring Signal Expansion** ★★ — M
-Most-used manual PE signal. "CFO role open" = management change; "Integration Manager" = post-close; "10+ VP hires" = growth toward exit.
-
-- New source type: `linkedin_hiring`
-- Ingest via LinkedIn Jobs API or Proxycurl/Apify — gated on `LINKEDIN_API_KEY` env var
-- Existing `processItem` pipeline handles extraction from there
+1. **Bid / Offer Tracker** — DONE (migration 0039). `lib/bids.ts`, `BidTrackerSection.tsx`, `/api/companies/[id]/bids`, `/api/companies/[id]/bids/[bidId]`.
+2. **Pipeline-Level Partner Dashboard** — DONE. `lib/pipeline.ts`, `app/pipeline/page.tsx`, `/api/pipeline`. Funnel viz, upcoming dates, team workload, sector concentration.
+3. **Regulatory Filing Tracker (HSR/FTC)** — DONE. `lib/ingest/hsr.ts`, `/api/ingest/hsr`, `hsr_filing` SourceType, `hsr_filed` FeedEventType. Daily cron at 06:00. Dormant without `HSR_SOURCE_URL`.
 
 ### Tier 3 — Good, lower priority
 
-- **Per-Company Signal Timeline** — Visual horizontal timeline (last 12 months, dots by source type). Mostly visualization upgrade on existing data. S.
-- **Comps Database Filter UI** — Date range, deal size, sector filters + CSV export on existing comps. Builds on `lib/comps.ts`. S/M.
+- **Per-Company Signal Timeline** — DONE. `lib/signal-timeline.ts`, `SignalTimeline.tsx`. Horizontal 12-month dot timeline on company profile above Key Signals.
+- **Comps Database Filter UI** — DONE. `CompsSection.tsx`. Sector/size/type/outcome/date filters + CSV export. Replaced static list on company profile.
 - **Calendar Sync (Google/Outlook)** — Deal milestones + task due dates → calendar events via CalDAV/Google Calendar API. S.
 - **Automatic Company Enrichment on Add** — When analyst adds a company manually, trigger background signal search immediately (instead of waiting for next cron run). S.
 - **LP / Fund-Level Reporting** — One-click quarterly pipeline snapshot filtered by fund vintage/sector. Enterprise tier feature. M.
@@ -296,6 +255,7 @@ NEXT_PUBLIC_TURNSTILE_SITE_KEY=  # Bot protection
 TURNSTILE_SECRET_KEY=
 CRON_SECRET=              # Secures /api/cron/* routes
 NEXT_PUBLIC_APP_URL=      # e.g. https://app.arbor.ai
+HSR_SOURCE_URL=           # FTC HSR filing JSON endpoint (dormant without; e.g. https://efts.ftc.gov/LATEST/search-index)
 
 # Alerts/notify webhook (deprecated — use SLACK/TEAMS above)
 ALERT_WEBHOOK=

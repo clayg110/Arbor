@@ -21,7 +21,8 @@ export type DbFeedEvent =
   | "pulled"
   | "new_entry"
   | "flagged"
-  | "confidence_update";
+  | "confidence_update"
+  | "hsr_filed";
 
 // ---- llm_output jsonb (signals_raw) — feed/review contract ----
 export interface ConflictSide {
@@ -231,6 +232,22 @@ export type DbCompanyContact = {
   org_id: string | null;
   role: ContactRole;
   created_at: string;
+};
+
+// ---- bid / offer tracker (0039) ----
+export type DbBid = {
+  id: string;
+  company_id: string;
+  user_id: string;
+  org_id: string | null;
+  bid_type: "indicative" | "final";
+  round: "1" | "2" | "final";
+  bid_date: string;
+  amount_usd: number | null;
+  multiple_on_ebitda: number | null;
+  rationale: string | null;
+  created_at: string;
+  Relationships: [];
 };
 
 // ---- saved radar views (0029) ----
@@ -662,6 +679,18 @@ export interface Database {
         };
         Update: Partial<DbCompanyContact>;
         Relationships: Rel;
+      };
+      deal_bids: {
+        Row: DbBid;
+        Insert: Partial<DbBid> & {
+          company_id: string;
+          user_id: string;
+          bid_type: DbBid["bid_type"];
+          round: DbBid["round"];
+          bid_date: string;
+        };
+        Update: Partial<DbBid>;
+        Relationships: [];
       };
     };
     Views: {
