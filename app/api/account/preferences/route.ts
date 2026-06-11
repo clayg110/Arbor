@@ -45,16 +45,18 @@ export async function PATCH(request: NextRequest) {
   if (!parsed.ok) return parsed.res;
   const { briefingFrequency, reportFrequency } = parsed.data;
 
+  if (briefingFrequency === undefined && reportFrequency === undefined) {
+    return fail("At least one preference field required", 400);
+  }
+
   const updates: Record<string, string> = { updated_at: new Date().toISOString() };
   if (briefingFrequency !== undefined) updates.briefing_frequency = briefingFrequency;
   if (reportFrequency !== undefined) updates.report_frequency = reportFrequency;
 
-  if (Object.keys(updates).length > 1) {
-    const { error } = await supabase
-      .from("user_preferences")
-      .upsert({ user_id: user.id, ...updates }, { onConflict: "user_id" });
-    if (error) return serverError(error);
-  }
+  const { error } = await supabase
+    .from("user_preferences")
+    .upsert({ user_id: user.id, ...updates }, { onConflict: "user_id" });
+  if (error) return serverError(error);
 
   return ok({ ok: true });
 }

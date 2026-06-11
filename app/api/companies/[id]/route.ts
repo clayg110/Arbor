@@ -138,10 +138,11 @@ export async function PATCH(
   }
 
   if (action === "set_outcome") {
+    if (!body.outcome) return fail("outcome is required for set_outcome", 400);
     const { error } = await supabase
       .from("companies")
       .update({
-        outcome: body.outcome ?? null,
+        outcome: body.outcome,
         acquirer: body.acquirer ?? null,
         close_multiple: body.closeMultiple ?? null,
         closed_at: body.closedAt ?? null,

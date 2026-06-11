@@ -37,8 +37,12 @@ export function DealMemo({ companyId }: { companyId: string }) {
     setPhase("loading");
     try {
       const r = await api.companyMemo(companyId);
-      if (!r.configured || !r.memo) {
+      if (!r.configured) {
         setPhase("dormant");
+        return;
+      }
+      if (!r.memo) {
+        setPhase("error");
         return;
       }
       setMemo(r.memo);
@@ -113,8 +117,12 @@ export function CompanyQa({ companyId }: { companyId: string }) {
     setShowCitations(false);
     try {
       const r = await api.askCompany(companyId, question.trim());
-      if (!r.configured || !r.answer) {
+      if (!r.configured) {
         setPhase("dormant");
+        return;
+      }
+      if (!r.answer) {
+        setPhase("error");
         return;
       }
       setAnswer(r.answer);

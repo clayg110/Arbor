@@ -73,6 +73,7 @@ export type DbCompany = {
   closed_at?: string | null;
   // deal workflow (migration 0030)
   owner_id?: string | null;
+  org_id?: string | null;
 };
 
 // Monitored company universe (Backend §2.1) — no deal stage.

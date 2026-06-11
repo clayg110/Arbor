@@ -58,14 +58,14 @@ async function sendReports(
   });
   if (toSend.length === 0) return 0;
 
-  // Fetch all companies once (shared across all recipients).
+  // Fetch all active companies once — filtered per-recipient by org_id below.
   const { data: companyRows } = await svc
     .from("companies")
     .select("*")
     .not("current_stage", "eq", "pulled")
     .order("updated_at", { ascending: false })
     .limit(500);
-  const companies = ((companyRows ?? []) as DbCompany[]).map((c) => toRadarCompany(c));
+  const allCompanyRows = (companyRows ?? []) as DbCompany[];
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.arbor.ai";
 
   let sent = 0;
@@ -75,8 +75,15 @@ async function sendReports(
         const { data: userData } = await svc.auth.admin.getUserById(p.user_id);
         const email = userData?.user?.email;
         if (!email) return;
+        // Scope the report to this user's org only.
+        const orgId =
+          (userData?.user?.app_metadata?.org_id as string | undefined) ?? null;
+        const orgCompanies = allCompanyRows
+          .filter((c) => c.org_id === orgId)
+          .map((c) => toRadarCompany(c));
+        if (orgCompanies.length === 0) return;
         const freq = p.report_frequency as ReportFrequency;
-        const { subject, html } = buildReportEmail(companies, appUrl, freq);
+        const { subject, html } = buildReportEmail(orgCompanies, appUrl, freq);
         const result = await sendEmail({ to: email, subject, html });
         if (result.ok) sent++;
       } catch {

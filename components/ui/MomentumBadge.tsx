@@ -60,8 +60,7 @@ function Sparkline({ data, trend }: { data: number[]; trend: string }) {
 
   const points = data.map((v, i) => `${i * step},${h - (v / max) * h}`).join(" ");
 
-  const color =
-    trend === "accelerating" ? "#157A5A" : trend === "cooling" ? "#C0322F" : "#9a968e";
+  const color = TREND_META[trend]?.text ?? "#9a968e";
 
   return (
     <svg

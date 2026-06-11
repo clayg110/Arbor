@@ -423,13 +423,10 @@ export function toWinLoss(rows: WinLossRow[]): WinLossData {
     byConfidence: [...confMap.entries()]
       .map(([confidence, v]) => ({
         label: CONF_META[confidence]?.label ?? confidence,
+        confidence,
         ...v,
       }))
-      .sort(
-        (a, b) =>
-          (CONF_ORDER[a.label.toLowerCase()] ?? 9) -
-          (CONF_ORDER[b.label.toLowerCase()] ?? 9)
-      ),
+      .sort((a, b) => (CONF_ORDER[a.confidence] ?? 9) - (CONF_ORDER[b.confidence] ?? 9)),
     totals: { wins: totalWins, losses: totalLosses, winRate },
   };
 }

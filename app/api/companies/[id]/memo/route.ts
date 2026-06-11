@@ -68,7 +68,8 @@ export async function POST(
 
   const memo = await generateMemo(profile, signals);
   if (!memo) {
-    return ok({ memo: null, configured: false, cached: false, generatedAt: null });
+    // Key is set but LLM returned nothing — transient failure, not a config issue.
+    return ok({ memo: null, configured: true, cached: false, generatedAt: null });
   }
 
   const generatedAt = new Date().toISOString();

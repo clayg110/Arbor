@@ -72,6 +72,7 @@ export async function POST(
     .insert({
       company_id: id,
       user_id: user.id,
+      org_id: user.orgId ?? null,
       title: parsed.data.title,
       due_at: parsed.data.dueAt ?? null,
     })

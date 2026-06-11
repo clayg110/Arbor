@@ -99,7 +99,13 @@ export async function PATCH(request: NextRequest) {
   if (rest.active !== undefined) update.active = rest.active;
   if (rest.name !== undefined) update.name = rest.name;
 
-  const { error } = await sb.from("alert_rules").update(update).eq("id", id);
+  if (Object.keys(update).length === 0) return fail("No fields to update", 400);
+
+  const { error } = await sb
+    .from("alert_rules")
+    .update(update)
+    .eq("id", id)
+    .eq("user_id", user.id);
   if (error) return serverError(error);
   return ok({ ok: true });
 }
@@ -114,7 +120,13 @@ export async function DELETE(request: NextRequest) {
 
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return fail("id required");
-  const { error } = await sb.from("alert_rules").delete().eq("id", id);
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(id)) return fail("id must be a valid UUID", 400);
+  const { error } = await sb
+    .from("alert_rules")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
   if (error) return serverError(error);
   return ok({ ok: true });
 }

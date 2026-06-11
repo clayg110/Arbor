@@ -48,8 +48,26 @@ function Card({
   );
 }
 
-function BriefingCard() {
-  const [freq, setFreq] = useState<"off" | "daily" | "weekly">("off");
+type FrequencyOption = { value: string; label: string };
+
+function FrequencyCard<T extends string>({
+  title,
+  desc,
+  selectId,
+  offlineMsg,
+  options,
+  prefKey,
+  getFreq,
+}: {
+  title: string;
+  desc: string;
+  selectId: string;
+  offlineMsg: string;
+  options: FrequencyOption[];
+  prefKey: "briefingFrequency" | "reportFrequency";
+  getFreq: (prefs: Awaited<ReturnType<typeof api.getPreferences>>) => T;
+}) {
+  const [freq, setFreq] = useState<T>(options[0].value as T);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -58,20 +76,21 @@ function BriefingCard() {
     api
       .getPreferences()
       .then((r) => {
-        setFreq(r.briefingFrequency);
+        setFreq(getFreq(r));
         setLoaded(true);
       })
       .catch((e) => {
         if (e instanceof BackendOff) setOffline(true);
         setLoaded(true);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function save(next: "off" | "daily" | "weekly") {
+  async function save(next: T) {
     setFreq(next);
     setSaving(true);
     try {
-      await api.setPreferences({ briefingFrequency: next });
+      await api.setPreferences({ [prefKey]: next });
     } catch {
       // best-effort — UI already reflects the choice
     } finally {
@@ -80,30 +99,27 @@ function BriefingCard() {
   }
 
   return (
-    <Card
-      title="Email digest"
-      desc="Receive a personalized briefing with your watchlist activity. Requires Resend to be configured."
-    >
+    <Card title={title} desc={desc}>
       {offline ? (
-        <p className="text-[12px] text-muted">
-          Email digest requires a connected backend.
-        </p>
+        <p className="text-[12px] text-muted">{offlineMsg}</p>
       ) : (
         <div className="flex items-center gap-3">
-          <label htmlFor="briefing-freq" className="text-[12px] font-normal text-muted">
+          <label htmlFor={selectId} className="text-[12px] font-normal text-muted">
             Frequency
           </label>
           <select
-            id="briefing-freq"
-            value={loaded ? freq : "off"}
-            onChange={(e) => save(e.target.value as "off" | "daily" | "weekly")}
+            id={selectId}
+            value={loaded ? freq : options[0].value}
+            onChange={(e) => save(e.target.value as T)}
             disabled={!loaded || saving}
             className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none disabled:opacity-50"
             style={{ border: "0.5px solid var(--border)" }}
           >
-            <option value="off">Off</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly (Monday)</option>
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </select>
           {saving && <span className="text-[11px] font-normal text-subtle">Saving…</span>}
         </div>
@@ -112,67 +128,39 @@ function BriefingCard() {
   );
 }
 
-function ReportCard() {
-  const [freq, setFreq] = useState<"off" | "weekly" | "monthly">("off");
-  const [loaded, setLoaded] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [offline, setOffline] = useState(false);
-
-  useEffect(() => {
-    api
-      .getPreferences()
-      .then((r) => {
-        setFreq(r.reportFrequency);
-        setLoaded(true);
-      })
-      .catch((e) => {
-        if (e instanceof BackendOff) setOffline(true);
-        setLoaded(true);
-      });
-  }, []);
-
-  async function save(next: "off" | "weekly" | "monthly") {
-    setFreq(next);
-    setSaving(true);
-    try {
-      await api.setPreferences({ reportFrequency: next });
-    } catch {
-      // best-effort
-    } finally {
-      setSaving(false);
-    }
-  }
-
+function BriefingCard() {
   return (
-    <Card
+    <FrequencyCard<"off" | "daily" | "weekly">
+      title="Email digest"
+      desc="Receive a personalized briefing with your watchlist activity. Requires Resend to be configured."
+      selectId="briefing-freq"
+      offlineMsg="Email digest requires a connected backend."
+      prefKey="briefingFrequency"
+      getFreq={(r) => r.briefingFrequency}
+      options={[
+        { value: "off", label: "Off" },
+        { value: "daily", label: "Daily" },
+        { value: "weekly", label: "Weekly (Monday)" },
+      ]}
+    />
+  );
+}
+
+function ReportCard() {
+  return (
+    <FrequencyCard<"off" | "weekly" | "monthly">
       title="Scheduled pipeline reports"
       desc="Receive a pipeline snapshot email with a CSV attachment. Requires Resend to be configured."
-    >
-      {offline ? (
-        <p className="text-[12px] text-muted">
-          Scheduled reports require a connected backend.
-        </p>
-      ) : (
-        <div className="flex items-center gap-3">
-          <label htmlFor="report-freq" className="text-[12px] font-normal text-muted">
-            Frequency
-          </label>
-          <select
-            id="report-freq"
-            value={loaded ? freq : "off"}
-            onChange={(e) => save(e.target.value as "off" | "weekly" | "monthly")}
-            disabled={!loaded || saving}
-            className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none disabled:opacity-50"
-            style={{ border: "0.5px solid var(--border)" }}
-          >
-            <option value="off">Off</option>
-            <option value="weekly">Weekly (Monday)</option>
-            <option value="monthly">Monthly (1st of month)</option>
-          </select>
-          {saving && <span className="text-[11px] font-normal text-subtle">Saving…</span>}
-        </div>
-      )}
-    </Card>
+      selectId="report-freq"
+      offlineMsg="Scheduled reports require a connected backend."
+      prefKey="reportFrequency"
+      getFreq={(r) => r.reportFrequency}
+      options={[
+        { value: "off", label: "Off" },
+        { value: "weekly", label: "Weekly (Monday)" },
+        { value: "monthly", label: "Monthly (1st of month)" },
+      ]}
+    />
   );
 }
 

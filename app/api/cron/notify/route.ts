@@ -40,6 +40,7 @@ interface HistJoin {
     parent_company: string | null;
     confidence: Confidence;
     current_stage: Stage;
+    org_id: string | null;
   } | null;
 }
 
@@ -55,7 +56,7 @@ async function runAlertRules(svc: SvcClient, cutoff: string): Promise<number> {
     .from("deal_stage_history")
     .select(
       "company_id,event_type,changed_at," +
-        "company:companies(id,name,sector,deal_type,sponsor_firm,parent_company,confidence,current_stage)"
+        "company:companies(id,name,sector,deal_type,sponsor_firm,parent_company,confidence,current_stage,org_id)"
     )
     .gte("changed_at", cutoff)
     .order("changed_at", { ascending: false })
@@ -78,9 +79,12 @@ async function runAlertRules(svc: SvcClient, cutoff: string): Promise<number> {
     lastMap.set(r.company_id, r.ingested_at);
   }
 
+  // Build company → orgId map for tenant isolation in rule matching.
+  const companyOrgMap = new Map<string, string | null>();
   const events: AlertEvent[] = hist.flatMap((h) => {
     const c = h.company;
     if (!c) return [];
+    companyOrgMap.set(h.company_id, c.org_id ?? null);
     const last = lastMap.get(h.company_id);
     const conv = convMap.get(h.company_id);
     const score = computeConviction({
@@ -108,7 +112,10 @@ async function runAlertRules(svc: SvcClient, cutoff: string): Promise<number> {
 
   const matches: { rule: (typeof rules)[number]; event: AlertEvent }[] = [];
   for (const event of events) {
+    const eventOrgId = companyOrgMap.get(event.companyId) ?? null;
     for (const rule of rules) {
+      // Tenant isolation: only match rules from the same org as the company.
+      if ((rule.orgId ?? null) !== eventOrgId) continue;
       if (matchRule(rule, event)) matches.push({ rule, event });
     }
   }
@@ -129,15 +136,29 @@ async function runAlertRules(svc: SvcClient, cutoff: string): Promise<number> {
 
   // Per-rule email delivery (no-op without RESEND_API_KEY).
   if (hasEmailEnv()) {
-    await Promise.all(
-      matches
-        .filter((m) => m.rule.emailDelivery)
-        .map(async (m) => {
+    const emailMatches = matches.filter((m) => m.rule.emailDelivery);
+    if (emailMatches.length > 0) {
+      // Fetch each unique userId once, not once per matched rule.
+      const uniqueUserIds = [...new Set(emailMatches.map((m) => m.rule.userId))];
+      const userEmailMap = new Map<string, string>();
+      await Promise.all(
+        uniqueUserIds.map(async (uid) => {
           try {
-            const { data: userData } = await svc.auth.admin.getUserById(m.rule.userId);
+            const { data: userData } = await svc.auth.admin.getUserById(uid);
             const email = userData?.user?.email;
+            if (email) userEmailMap.set(uid, email);
+          } catch {
+            // non-fatal
+          }
+        })
+      );
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.arbor.ai";
+      await Promise.all(
+        emailMatches.map(async (m) => {
+          try {
+            const email = userEmailMap.get(m.rule.userId);
             if (!email) return;
-            const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.arbor.ai";
             const companyUrl = `${appUrl}/company/${m.event.companyId}`;
             await sendEmail({
               to: email,
@@ -152,7 +173,8 @@ async function runAlertRules(svc: SvcClient, cutoff: string): Promise<number> {
             // per-user failures are non-fatal
           }
         })
-    );
+      );
+    }
   }
 
   return created;

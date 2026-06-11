@@ -71,6 +71,7 @@ export async function POST(
     .insert({
       company_id: id,
       user_id: user.id,
+      org_id: user.orgId ?? null,
       type: parsed.data.type,
       note: parsed.data.note,
       contacted_at: parsed.data.contactedAt ?? new Date().toISOString(),
