@@ -75,15 +75,24 @@ export function toNotificationRows(digests: UserDigest[]): NotificationRow[] {
   return rows;
 }
 
-export async function createNotifications(
+// Idempotent upsert of notification rows (shared by watchlist digests + alert
+// rules). dedupe_key collisions are ignored, so overlapping cron windows don't
+// double-notify. Returns the number of NEW rows written.
+export async function upsertNotificationRows(
   svc: SupabaseClient<Database>,
-  digests: UserDigest[]
+  rows: NotificationRow[]
 ): Promise<number> {
-  const rows = toNotificationRows(digests);
   if (rows.length === 0) return 0;
   const { data, error } = await svc
     .from("notifications")
     .upsert(rows, { onConflict: "dedupe_key", ignoreDuplicates: true })
     .select("id");
   return error ? 0 : (data?.length ?? 0);
+}
+
+export function createNotifications(
+  svc: SupabaseClient<Database>,
+  digests: UserDigest[]
+): Promise<number> {
+  return upsertNotificationRows(svc, toNotificationRows(digests));
 }

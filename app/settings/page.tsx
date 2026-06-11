@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { api, BackendOff } from "@/lib/api-client";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { TwoFactorSection } from "@/components/ui/TwoFactorSection";
+import { AlertsCard } from "@/components/ui/AlertsSection";
 import { SettingsIcon, XIcon } from "@/components/ui/icons";
 
 export default function SettingsPage() {
@@ -17,6 +18,9 @@ export default function SettingsPage() {
       </div>
 
       <TwoFactorSection />
+      <AlertsCard />
+      <BriefingCard />
+      <ReportCard />
       <ExportCard />
       <DangerCard />
     </div>
@@ -41,6 +45,134 @@ function Card({
       <p className="mb-3 mt-1 text-[12px] text-muted">{desc}</p>
       {children}
     </section>
+  );
+}
+
+function BriefingCard() {
+  const [freq, setFreq] = useState<"off" | "daily" | "weekly">("off");
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [offline, setOffline] = useState(false);
+
+  useEffect(() => {
+    api
+      .getPreferences()
+      .then((r) => {
+        setFreq(r.briefingFrequency);
+        setLoaded(true);
+      })
+      .catch((e) => {
+        if (e instanceof BackendOff) setOffline(true);
+        setLoaded(true);
+      });
+  }, []);
+
+  async function save(next: "off" | "daily" | "weekly") {
+    setFreq(next);
+    setSaving(true);
+    try {
+      await api.setPreferences({ briefingFrequency: next });
+    } catch {
+      // best-effort — UI already reflects the choice
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card
+      title="Email digest"
+      desc="Receive a personalized briefing with your watchlist activity. Requires Resend to be configured."
+    >
+      {offline ? (
+        <p className="text-[12px] text-muted">
+          Email digest requires a connected backend.
+        </p>
+      ) : (
+        <div className="flex items-center gap-3">
+          <label htmlFor="briefing-freq" className="text-[12px] font-normal text-muted">
+            Frequency
+          </label>
+          <select
+            id="briefing-freq"
+            value={loaded ? freq : "off"}
+            onChange={(e) => save(e.target.value as "off" | "daily" | "weekly")}
+            disabled={!loaded || saving}
+            className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none disabled:opacity-50"
+            style={{ border: "0.5px solid var(--border)" }}
+          >
+            <option value="off">Off</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly (Monday)</option>
+          </select>
+          {saving && <span className="text-[11px] font-normal text-subtle">Saving…</span>}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ReportCard() {
+  const [freq, setFreq] = useState<"off" | "weekly" | "monthly">("off");
+  const [loaded, setLoaded] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [offline, setOffline] = useState(false);
+
+  useEffect(() => {
+    api
+      .getPreferences()
+      .then((r) => {
+        setFreq(r.reportFrequency);
+        setLoaded(true);
+      })
+      .catch((e) => {
+        if (e instanceof BackendOff) setOffline(true);
+        setLoaded(true);
+      });
+  }, []);
+
+  async function save(next: "off" | "weekly" | "monthly") {
+    setFreq(next);
+    setSaving(true);
+    try {
+      await api.setPreferences({ reportFrequency: next });
+    } catch {
+      // best-effort
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card
+      title="Scheduled pipeline reports"
+      desc="Receive a pipeline snapshot email with a CSV attachment. Requires Resend to be configured."
+    >
+      {offline ? (
+        <p className="text-[12px] text-muted">
+          Scheduled reports require a connected backend.
+        </p>
+      ) : (
+        <div className="flex items-center gap-3">
+          <label htmlFor="report-freq" className="text-[12px] font-normal text-muted">
+            Frequency
+          </label>
+          <select
+            id="report-freq"
+            value={loaded ? freq : "off"}
+            onChange={(e) => save(e.target.value as "off" | "weekly" | "monthly")}
+            disabled={!loaded || saving}
+            className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none disabled:opacity-50"
+            style={{ border: "0.5px solid var(--border)" }}
+          >
+            <option value="off">Off</option>
+            <option value="weekly">Weekly (Monday)</option>
+            <option value="monthly">Monthly (1st of month)</option>
+          </select>
+          {saving && <span className="text-[11px] font-normal text-subtle">Saving…</span>}
+        </div>
+      )}
+    </Card>
   );
 }
 

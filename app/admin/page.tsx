@@ -7,7 +7,13 @@ import { MetricCard } from "@/components/ui/MetricCard";
 import { SettingsIcon, PlusIcon, XIcon } from "@/components/ui/icons";
 import { mockUsers } from "@/lib/mock-data";
 import { useLive } from "@/lib/use-live";
-import { api, BackendOff, type OrgView, type FailureView } from "@/lib/api-client";
+import {
+  api,
+  BackendOff,
+  type OrgView,
+  type FailureView,
+  type AuditEntryView,
+} from "@/lib/api-client";
 import { formatDate } from "@/lib/format";
 
 interface UserRow {
@@ -371,6 +377,20 @@ function FailuresSection({ live }: { live: boolean }) {
 // the endpoint is admin-gated and needs the backend; in mock mode there's
 // nothing to export, so the section is hidden.
 function AuditSection({ live }: { live: boolean }) {
+  const [entries, setEntries] = useState<AuditEntryView[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!live) return;
+    api
+      .auditLog(50)
+      .then((r) => {
+        setEntries(r.entries);
+        setLoaded(true);
+      })
+      .catch(() => setLoaded(true));
+  }, [live]);
+
   if (!live) return null;
   return (
     <section className="mt-8">
@@ -390,6 +410,46 @@ function AuditSection({ live }: { live: boolean }) {
           Export CSV
         </a>
       </div>
+
+      {loaded && (
+        <div
+          className="overflow-x-auto rounded-lg bg-surface"
+          style={{ border: "0.5px solid var(--border)" }}
+        >
+          {entries.length === 0 ? (
+            <p className="px-4 py-6 text-[12px] text-muted">No audit entries yet.</p>
+          ) : (
+            <table className="w-full text-left text-[12px]">
+              <thead>
+                <tr className="text-[10px] font-normal uppercase tracking-wide text-subtle">
+                  <Th>Action</Th>
+                  <Th>Entity</Th>
+                  <Th>Actor</Th>
+                  <Th>When</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((e) => (
+                  <tr key={e.id} style={{ borderTop: "0.5px solid var(--border)" }}>
+                    <Td>
+                      <code className="rounded bg-[var(--bg)] px-1 py-0.5 font-mono text-[11px] text-ink">
+                        {e.action}
+                      </code>
+                    </Td>
+                    <Td className="text-muted">
+                      {e.entityType && e.entityId
+                        ? `${e.entityType}/${e.entityId.slice(0, 8)}…`
+                        : "—"}
+                    </Td>
+                    <Td className="text-muted">{e.actorEmail ?? "system"}</Td>
+                    <Td className="text-muted">{formatDate(e.createdAt)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </section>
   );
 }

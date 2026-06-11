@@ -5,6 +5,11 @@
 
 import type { RadarCompany } from "@/lib/radar-data";
 import type { FeedItemData } from "@/lib/adapters/feed";
+import type {
+  AlertRule as AlertRuleView,
+  AlertPredicate as AlertPredicateView,
+} from "@/lib/alert-rules";
+import type { SavedView, SavedViewFilters } from "@/lib/saved-views";
 
 export class BackendOff extends Error {
   constructor() {
@@ -149,6 +154,41 @@ export const api = {
   editNote: (id: string, content: string) =>
     jsend<{ note: unknown }>(`/api/notes/${id}`, "PATCH", { content }),
   deleteNote: (id: string) => jsend(`/api/notes/${id}`, "DELETE"),
+  listAlerts: () => jget<{ rules: AlertRuleView[] }>(`/api/alerts`),
+  createAlert: (body: {
+    name: string;
+    predicate: AlertPredicateView;
+    webhook: boolean;
+    emailDelivery?: boolean;
+  }) => jsend<{ rule: AlertRuleView }>(`/api/alerts`, "POST", body),
+  updateAlert: (id: string, body: { active?: boolean; name?: string }) =>
+    jsend(`/api/alerts`, "PATCH", { id, ...body }),
+  deleteAlert: (id: string) =>
+    jsend(`/api/alerts?id=${encodeURIComponent(id)}`, "DELETE"),
+  companyMemo: (companyId: string) =>
+    jsend<{
+      memo: string | null;
+      configured: boolean;
+      cached: boolean;
+      generatedAt: string | null;
+    }>(`/api/companies/${companyId}/memo`, "POST"),
+  askCompany: (companyId: string, question: string) =>
+    jsend<{
+      answer: string | null;
+      configured: boolean;
+      citations: {
+        signalId: string;
+        quote: string;
+        sourceType: string;
+        sourceName: string | null;
+        ingestedAt: string;
+      }[];
+    }>(`/api/companies/${companyId}/ask`, "POST", { question }),
+  draftOutreachEmail: (companyId: string) =>
+    jsend<{ draft: string | null; configured: boolean }>(
+      `/api/companies/${companyId}/draft-outreach`,
+      "POST"
+    ),
   markReview: (companyId: string) =>
     jsend(`/api/companies/${companyId}`, "PATCH", { action: "mark_review" }),
   setStage: (companyId: string, stage: string) =>
@@ -157,6 +197,21 @@ export const api = {
       stage,
       notes: "Stage moved by analyst (drag).",
     }),
+  setOutcome: (
+    companyId: string,
+    body: {
+      outcome: "closed" | "withdrawn" | null;
+      acquirer?: string | null;
+      closeMultiple?: string | null;
+      closedAt?: string | null;
+    }
+  ) =>
+    jsend<{ ok: boolean }>(`/api/companies/${companyId}`, "PATCH", {
+      action: "set_outcome",
+      ...body,
+    }),
+  comps: (companyId: string) =>
+    jget<{ comps: CompResultView[] }>(`/api/companies/${companyId}/comps`),
   apiKeys: () => jget<{ keys: ApiKeyView[] }>(`/api/admin/api-keys`),
   createApiKey: (name: string) =>
     jsend<{ key: ApiKeyView & { plaintext: string } }>(`/api/admin/api-keys`, "POST", {
@@ -174,7 +229,96 @@ export const api = {
     jsend<{ ok: boolean }>(`/api/admin/failures`, "POST", { id }),
   dismissFailure: (id: string) =>
     jsend(`/api/admin/failures?id=${encodeURIComponent(id)}`, "DELETE"),
+  getPreferences: () =>
+    jget<{
+      briefingFrequency: "off" | "daily" | "weekly";
+      reportFrequency: "off" | "weekly" | "monthly";
+    }>(`/api/account/preferences`),
+  setPreferences: (body: {
+    briefingFrequency?: "off" | "daily" | "weekly";
+    reportFrequency?: "off" | "weekly" | "monthly";
+  }) => jsend<{ ok: boolean }>(`/api/account/preferences`, "PATCH", body),
+  listTasks: (companyId: string) =>
+    jget<{ tasks: import("@/lib/deal-tasks").DealTask[] }>(
+      `/api/companies/${companyId}/tasks`
+    ),
+  createTask: (companyId: string, body: { title: string; dueAt?: string | null }) =>
+    jsend<{ task: import("@/lib/deal-tasks").DealTask }>(
+      `/api/companies/${companyId}/tasks`,
+      "POST",
+      body
+    ),
+  completeTask: (companyId: string, taskId: string, completed: boolean) =>
+    jsend<{ task: import("@/lib/deal-tasks").DealTask }>(
+      `/api/companies/${companyId}/tasks?taskId=${encodeURIComponent(taskId)}`,
+      "PATCH",
+      { completed }
+    ),
+  deleteTask: (companyId: string, taskId: string) =>
+    jsend<{ ok: boolean }>(
+      `/api/companies/${companyId}/tasks?taskId=${encodeURIComponent(taskId)}`,
+      "DELETE"
+    ),
+  listOutreach: (companyId: string) =>
+    jget<{ entries: import("@/lib/deal-tasks").OutreachEntry[] }>(
+      `/api/companies/${companyId}/outreach`
+    ),
+  logOutreach: (
+    companyId: string,
+    body: {
+      type: "call" | "email" | "meeting" | "other";
+      note: string;
+      contactedAt?: string;
+    }
+  ) =>
+    jsend<{ entry: import("@/lib/deal-tasks").OutreachEntry }>(
+      `/api/companies/${companyId}/outreach`,
+      "POST",
+      body
+    ),
+  deleteOutreach: (companyId: string, entryId: string) =>
+    jsend<{ ok: boolean }>(
+      `/api/companies/${companyId}/outreach?entryId=${encodeURIComponent(entryId)}`,
+      "DELETE"
+    ),
+  assignOwner: (companyId: string, ownerId: string | null) =>
+    jsend<{ ok: boolean }>(`/api/companies/${companyId}`, "PATCH", {
+      action: "assign_owner",
+      ownerId,
+    }),
+  suggestions: () =>
+    jget<{
+      suggestions: {
+        id: string;
+        name: string;
+        sector: string;
+        dealType: string;
+        stage: string;
+        score: number;
+        matchReasons: string[];
+      }[];
+    }>(`/api/radar/suggestions`),
+  listSavedViews: () => jget<{ views: SavedView[] }>(`/api/saved-views`),
+  createSavedView: (body: { name: string; filters: SavedViewFilters }) =>
+    jsend<{ view: SavedView }>(`/api/saved-views`, "POST", body),
+  deleteSavedView: (id: string) =>
+    jsend<{ ok: boolean }>(`/api/saved-views?id=${encodeURIComponent(id)}`, "DELETE"),
 };
+
+export type { SavedView, SavedViewFilters };
+
+export interface CompResultView {
+  id: string;
+  name: string;
+  sector: string;
+  dealType: string;
+  stage: string;
+  revenue?: string | null;
+  ebitda?: string | null;
+  outcome?: string | null;
+  score: number;
+  matchReasons: string[];
+}
 
 export interface NotificationView {
   id: string;

@@ -4,7 +4,16 @@
 import type { DbCompany, DbSignal, DbHistory, DbNote, LastSignalRow } from "@/types/db";
 import type { RadarCompany, LastSignal } from "@/lib/radar-data";
 import type { Company, StageHistoryRecord, Signal, Note } from "@/lib/types";
+import { computeConviction } from "@/lib/conviction";
 import { daysSince, stageDaysLabel, relativeLabel, shortDate, initialsOf } from "./time";
+
+// Per-company signal aggregates (from v_company_conviction) that sharpen the
+// conviction score. Optional — without them the score falls back to last-signal
+// recency + confidence + stage.
+export interface ConvictionAgg {
+  signalCount30d: number;
+  distinctSourceTypes: number;
+}
 
 function ownerName(c: DbCompany): string {
   return c.sponsor_firm ?? c.parent_company ?? "Undisclosed";
@@ -25,11 +34,20 @@ function lastSignalFrom(sig: DbSignal | LastSignalRow | null): LastSignal {
 export function toRadarCompany(
   c: DbCompany,
   lastSignal: DbSignal | LastSignalRow | null = null,
-  watched = false
+  watched = false,
+  agg: ConvictionAgg | null = null
 ): RadarCompany {
   const days = daysSince(c.current_stage_since);
   const pulled = c.current_stage === "pulled";
   const isCol3 = c.current_stage === "on_hold" || pulled;
+  const ls = lastSignalFrom(lastSignal);
+  const conviction = computeConviction({
+    lastSignalAgeDays: ls.daysAgo,
+    confidence: c.confidence,
+    stage: c.current_stage,
+    signalCount30d: agg?.signalCount30d,
+    distinctSourceTypes: agg?.distinctSourceTypes,
+  });
   const quote =
     lastSignal == null
       ? undefined
@@ -55,7 +73,8 @@ export function toRadarCompany(
       : undefined,
     added: c.created_at,
     addedDisplay: shortDate(c.created_at),
-    lastSignal: lastSignalFrom(lastSignal),
+    lastSignal: ls,
+    conviction,
     quote,
     watchlisted: watched || undefined,
     subsector: c.subsector,
@@ -90,6 +109,10 @@ export function toCompanyProfile(c: DbCompany): Company {
     margin: c.margin,
     revenueSource: c.revenue_source_url,
     ebitdaSource: c.ebitda_source_url,
+    outcome: c.outcome ?? null,
+    acquirer: c.acquirer ?? null,
+    closeMultiple: c.close_multiple ?? null,
+    closedAt: c.closed_at ?? null,
   };
 }
 
@@ -107,15 +130,23 @@ export function toStageHistory(rows: DbHistory[]): StageHistoryRecord[] {
 }
 
 export function toSignals(rows: DbSignal[]): Signal[] {
-  return rows.map((s) => ({
-    id: s.id,
-    companyId: s.company_id ?? "",
-    sourceType: s.source_type ?? "manual",
-    sourceUrl: s.source_url ?? "#",
-    title: `${s.source_name ?? "Signal"}${s.doc_type ? ` — ${s.doc_type}` : ""}`,
-    excerpt: s.llm_output?.key_quote ?? s.raw_text ?? "",
-    ingestedAt: s.ingested_at,
-  }));
+  return rows.map((s) => {
+    const quote = s.llm_output?.key_quote ?? null;
+    const raw = s.raw_text ?? null;
+    return {
+      id: s.id,
+      companyId: s.company_id ?? "",
+      sourceType: s.source_type ?? "manual",
+      sourceUrl: s.source_url ?? "#",
+      sourceName: s.source_name ?? undefined,
+      title: `${s.source_name ?? "Signal"}${s.doc_type ? ` — ${s.doc_type}` : ""}`,
+      excerpt: quote ?? raw ?? "",
+      // Surface the underlying source text only when it adds context beyond the quote.
+      rawExcerpt: quote && raw && raw !== quote ? raw : null,
+      reasoning: s.llm_output?.reasoning ?? null,
+      ingestedAt: s.ingested_at,
+    };
+  });
 }
 
 export function toNotes(rows: DbNote[]): Note[] {

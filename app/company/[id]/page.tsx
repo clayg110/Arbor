@@ -5,17 +5,25 @@ import { DealTypeBadge } from "@/components/ui/DealTypeBadge";
 import { SectorBadge } from "@/components/ui/SectorBadge";
 import { ConfidenceBadge } from "@/components/ui/ConfidenceBadge";
 import { StageTimeline } from "@/components/ui/StageTimeline";
-import { SignalSourceBadge } from "@/components/ui/SignalSourceBadge";
+import { SignalCard } from "@/components/ui/SignalCard";
+import { DealMemo, CompanyQa } from "@/components/ui/AiBriefing";
 import { AnalystNoteEditor } from "@/components/ui/AnalystNoteEditor";
 import { WatchlistButton } from "@/components/ui/WatchlistButton";
+import { OutcomeForm } from "@/components/ui/OutcomeForm";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 import { MarkReviewButton } from "./MarkReviewButton";
+import {
+  DealOwnerSection,
+  DealTasksSection,
+  OutreachLogSection,
+} from "@/components/ui/DealWorkflowSection";
 import {
   getCompany,
   getStageHistory,
   getSignals,
   getNotes,
   getSectorPeers,
+  getComps,
 } from "@/lib/mock-data";
 import {
   SECTOR_LABELS,
@@ -27,6 +35,11 @@ import {
 import { formatDate, daysLabel } from "@/lib/format";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { toCompanyProfile, toStageHistory, toSignals, toNotes } from "@/lib/adapters";
+import { topComps, type CompInput, type CompResult } from "@/lib/comps";
+import { computeMomentum, type MomentumResult } from "@/lib/signal-momentum";
+import { computeCorroboration, type CorroborationResult } from "@/lib/corroboration";
+import { MomentumBadge } from "@/components/ui/MomentumBadge";
+import { CorroborationBadge } from "@/components/ui/CorroborationBadge";
 import type { DbCompany, DbHistory, DbSignal, DbNote } from "@/types/db";
 import type { Company, StageHistoryRecord, Signal, Note } from "@/lib/types";
 
@@ -43,7 +56,11 @@ export default async function CompanyPage({
   let signals: Signal[] = [];
   let notes: Note[] = [];
   let peers: Company[] = [];
+  let comps: CompResult[] = [];
   let currentUserId: string | undefined;
+  let rawOwnerId: string | null = null;
+  let momentum: MomentumResult | null = null;
+  let corroboration: CorroborationResult | null = null;
 
   if (hasSupabaseEnv()) {
     try {
@@ -59,35 +76,68 @@ export default async function CompanyPage({
         .maybeSingle();
       if (c) {
         const cc = c as DbCompany;
-        const [{ data: h }, { data: s }, { data: n }, { data: p }] = await Promise.all([
-          sb
-            .from("deal_stage_history")
-            .select("*")
-            .eq("company_id", cc.id)
-            .order("changed_at", { ascending: false }),
-          sb
-            .from("signals_raw")
-            .select("*")
-            .eq("company_id", cc.id)
-            .order("ingested_at", { ascending: false })
-            .limit(8),
-          sb
-            .from("analyst_notes")
-            .select("*")
-            .eq("company_id", cc.id)
-            .order("created_at", { ascending: false }),
-          sb
-            .from("companies")
-            .select("*")
-            .eq("sector", cc.sector)
-            .neq("id", cc.id)
-            .limit(4),
-        ]);
+        const [{ data: h }, { data: s }, { data: n }, { data: p }, { data: compCands }] =
+          await Promise.all([
+            sb
+              .from("deal_stage_history")
+              .select("*")
+              .eq("company_id", cc.id)
+              .order("changed_at", { ascending: false }),
+            sb
+              .from("signals_raw")
+              .select("*")
+              .eq("company_id", cc.id)
+              .order("ingested_at", { ascending: false })
+              .limit(8),
+            sb
+              .from("analyst_notes")
+              .select("*")
+              .eq("company_id", cc.id)
+              .order("created_at", { ascending: false }),
+            sb
+              .from("companies")
+              .select("*")
+              .eq("sector", cc.sector)
+              .neq("id", cc.id)
+              .limit(4),
+            sb
+              .from("companies")
+              .select("id,name,sector,deal_type,current_stage,revenue,ebitda,outcome")
+              .or(`sector.eq.${cc.sector},deal_type.eq.${cc.deal_type}`)
+              .neq("id", cc.id)
+              .limit(80),
+          ]);
+        rawOwnerId = cc.owner_id ?? null;
         company = toCompanyProfile(cc);
         history = toStageHistory((h ?? []) as DbHistory[]);
         signals = toSignals((s ?? []) as DbSignal[]);
         notes = toNotes((n ?? []) as DbNote[]);
+        momentum = computeMomentum(signals);
+        corroboration = computeCorroboration(signals);
         peers = ((p ?? []) as DbCompany[]).map(toCompanyProfile);
+        const target: CompInput = {
+          id: cc.id,
+          name: cc.name,
+          sector: cc.sector,
+          dealType: cc.deal_type,
+          stage: cc.current_stage,
+          revenue: cc.revenue,
+          ebitda: cc.ebitda,
+          outcome: cc.outcome,
+        };
+        comps = topComps(
+          target,
+          ((compCands ?? []) as DbCompany[]).map((r) => ({
+            id: r.id,
+            name: r.name,
+            sector: r.sector,
+            dealType: r.deal_type,
+            stage: r.current_stage,
+            revenue: r.revenue,
+            ebitda: r.ebitda,
+            outcome: r.outcome,
+          }))
+        );
       }
     } catch {
       company = undefined;
@@ -102,6 +152,9 @@ export default async function CompanyPage({
       signals = getSignals(c.id);
       notes = getNotes(c.id);
       peers = getSectorPeers(c.id);
+      comps = getComps(c.id);
+      momentum = computeMomentum(signals);
+      corroboration = computeCorroboration(signals);
     }
   }
 
@@ -131,6 +184,8 @@ export default async function CompanyPage({
             <SectorBadge sector={company.sector} />
             <StageBadge stage={company.currentStage} />
             <ConfidenceBadge confidence={company.confidence} />
+            {momentum && <MomentumBadge momentum={momentum} showSparkline />}
+            {corroboration && <CorroborationBadge corroboration={corroboration} />}
           </div>
           <p className="mt-2 text-[12px] font-normal text-muted">
             {company.dealType === "carveout"
@@ -159,38 +214,15 @@ export default async function CompanyPage({
             <StageTimeline history={history} />
           </Section>
 
+          <Section title="AI analyst">
+            <DealMemo companyId={company.id} />
+            <CompanyQa companyId={company.id} />
+          </Section>
+
           <Section title="Key signals">
             <div className="space-y-3">
               {signals.map((s) => (
-                <div
-                  key={s.id}
-                  className="rounded-lg bg-surface p-3"
-                  style={{ border: "0.5px solid var(--border)" }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[13px] font-medium text-ink">{s.title}</span>
-                    <span className="text-[11px] font-normal text-subtle">
-                      {formatDate(s.ingestedAt)}
-                    </span>
-                  </div>
-                  <blockquote
-                    className="mt-2 rounded-r bg-[#F5F4EF] px-3 py-2 text-[12px] font-normal italic text-muted"
-                    style={{ borderLeft: "2px solid var(--border)" }}
-                  >
-                    {s.excerpt}
-                  </blockquote>
-                  <div className="mt-2 flex items-center gap-2">
-                    <SignalSourceBadge source={s.sourceType} />
-                    <a
-                      href={s.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] font-normal text-[#185FA5] hover:underline"
-                    >
-                      View source
-                    </a>
-                  </div>
-                </div>
+                <SignalCard key={s.id} signal={s} />
               ))}
             </div>
           </Section>
@@ -241,7 +273,44 @@ export default async function CompanyPage({
               {company.margin && <Detail label="Margin" value={company.margin} />}
               <Detail label="First tracked" value={formatDate(company.firstTracked)} />
               <Detail label="Last updated" value={formatDate(company.lastUpdated)} />
+              <div className="pt-1">
+                <OutcomeForm
+                  companyId={company.id}
+                  outcome={company.outcome ?? null}
+                  acquirer={company.acquirer ?? null}
+                  closeMultiple={company.closeMultiple ?? null}
+                  closedAt={company.closedAt ?? null}
+                />
+              </div>
+              {company.outcome === "closed" && company.acquirer && (
+                <Detail label="Acquirer" value={company.acquirer} />
+              )}
+              {company.outcome === "closed" && company.closeMultiple && (
+                <Detail label="Exit multiple" value={company.closeMultiple} />
+              )}
+              {company.closedAt && (
+                <Detail
+                  label={company.outcome === "withdrawn" ? "Withdrawn" : "Closed"}
+                  value={formatDate(company.closedAt)}
+                />
+              )}
             </dl>
+          </Section>
+
+          <Section title="Deal owner">
+            <DealOwnerSection
+              companyId={company.id}
+              currentUserId={currentUserId}
+              initialOwner={rawOwnerId ? { id: rawOwnerId, email: "Assigned" } : null}
+            />
+          </Section>
+
+          <Section title="Tasks">
+            <DealTasksSection companyId={company.id} currentUserId={currentUserId} />
+          </Section>
+
+          <Section title="Outreach log">
+            <OutreachLogSection companyId={company.id} currentUserId={currentUserId} />
           </Section>
 
           <Section title="In this sector">
@@ -270,6 +339,42 @@ export default async function CompanyPage({
               )}
             </ul>
           </Section>
+
+          {comps.length > 0 && (
+            <Section title="Comparable deals">
+              <ul className="space-y-2">
+                {comps.map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      href={`/company/${c.id}`}
+                      className="block rounded-md px-2 py-2 hover:bg-[#F5F4EF]"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{
+                            backgroundColor:
+                              STAGE_DOT[c.stage as import("@/lib/types").Stage],
+                          }}
+                        />
+                        <span className="truncate text-[13px] font-normal text-ink">
+                          {c.name}
+                        </span>
+                        <span className="ml-auto shrink-0">
+                          <DealTypeBadge
+                            type={c.dealType as import("@/lib/types").DealType}
+                          />
+                        </span>
+                      </div>
+                      <p className="ml-3 mt-0.5 text-[11px] font-normal text-subtle">
+                        {c.matchReasons.join(" · ")}
+                      </p>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
         </div>
       </div>
     </div>

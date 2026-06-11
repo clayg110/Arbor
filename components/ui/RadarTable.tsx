@@ -6,6 +6,7 @@ import { DealTypeBadge } from "./DealTypeBadge";
 import { SectorBadge } from "./SectorBadge";
 import { StageBadge } from "./StageBadge";
 import { ConfidenceBadge } from "./ConfidenceBadge";
+import { ConvictionBadge } from "./ConvictionBadge";
 import { SignalSourceBadge } from "./SignalSourceBadge";
 import {
   StarIcon,
@@ -19,7 +20,7 @@ import { STAGE_COLORS, SECTOR_LABELS, DEAL_TYPE_LABELS } from "@/lib/colors";
 import { formatDate } from "@/lib/format";
 import type { RadarCompany } from "@/lib/radar-data";
 
-export type SortKey = "name" | "days" | "added" | "confidence";
+export type SortKey = "name" | "days" | "added" | "confidence" | "conviction";
 export type SortDir = "asc" | "desc";
 export type GroupBy = "none" | "sector" | "deal_type" | "sponsor";
 
@@ -36,6 +37,8 @@ function sortRows(rows: RadarCompany[], key: SortKey, dir: SortDir): RadarCompan
     if (key === "name") d = a.name.localeCompare(b.name);
     else if (key === "days") d = a.days - b.days;
     else if (key === "added") d = a.added.localeCompare(b.added);
+    else if (key === "conviction")
+      d = (a.conviction?.score ?? 0) - (b.conviction?.score ?? 0);
     else d = CONF_RANK[a.confidence] - CONF_RANK[b.confidence];
     return dir === "asc" ? d : -d;
   });
@@ -152,6 +155,14 @@ export function RadarTable({
                 dir={sortDir}
                 onClick={() => onSort("confidence")}
               />
+              <Th
+                sortable
+                rightAlign
+                label="Conviction"
+                active={sortKey === "conviction"}
+                dir={sortDir}
+                onClick={() => onSort("conviction")}
+              />
               <Th label="Last signal" />
               <Th
                 sortable
@@ -186,7 +197,7 @@ export function RadarTable({
                         })
                       }
                     >
-                      <td colSpan={10} className="px-3 py-2">
+                      <td colSpan={11} className="px-3 py-2">
                         <div className="flex items-center gap-2">
                           {isCollapsed ? (
                             <ChevronRightIcon className="h-3.5 w-3.5 text-muted" />
@@ -404,6 +415,13 @@ function Row({
           <span className="text-subtle">—</span>
         ) : (
           <ConfidenceBadge confidence={r.confidence} />
+        )}
+      </td>
+      <td className="px-3 py-2 text-right">
+        {r.conviction ? (
+          <ConvictionBadge score={r.conviction.score} band={r.conviction.band} />
+        ) : (
+          <span className="text-subtle">—</span>
         )}
       </td>
       <td className="px-3 py-2">

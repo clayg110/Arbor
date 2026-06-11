@@ -9,6 +9,8 @@ import {
   toExitFunnel,
   toTopSectors,
   toSponsors,
+  toSponsorHolding,
+  toCalibration,
   toSignalSources,
   toHeatmap,
   toTransitionRates,
@@ -17,6 +19,9 @@ import {
   toMetricValues,
   toRangeStats,
   toRecentChanges,
+  toFunnelCohorts,
+  toValuationMultiples,
+  toWinLoss,
 } from "@/lib/adapters";
 import type {
   VelocityRow,
@@ -27,12 +32,17 @@ import type {
   ExitFunnelRow,
   TopSectorRow,
   SponsorActivityRow,
+  SponsorHoldingRow,
+  CalibrationRow,
   SignalSourceRow,
   TransitionRateRow,
   SummaryCountsRow,
   SummaryMetricsRow,
   EventCountsRow,
   RecentChangeRow,
+  FunnelCohortRow,
+  ValuationMultipleRow,
+  WinLossRow,
 } from "@/types/db";
 
 // GET /api/analytics?from&to — full analytics payload (range-aware).
@@ -55,6 +65,8 @@ export async function GET(request: NextRequest) {
     exitFunnel,
     topSectors,
     sponsors,
+    sponsorHolding,
+    calibration,
     signalSources,
     transitionRates,
     summary,
@@ -62,6 +74,9 @@ export async function GET(request: NextRequest) {
     eventCounts,
     heatmap,
     recent,
+    funnelCohorts,
+    valuationMultiples,
+    winLoss,
   ] = await Promise.all([
     supabase.rpc("rpc_velocity", range),
     supabase.from("v_sector_stage").select("*"),
@@ -70,6 +85,8 @@ export async function GET(request: NextRequest) {
     supabase.from("v_exit_funnel").select("*"),
     supabase.from("v_top_sectors").select("*"),
     supabase.from("v_sponsor_activity").select("*"),
+    supabase.from("v_sponsor_holding").select("*"),
+    supabase.from("v_confidence_calibration").select("*"),
     supabase.from("v_signal_sources").select("*"),
     supabase.from("v_transition_rates").select("*"),
     supabase.from("v_summary_counts").select("*").limit(1),
@@ -77,6 +94,9 @@ export async function GET(request: NextRequest) {
     supabase.rpc("rpc_event_counts", range),
     supabase.rpc("rpc_heatmap", {}), // heatmap fixed at 90 days
     supabase.from("v_recent_changes").select("*").limit(8),
+    supabase.from("v_funnel_cohorts").select("*"),
+    supabase.from("v_valuation_multiples").select("*"),
+    supabase.from("v_win_loss").select("*"),
   ]);
 
   const firstError =
@@ -103,6 +123,10 @@ export async function GET(request: NextRequest) {
       exitFunnel: toExitFunnel((exitFunnel.data ?? []) as ExitFunnelRow[]),
       topSectors: toTopSectors((topSectors.data ?? []) as TopSectorRow[]),
       sponsors: toSponsors((sponsors.data ?? []) as SponsorActivityRow[]),
+      sponsorHolding: toSponsorHolding(
+        (sponsorHolding.data ?? []) as SponsorHoldingRow[]
+      ),
+      calibration: toCalibration((calibration.data ?? []) as CalibrationRow[]),
       signalSources: toSignalSources((signalSources.data ?? []) as SignalSourceRow[]),
       transitionRates: toTransitionRates(
         (transitionRates.data ?? []) as TransitionRateRow[]
@@ -113,6 +137,11 @@ export async function GET(request: NextRequest) {
       sectorSummary: toSectorSummary(sectorRows),
       metrics: metricsRow ? toMetricValues(metricsRow) : null,
       rangeStats: eventRow ? toRangeStats(eventRow) : null,
+      funnelCohorts: toFunnelCohorts((funnelCohorts.data ?? []) as FunnelCohortRow[]),
+      valuationMultiples: toValuationMultiples(
+        (valuationMultiples.data ?? []) as ValuationMultipleRow[]
+      ),
+      winLoss: toWinLoss((winLoss.data ?? []) as WinLossRow[]),
     },
     60
   );

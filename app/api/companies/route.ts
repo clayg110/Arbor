@@ -24,6 +24,7 @@ import { toRadarCompany, toSummaryStrip, toSectorSummary } from "@/lib/adapters"
 import type {
   DbCompany,
   LastSignalRow,
+  ConvictionRow,
   SummaryCountsRow,
   SectorStageRow,
 } from "@/types/db";
@@ -111,28 +112,52 @@ export async function GET(request: NextRequest) {
   // last signal per company + the user's watchlist. The last-signal view has at
   // most one row per company with signals (small), so fetch it whole rather than
   // filtering by a 500-id IN clause (which made this route ~9s).
-  const [{ data: sigs }, { data: wl }, { data: summaryRows }, { data: sectorRows }] =
-    await Promise.all([
-      supabase.from("v_company_last_signal").select("*"),
-      supabase.from("watchlist").select("company_id"),
-      supabase.from("v_summary_counts").select("*").limit(1),
-      supabase.from("v_sector_stage").select("*"),
-    ]);
+  const [
+    { data: sigs },
+    { data: wl },
+    { data: summaryRows },
+    { data: sectorRows },
+    { data: convRows },
+  ] = await Promise.all([
+    supabase.from("v_company_last_signal").select("*"),
+    supabase.from("watchlist").select("company_id"),
+    supabase.from("v_summary_counts").select("*").limit(1),
+    supabase.from("v_sector_stage").select("*"),
+    supabase.from("v_company_conviction").select("*"),
+  ]);
 
   const lastByCompany = new Map<string, LastSignalRow>();
   for (const s of (sigs ?? []) as LastSignalRow[]) lastByCompany.set(s.company_id, s);
+  const convByCompany = new Map<string, ConvictionRow>();
+  for (const r of (convRows ?? []) as ConvictionRow[]) convByCompany.set(r.company_id, r);
   const watched = new Set(
     (wl ?? []).map((r) => (r as { company_id: string }).company_id)
   );
 
-  let radar = companies.map((c) =>
-    toRadarCompany(c, lastByCompany.get(c.id) ?? null, watched.has(c.id))
-  );
+  let radar = companies.map((c) => {
+    const cv = convByCompany.get(c.id);
+    return toRadarCompany(
+      c,
+      lastByCompany.get(c.id) ?? null,
+      watched.has(c.id),
+      cv
+        ? {
+            signalCount30d: cv.signal_count_30d,
+            distinctSourceTypes: cv.distinct_source_types,
+          }
+        : null
+    );
+  });
 
   if (sort === "conf_desc" || sort === "conf_asc") {
     radar = radar.sort((a, b) => {
       const d = CONF_RANK[b.confidence] - CONF_RANK[a.confidence];
       return sort === "conf_desc" ? d : -d;
+    });
+  } else if (sort === "conv_desc" || sort === "conv_asc") {
+    radar = radar.sort((a, b) => {
+      const d = (b.conviction?.score ?? 0) - (a.conviction?.score ?? 0);
+      return sort === "conv_desc" ? d : -d;
     });
   }
 

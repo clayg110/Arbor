@@ -59,6 +59,11 @@ export interface Company {
   margin?: string | null;
   revenueSource?: string | null;
   ebitdaSource?: string | null;
+  // outcome fields (migration 0026)
+  outcome?: "closed" | "withdrawn" | null;
+  acquirer?: string | null;
+  closeMultiple?: string | null;
+  closedAt?: string | null;
 }
 
 export interface StageHistoryRecord {
@@ -77,8 +82,11 @@ export interface Signal {
   companyId: string;
   sourceType: SourceType;
   sourceUrl: string;
+  sourceName?: string;
   title: string;
-  excerpt: string;
+  excerpt: string; // the key quote (LLM-extracted) or raw text fallback
+  rawExcerpt?: string | null; // underlying source text (provenance), when distinct
+  reasoning?: string | null; // why the extractor flagged it
   ingestedAt: string; // ISO date
 }
 

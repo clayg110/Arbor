@@ -19,6 +19,8 @@ const PAGES = [
   "/status",
   "/legal/privacy",
   "/legal/terms",
+  "/onboard",
+  "/docs",
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];

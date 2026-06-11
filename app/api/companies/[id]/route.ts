@@ -9,10 +9,17 @@ import { toCompanyProfile, toStageHistory, toSignals, toNotes } from "@/lib/adap
 import type { DbCompany, DbHistory, DbSignal, DbNote } from "@/types/db";
 
 const patchSchema = z.object({
-  action: z.enum(["override", "confirm", "mark_review"]).optional(),
+  action: z
+    .enum(["override", "confirm", "mark_review", "set_outcome", "assign_owner"])
+    .optional(),
   stage: stageEnum.optional(),
   confidence: confidenceEnum.optional(),
   notes: z.string().trim().max(2000).optional(),
+  outcome: z.enum(["closed", "withdrawn"]).nullable().optional(),
+  acquirer: z.string().trim().max(200).nullable().optional(),
+  closeMultiple: z.string().trim().max(50).nullable().optional(),
+  closedAt: z.string().datetime({ offset: true }).nullable().optional(),
+  ownerId: z.string().uuid().nullable().optional(),
 });
 
 // GET /api/companies/[id] — full profile bundle.
@@ -127,6 +134,39 @@ export async function PATCH(
       .eq("id", id);
     if (error) return serverError(error);
     await auditAs(user, "company.mark_review", { entityType: "company", entityId: id });
+    return ok({ ok: true });
+  }
+
+  if (action === "set_outcome") {
+    const { error } = await supabase
+      .from("companies")
+      .update({
+        outcome: body.outcome ?? null,
+        acquirer: body.acquirer ?? null,
+        close_multiple: body.closeMultiple ?? null,
+        closed_at: body.closedAt ?? null,
+      })
+      .eq("id", id);
+    if (error) return serverError(error);
+    await auditAs(user, "company.set_outcome", {
+      entityType: "company",
+      entityId: id,
+      metadata: { outcome: body.outcome ?? null },
+    });
+    return ok({ ok: true });
+  }
+
+  if (action === "assign_owner") {
+    const { error } = await supabase
+      .from("companies")
+      .update({ owner_id: body.ownerId ?? null })
+      .eq("id", id);
+    if (error) return serverError(error);
+    await auditAs(user, "company.assign_owner", {
+      entityType: "company",
+      entityId: id,
+      metadata: { ownerId: body.ownerId ?? null },
+    });
     return ok({ ok: true });
   }
 

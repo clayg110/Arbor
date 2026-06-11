@@ -7,6 +7,7 @@ import {
   COMPANIES_COLLECTION,
   type CompanyDoc,
 } from "@/lib/typesense/client";
+import { parseNlQuery } from "@/lib/nl-search";
 import type { Sector, DealType, Confidence, Stage } from "@/lib/types";
 
 interface SearchHit {
@@ -34,16 +35,30 @@ function docToHit(d: CompanyDoc): SearchHit {
 // GET /api/search?q&sector&deal&confidence&stage
 // Typesense when configured; otherwise a Supabase ilike fallback. Returns a
 // Typesense-shaped payload so the client never needs to know which ran.
+// Supports natural-language queries: "high chemicals in market" auto-parses
+// recognized keywords; explicit filter params override any NL-parsed values.
 export async function GET(request: NextRequest) {
   const guard = requireBackend();
   if (guard) return guard;
 
   const sp = request.nextUrl.searchParams;
-  const q = sp.get("q")?.trim() ?? "";
-  const sector = sp.get("sector");
-  const deal = sp.get("deal");
-  const confidence = csv(sp.get("confidence"));
-  const stages = csv(sp.get("stage"));
+  const rawQ = sp.get("q")?.trim() ?? "";
+  const nl = parseNlQuery(rawQ);
+
+  // Explicit filter params override NL-parsed values.
+  const q = nl.text ?? "";
+  const sector = sp.get("sector") ?? nl.sector ?? null;
+  const deal = sp.get("deal") ?? nl.dealType ?? null;
+  const confidence = csv(sp.get("confidence")).length
+    ? csv(sp.get("confidence"))
+    : nl.confidence
+      ? [nl.confidence]
+      : [];
+  const stages = csv(sp.get("stage")).length
+    ? csv(sp.get("stage"))
+    : nl.stage
+      ? [nl.stage]
+      : [];
 
   // ---- Typesense path ----
   if (hasTypesenseEnv()) {

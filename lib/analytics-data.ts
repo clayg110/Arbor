@@ -1,6 +1,8 @@
 // Shared analytics + date-range data. Used by /analytics and the /feed sidebar.
 // Anchor "today" = 2026-06-03 (matches the feed mock).
 
+import type { SponsorHoldingData, CalibrationData } from "@/lib/adapters/analytics";
+
 export type Preset = "today" | "week" | "month" | "30d" | "custom";
 
 export const ANCHOR = "2026-06-03";
@@ -373,6 +375,108 @@ export const topSectors = [
   { sector: "Chemicals", sectorKey: "chemicals", days: 47, n: 312 },
   { sector: "Industrials", sectorKey: "industrials", days: 39, n: 198 },
   { sector: "Energy & fuels", sectorKey: "energy_fuels", days: 31, n: 108 },
+];
+
+// ---- sponsor hold periods (Phase 4.1) ----
+export type SponsorHoldingPoint = SponsorHoldingData;
+
+export const sponsorHolding: SponsorHoldingData[] = [
+  {
+    sponsor: "Carlyle Group",
+    slug: "carlyle",
+    totalDeals: 7,
+    marketCount: 4,
+    avgDaysHold: 312,
+    exitRatePct: 57,
+    topSector: "Specialty materials",
+  },
+  {
+    sponsor: "Bain Capital",
+    slug: "bain",
+    totalDeals: 5,
+    marketCount: 3,
+    avgDaysHold: 287,
+    exitRatePct: 60,
+    topSector: "Pharma inputs",
+  },
+  {
+    sponsor: "One Rock Capital",
+    slug: "one-rock",
+    totalDeals: 4,
+    marketCount: 2,
+    avgDaysHold: 341,
+    exitRatePct: 50,
+    topSector: "Chemicals",
+  },
+  {
+    sponsor: "SK Capital Partners",
+    slug: "sk-capital",
+    totalDeals: 4,
+    marketCount: 2,
+    avgDaysHold: 298,
+    exitRatePct: 50,
+    topSector: "Specialty materials",
+  },
+  {
+    sponsor: "West Street Capital",
+    slug: "west-street",
+    totalDeals: 2,
+    marketCount: 1,
+    avgDaysHold: 265,
+    exitRatePct: 50,
+    topSector: "Chemicals",
+  },
+  {
+    sponsor: "Advent International",
+    slug: "advent",
+    totalDeals: 2,
+    marketCount: 1,
+    avgDaysHold: 352,
+    exitRatePct: 50,
+    topSector: "Industrials",
+  },
+];
+
+// ---- confidence calibration (Phase 4.4) ----
+export type ConfidenceCalibrationPoint = CalibrationData;
+
+export const confidenceCalibration: CalibrationData[] = [
+  {
+    label: "High",
+    confidence: "high",
+    total: 612,
+    closedCount: 183,
+    lostCount: 72,
+    closeRatePct: 72,
+    color: "#157A5A",
+  },
+  {
+    label: "Medium",
+    confidence: "medium",
+    total: 298,
+    closedCount: 64,
+    lostCount: 47,
+    closeRatePct: 58,
+    color: "#A8650F",
+  },
+  {
+    label: "Low",
+    confidence: "low",
+    total: 98,
+    closedCount: 15,
+    lostCount: 22,
+    closeRatePct: 41,
+    color: "#C0322F",
+  },
+  {
+    label: "Needs review",
+    confidence: "needs_review",
+    total: 76,
+    closedCount: 8,
+    lostCount: 14,
+    closeRatePct: 36,
+    color: "#8A8880",
+  },
 ];
 
 // ---- sponsors ----

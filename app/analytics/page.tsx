@@ -45,13 +45,75 @@ import {
   transitionRates as mockTransitionRates,
   topSectors as mockTopSectors,
   sponsors as mockSponsors,
+  sponsorHolding as mockSponsorHolding,
+  confidenceCalibration as mockCalibration,
   signalSources as mockSignalSources,
   recentChanges as mockRecentChanges,
   buildHeatmap,
   heatColor,
   tokenToPreset,
   type MetricSpec,
+  type SponsorHoldingPoint,
+  type ConfidenceCalibrationPoint,
 } from "@/lib/analytics-data";
+import type {
+  FunnelCohortData,
+  ValuationMultipleData,
+  WinLossData,
+} from "@/lib/adapters/analytics";
+
+// Static mock data for new analytics panels (live data comes from the API).
+const mockFunnelCohorts: FunnelCohortData[] = [
+  { month: "Jan 2025", in_market: 4, monitor_for_exit: 9, on_hold: 2, pulled: 1 },
+  { month: "Feb 2025", in_market: 6, monitor_for_exit: 7, on_hold: 3, pulled: 2 },
+  { month: "Mar 2025", in_market: 8, monitor_for_exit: 11, on_hold: 1, pulled: 1 },
+  { month: "Apr 2025", in_market: 5, monitor_for_exit: 8, on_hold: 4, pulled: 3 },
+  { month: "May 2025", in_market: 7, monitor_for_exit: 10, on_hold: 2, pulled: 2 },
+  { month: "Jun 2025", in_market: 9, monitor_for_exit: 12, on_hold: 3, pulled: 1 },
+];
+const mockValuationMultiples: ValuationMultipleData[] = [
+  {
+    sector: "Chemicals",
+    sectorKey: "chemicals",
+    deals: 8,
+    avgMultiple: 7.2,
+    medianMultiple: 6.8,
+  },
+  {
+    sector: "Industrials",
+    sectorKey: "industrials",
+    deals: 5,
+    avgMultiple: 9.1,
+    medianMultiple: 8.5,
+  },
+  {
+    sector: "Energy & Fuels",
+    sectorKey: "energy_fuels",
+    deals: 4,
+    avgMultiple: 5.4,
+    medianMultiple: 5.0,
+  },
+  {
+    sector: "Pharma Inputs",
+    sectorKey: "pharma_inputs",
+    deals: 3,
+    avgMultiple: 11.2,
+    medianMultiple: 10.5,
+  },
+];
+const mockWinLoss: WinLossData = {
+  bySector: [
+    { sector: "Chemicals", sectorKey: "chemicals", wins: 5, losses: 2 },
+    { sector: "Industrials", sectorKey: "industrials", wins: 3, losses: 3 },
+    { sector: "Energy & Fuels", sectorKey: "energy_fuels", wins: 2, losses: 1 },
+  ],
+  byConfidence: [
+    { label: "High", wins: 8, losses: 1 },
+    { label: "Medium", wins: 4, losses: 3 },
+    { label: "Low", wins: 1, losses: 2 },
+  ],
+  totals: { wins: 13, losses: 6, winRate: 68 },
+};
 import { STAGE_DOT, SECTOR_SWATCH } from "@/lib/colors";
 import { formatDate } from "@/lib/format";
 import type { SourceType, Stage } from "@/lib/types";
@@ -94,10 +156,15 @@ function AnalyticsInner() {
       transitionRates: mockTransitionRates,
       topSectors: mockTopSectors,
       sponsors: mockSponsors,
+      sponsorHolding: mockSponsorHolding,
+      calibration: mockCalibration,
       signalSources: mockSignalSources,
       recentChanges: mockRecentChanges,
       heatmap: buildHeatmap(),
       metrics: null as Record<string, string> | null,
+      funnelCohorts: mockFunnelCohorts,
+      valuationMultiples: mockValuationMultiples,
+      winLoss: mockWinLoss,
     }),
     []
   );
@@ -122,12 +189,19 @@ function AnalyticsInner() {
             (d.transitionRates as typeof mockTransitionRates) ?? mockTransitionRates,
           topSectors: (d.topSectors as typeof mockTopSectors) ?? mockTopSectors,
           sponsors: (d.sponsors as typeof mockSponsors) ?? mockSponsors,
+          sponsorHolding:
+            (d.sponsorHolding as typeof mockSponsorHolding) ?? mockSponsorHolding,
+          calibration: (d.calibration as typeof mockCalibration) ?? mockCalibration,
           signalSources:
             (d.signalSources as typeof mockSignalSources) ?? mockSignalSources,
           recentChanges:
             (d.recentChanges as typeof mockRecentChanges) ?? mockRecentChanges,
           heatmap: (d.heatmap as ReturnType<typeof buildHeatmap>) ?? buildHeatmap(),
           metrics: (d.metrics as Record<string, string> | null) ?? null,
+          funnelCohorts: (d.funnelCohorts as FunnelCohortData[]) ?? mockFunnelCohorts,
+          valuationMultiples:
+            (d.valuationMultiples as ValuationMultipleData[]) ?? mockValuationMultiples,
+          winLoss: (d.winLoss as WinLossData) ?? mockWinLoss,
         });
       } catch {
         if (active) setViz(fallback);
@@ -147,10 +221,15 @@ function AnalyticsInner() {
     transitionRates,
     topSectors,
     sponsors,
+    sponsorHolding,
+    calibration,
     signalSources,
     recentChanges,
     heatmap,
     metrics,
+    funnelCohorts,
+    valuationMultiples,
+    winLoss,
   } = viz;
 
   const onSectorClick = (d: unknown) => {
@@ -572,6 +651,16 @@ function AnalyticsInner() {
         </Panel>
       </div>
 
+      {/* ROW 4.5 — sponsor hold periods + confidence calibration */}
+      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title="Sponsor hold periods — avg. days to market">
+          {loading ? <Skeleton h={260} /> : <SponsorHoldingChart data={sponsorHolding} />}
+        </Panel>
+        <Panel title="Confidence calibration — close rate by band">
+          {loading ? <Skeleton h={260} /> : <CalibrationChart data={calibration} />}
+        </Panel>
+      </div>
+
       {/* ROW 5 — heatmap */}
       <Panel title="Deal activity heatmap — events by day" className="mb-4">
         {loading ? <Skeleton h={180} /> : <Heatmap days={heatmap} />}
@@ -654,6 +743,176 @@ function AnalyticsInner() {
                   label="Fastest signal"
                   value="PE Wire / News — avg 4h to detection"
                 />
+              </div>
+            </>
+          )}
+        </Panel>
+      </div>
+
+      {/* ROW 7 — conversion funnel cohorts */}
+      <Panel title="Stage entry by month — pipeline cohort flow" className="mb-4">
+        {loading ? (
+          <Skeleton h={260} />
+        ) : (
+          <>
+            <Legend
+              items={[
+                { color: "#185FA5", label: "In market" },
+                { color: "#BA7517", label: "Monitor for exit" },
+                { color: "#B4B2A9", label: "On hold" },
+                { color: "#E24B4A", label: "Pulled" },
+              ]}
+            />
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={funnelCohorts} barCategoryGap="26%">
+                <CartesianGrid vertical={false} stroke="#EFEDE6" />
+                <XAxis
+                  dataKey="month"
+                  tick={AXIS}
+                  tickLine={false}
+                  axisLine={{ stroke: "#E6E4DD" }}
+                />
+                <YAxis tick={AXIS} tickLine={false} axisLine={false} width={24} />
+                <Tooltip cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+                <Bar dataKey="in_market" name="In market" stackId="a" fill="#185FA5" />
+                <Bar
+                  dataKey="monitor_for_exit"
+                  name="Monitor"
+                  stackId="a"
+                  fill="#BA7517"
+                />
+                <Bar dataKey="on_hold" name="On hold" stackId="a" fill="#B4B2A9" />
+                <Bar
+                  dataKey="pulled"
+                  name="Pulled"
+                  stackId="a"
+                  fill="#E24B4A"
+                  radius={[2, 2, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+            <p className="mt-2 text-[11px] font-normal italic text-subtle">
+              Shows how many companies entered each stage per calendar month over the last
+              12 months.
+            </p>
+          </>
+        )}
+      </Panel>
+
+      {/* ROW 8 — valuation multiples + win/loss */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title="Exit multiples by sector — closed deals">
+          {loading ? (
+            <Skeleton h={260} />
+          ) : valuationMultiples.length === 0 ? (
+            <p className="text-[12px] text-muted">
+              No closed deals with recorded multiples yet.
+            </p>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart
+                  data={valuationMultiples}
+                  layout="vertical"
+                  barCategoryGap="30%"
+                >
+                  <CartesianGrid horizontal={false} stroke="#EFEDE6" />
+                  <XAxis
+                    type="number"
+                    tick={AXIS}
+                    tickLine={false}
+                    axisLine={{ stroke: "#E6E4DD" }}
+                    tickFormatter={(v) => `${v}x`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="sector"
+                    tick={AXIS}
+                    tickLine={false}
+                    axisLine={false}
+                    width={110}
+                  />
+                  <Tooltip
+                    formatter={(v, name) => [
+                      `${v}x`,
+                      name === "avgMultiple" ? "Avg multiple" : "Median multiple",
+                    ]}
+                    cursor={{ fill: "rgba(0,0,0,0.03)" }}
+                  />
+                  <Bar
+                    dataKey="medianMultiple"
+                    name="Median"
+                    fill="#185FA5"
+                    radius={[0, 2, 2, 0]}
+                  >
+                    <LabelList
+                      dataKey="medianMultiple"
+                      position="right"
+                      formatter={(v: unknown) => (v != null ? `${v}x` : "")}
+                      style={{ fill: "#6f6e68", fontSize: 10 }}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              <p className="mt-2 text-[11px] font-normal italic text-subtle">
+                Median EBITDA multiple at close. n = deals per sector with recorded
+                multiples.
+              </p>
+            </>
+          )}
+        </Panel>
+
+        <Panel title="Win/loss outcomes by confidence band">
+          {loading ? (
+            <Skeleton h={260} />
+          ) : winLoss.totals.wins + winLoss.totals.losses === 0 ? (
+            <p className="text-[12px] text-muted">No resolved deals yet.</p>
+          ) : (
+            <>
+              {/* top-line rate */}
+              <div className="mb-4 flex items-center gap-4">
+                <div className="rounded-lg bg-[#F0FBF6] px-4 py-3 text-center">
+                  <p className="text-[24px] font-semibold text-[#157A5A]">
+                    {winLoss.totals.winRate}%
+                  </p>
+                  <p className="text-[11px] text-[#157A5A]">close rate</p>
+                </div>
+                <div className="text-[12px] text-muted">
+                  <p>
+                    <span className="font-medium text-ink">{winLoss.totals.wins}</span>{" "}
+                    closed
+                  </p>
+                  <p>
+                    <span className="font-medium text-ink">{winLoss.totals.losses}</span>{" "}
+                    withdrawn
+                  </p>
+                </div>
+              </div>
+              {/* by confidence */}
+              <p className="mb-2 text-[11px] font-medium uppercase tracking-widest text-muted">
+                By confidence band
+              </p>
+              <div className="space-y-2">
+                {winLoss.byConfidence.map((c) => {
+                  const total = c.wins + c.losses;
+                  const winPct = total === 0 ? 0 : Math.round((c.wins / total) * 100);
+                  return (
+                    <div key={c.label}>
+                      <div className="mb-1 flex items-center justify-between text-[11px]">
+                        <span className="font-normal text-muted">{c.label}</span>
+                        <span className="font-medium text-ink">
+                          {c.wins}/{total} ({winPct}%)
+                        </span>
+                      </div>
+                      <div className="flex h-2 overflow-hidden rounded-full bg-[#FCEBEB]">
+                        <div
+                          className="h-full rounded-full bg-[#157A5A]"
+                          style={{ width: `${winPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}
@@ -875,6 +1134,84 @@ function SignalTip({ active, payload }: TipProps) {
     ["Signals", `${d.count}`],
     ["Share", `${d.pct}%`],
   ]);
+}
+
+// ---- sponsor hold periods ----
+function SponsorHoldingChart({ data }: { data: SponsorHoldingPoint[] }) {
+  const maxDays = Math.max(...data.map((d) => d.avgDaysHold ?? 0), 1);
+  return (
+    <div className="space-y-3">
+      {data.map((d) => (
+        <div key={d.slug}>
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="truncate font-normal text-muted" style={{ maxWidth: 140 }}>
+              {d.sponsor}
+            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                style={{ backgroundColor: "#E6F1FB", color: "#185FA5" }}
+                title="Exit rate — share of tracked deals reaching in_market"
+              >
+                {d.exitRatePct}% exit
+              </span>
+              <span className="w-12 text-right font-medium text-ink">
+                {d.avgDaysHold != null ? `${d.avgDaysHold}d` : "—"}
+              </span>
+            </div>
+          </div>
+          <div className="mt-1 h-1.5 w-full rounded-full bg-[#F1EFE8]">
+            <div
+              className="h-1.5 rounded-full bg-[#185FA5]"
+              style={{
+                width: `${Math.round(((d.avgDaysHold ?? 0) / maxDays) * 100)}%`,
+              }}
+            />
+          </div>
+          <p className="text-[10px] font-normal text-subtle">
+            {d.totalDeals} deals tracked · {d.marketCount} reached market
+          </p>
+        </div>
+      ))}
+      {data.length === 0 && (
+        <p className="text-[13px] text-subtle">No sponsor data in this range.</p>
+      )}
+    </div>
+  );
+}
+
+// ---- confidence calibration ----
+function CalibrationChart({ data }: { data: ConfidenceCalibrationPoint[] }) {
+  return (
+    <div className="space-y-4">
+      {data.map((d) => (
+        <div key={d.confidence}>
+          <div className="mb-1 flex items-center justify-between text-[12px]">
+            <span className="flex items-center gap-1.5 font-normal text-muted">
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: d.color }}
+              />
+              {d.label}
+            </span>
+            <span className="font-medium text-ink">{d.closeRatePct}% close rate</span>
+          </div>
+          <div className="h-2 w-full rounded-full bg-[#F1EFE8]">
+            <div
+              className="h-2 rounded-full"
+              style={{ width: `${d.closeRatePct}%`, backgroundColor: d.color }}
+            />
+          </div>
+          <p className="mt-0.5 text-[10px] font-normal text-subtle">
+            {d.closedCount} closed · {d.lostCount} lost · {d.total} total
+          </p>
+        </div>
+      ))}
+      <p className="mt-2 text-[11px] font-normal italic text-subtle">
+        Computed over resolved deals only (closed + withdrawn + pulled).
+      </p>
+    </div>
+  );
 }
 
 // ---- heatmap ----

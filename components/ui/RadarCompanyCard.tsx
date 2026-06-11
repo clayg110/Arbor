@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DealTypeBadge } from "./DealTypeBadge";
 import { SectorBadge } from "./SectorBadge";
 import { ConfidenceBadge } from "./ConfidenceBadge";
+import { ConvictionBadge } from "./ConvictionBadge";
 import { SignalSourceBadge } from "./SignalSourceBadge";
 import { Tooltip } from "./Tooltip";
 import { StarIcon, ChevronRightIcon, GripIcon, ClockIcon } from "./icons";
@@ -59,9 +60,14 @@ export function RadarCompanyCard({
         <GripIcon className="h-4 w-4 text-subtle" />
       </span>
 
-      {/* top row: deal type + star */}
+      {/* top row: deal type + conviction + star */}
       <div className="flex items-start justify-between gap-2">
-        <DealTypeBadge type={c.dealType} />
+        <div className="flex items-center gap-2">
+          <DealTypeBadge type={c.dealType} />
+          {c.conviction && (
+            <ConvictionBadge score={c.conviction.score} band={c.conviction.band} />
+          )}
+        </div>
         <button
           type="button"
           onClick={(e) => {

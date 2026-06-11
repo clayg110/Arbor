@@ -6,6 +6,7 @@ import type {
   FeedEvent,
   ReviewItem,
 } from "./types";
+import { topComps, type CompInput, type CompResult } from "./comps";
 
 // All dates are anchored around "today" = 2026-06-02 for realistic relative ages.
 
@@ -594,8 +595,13 @@ export function getSignals(companyId: string): Signal[] {
       sourceType: c.dealType === "carveout" ? "sec_filing" : "rss_feed",
       sourceUrl: "https://www.sec.gov/edgar/search/",
       title: `${c.name} — primary signal`,
+      sourceName: c.dealType === "carveout" ? "SEC 8-K" : "PE Wire",
       excerpt:
         "Advisers are reported to have been engaged to evaluate options; a process could launch in the coming quarters.",
+      rawExcerpt:
+        "The company today announced it has retained financial advisers to evaluate a range of strategic alternatives for the business, including a potential sale or separation. No assurance can be given that the review will result in any transaction.",
+      reasoning:
+        "Explicit mention of engaged advisers + 'strategic alternatives' from a primary filing indicates an active in-market process.",
       ingestedAt: c.lastUpdated,
     },
     {
@@ -604,8 +610,13 @@ export function getSignals(companyId: string): Signal[] {
       sourceType: "google_news",
       sourceUrl: "https://example.com/news",
       title: `${c.name} — corroborating coverage`,
+      sourceName: "Bloomberg",
       excerpt:
         "Trade coverage echoed interest from strategic and financial buyers in the asset.",
+      rawExcerpt:
+        "People familiar with the matter said several private equity firms and strategic acquirers have expressed early interest, though a formal process has not yet launched.",
+      reasoning:
+        "Secondary press corroboration raises corroboration but is single-sourced and not yet a formal process.",
       ingestedAt: c.firstTracked,
     },
   ];
@@ -660,6 +671,32 @@ export function getSectorPeers(companyId: string, limit = 4): Company[] {
   return mockCompanies
     .filter((x) => x.sector === c.sector && x.id !== c.id)
     .slice(0, limit);
+}
+
+export function getComps(companyId: string, limit = 5): CompResult[] {
+  const c = getCompany(companyId);
+  if (!c) return [];
+  const target: CompInput = {
+    id: c.id,
+    name: c.name,
+    sector: c.sector,
+    dealType: c.dealType,
+    stage: c.currentStage,
+    revenue: c.revenue,
+    ebitda: c.ebitda,
+    outcome: c.outcome,
+  };
+  const candidates: CompInput[] = mockCompanies.map((mc) => ({
+    id: mc.id,
+    name: mc.name,
+    sector: mc.sector,
+    dealType: mc.dealType,
+    stage: mc.currentStage,
+    revenue: mc.revenue,
+    ebitda: mc.ebitda,
+    outcome: mc.outcome,
+  }));
+  return topComps(target, candidates, limit);
 }
 
 // ---- feed events (last 7 days; today = 2026-06-02) ----

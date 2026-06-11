@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GlobalSearch } from "@/components/ui/GlobalSearch";
 import { NotificationBell } from "@/components/ui/NotificationBell";
+import { DarkModeToggle } from "@/components/ui/DarkModeToggle";
+import { CommandPalette } from "@/components/ui/CommandPalette";
 import { cn } from "@/lib/format";
 
 const NAV = [
@@ -38,6 +41,7 @@ export function AppLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Auth + legal + public status pages: no app chrome.
   const BARE_PATHS = [
@@ -47,6 +51,8 @@ export function AppLayout({
     "/auth/reset",
     "/legal",
     "/status",
+    "/onboard",
+    "/docs",
   ];
   if (BARE_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return (
@@ -79,7 +85,25 @@ export function AppLayout({
             Arbor
           </Link>
 
-          <nav className="flex items-center gap-1 justify-self-center">
+          {/* Mobile hamburger */}
+          <button
+            type="button"
+            className="justify-self-center md:hidden"
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
+            onClick={() => setMobileOpen((o) => !o)}
+          >
+            <span className="block h-0.5 w-5 bg-current transition-all" />
+            <span
+              className={cn(
+                "my-1 block h-0.5 w-5 bg-current transition-all",
+                mobileOpen && "opacity-0"
+              )}
+            />
+            <span className="block h-0.5 w-5 bg-current transition-all" />
+          </button>
+
+          <nav className="hidden items-center gap-1 justify-self-center md:flex">
             {nav.map((item) => {
               const active =
                 pathname === item.href || pathname.startsWith(item.href + "/");
@@ -104,7 +128,9 @@ export function AppLayout({
             })}
           </nav>
 
-          <div className="flex items-center gap-3 justify-self-end">
+          <div className="flex items-center gap-2 justify-self-end">
+            <CommandPalette />
+            <DarkModeToggle />
             <div className="hidden md:block">
               <GlobalSearch />
             </div>
@@ -152,6 +178,30 @@ export function AppLayout({
           </div>
         </div>
       </header>
+
+      {/* Mobile nav drawer */}
+      {mobileOpen && (
+        <nav
+          className="border-b bg-surface px-4 py-3 md:hidden"
+          style={{ borderColor: "var(--border)" }}
+        >
+          {nav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "block rounded-md px-3 py-2 text-[14px] font-medium",
+                pathname === item.href || pathname.startsWith(item.href + "/")
+                  ? "bg-[#F1EFE8] text-ink"
+                  : "text-muted hover:text-ink"
+              )}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       <main
         id="main"

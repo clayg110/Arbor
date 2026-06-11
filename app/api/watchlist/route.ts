@@ -6,7 +6,7 @@ import { getSessionUser } from "@/lib/api/auth";
 import { rateLimit } from "@/lib/redis/ratelimit";
 import { parseJson } from "@/lib/validation";
 import { toRadarCompany } from "@/lib/adapters";
-import type { DbCompany } from "@/types/db";
+import type { DbCompany, LastSignalRow, ConvictionRow } from "@/types/db";
 
 const watchSchema = z.object({ companyId: z.string().min(1).max(64) });
 
@@ -28,9 +28,33 @@ export async function GET() {
   }[];
 
   const ids = rows.map((r) => r.company_id);
+
+  const [{ data: lastRows }, { data: convRows }] = await Promise.all([
+    supabase.from("v_company_last_signal").select("*").in("company_id", ids),
+    supabase.from("v_company_conviction").select("*").in("company_id", ids),
+  ]);
+
+  const lastByCompany = new Map<string, LastSignalRow>();
+  for (const r of (lastRows ?? []) as LastSignalRow[]) lastByCompany.set(r.company_id, r);
+  const convByCompany = new Map<string, ConvictionRow>();
+  for (const r of (convRows ?? []) as ConvictionRow[]) convByCompany.set(r.company_id, r);
+
   const companies = rows
     .filter((r) => r.company)
-    .map((r) => toRadarCompany(r.company!, null, true));
+    .map((r) => {
+      const cv = convByCompany.get(r.company_id);
+      return toRadarCompany(
+        r.company!,
+        lastByCompany.get(r.company_id) ?? null,
+        true,
+        cv
+          ? {
+              signalCount30d: cv.signal_count_30d,
+              distinctSourceTypes: cv.distinct_source_types,
+            }
+          : null
+      );
+    });
 
   return ok({ ids, companies });
 }

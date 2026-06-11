@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppLayout, type SessionUser } from "@/components/layout/AppLayout";
 import { CookieNotice } from "@/components/ui/CookieNotice";
+import { ServiceWorkerRegistrar } from "@/components/ui/ServiceWorkerRegistrar";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { SITE } from "@/lib/site";
 
@@ -66,6 +67,7 @@ export default async function RootLayout({
         </a>
         <AppLayout user={user}>{children}</AppLayout>
         <CookieNotice />
+        <ServiceWorkerRegistrar />
       </body>
     </html>
   );

@@ -9,12 +9,17 @@ import type {
   ExitFunnelRow,
   TopSectorRow,
   SponsorActivityRow,
+  SponsorHoldingRow,
+  CalibrationRow,
   SignalSourceRow,
   TransitionRateRow,
   SummaryCountsRow,
   SummaryMetricsRow,
   EventCountsRow,
   RecentChangeRow,
+  FunnelCohortRow,
+  ValuationMultipleRow,
+  WinLossRow,
 } from "@/types/db";
 import type { Stage, Sector, SourceType } from "@/lib/types";
 import { SECTOR_LABELS, DEAL_TYPE_LABELS, CHART } from "@/lib/colors";
@@ -260,6 +265,48 @@ export function toRecentChanges(rows: RecentChangeRow[]): RecentChangeData[] {
   }));
 }
 
+export interface SponsorHoldingData {
+  sponsor: string;
+  slug: string;
+  totalDeals: number;
+  marketCount: number;
+  avgDaysHold: number | null;
+  exitRatePct: number;
+  topSector: string;
+}
+export function toSponsorHolding(rows: SponsorHoldingRow[]): SponsorHoldingData[] {
+  return rows.slice(0, 8).map((r) => ({
+    sponsor: r.sponsor,
+    slug: slugify(r.sponsor),
+    totalDeals: r.total_deals,
+    marketCount: r.market_count,
+    avgDaysHold: r.avg_days_hold,
+    exitRatePct: r.exit_rate_pct,
+    topSector: SECTOR_LABELS[r.top_sector] ?? r.top_sector,
+  }));
+}
+
+export interface CalibrationData {
+  label: string;
+  confidence: string;
+  total: number;
+  closedCount: number;
+  lostCount: number;
+  closeRatePct: number;
+  color: string;
+}
+export function toCalibration(rows: CalibrationRow[]): CalibrationData[] {
+  return rows.map((r) => ({
+    label: CONF_META[r.confidence]?.label ?? r.confidence,
+    confidence: r.confidence,
+    total: r.total,
+    closedCount: r.closed_count,
+    lostCount: r.lost_count,
+    closeRatePct: r.close_rate_pct,
+    color: CONF_META[r.confidence]?.color ?? "#B4B2A9",
+  }));
+}
+
 // Display values for the 6 analytics metric cards (merge with static METRICS).
 export function toMetricValues(row: SummaryMetricsRow): Record<string, string> {
   return {
@@ -269,5 +316,120 @@ export function toMetricValues(row: SummaryMetricsRow): Record<string, string> {
     pulled: String(row.pulled),
     needs_review: String(row.needs_review),
     confidence: Number(row.avg_confidence).toFixed(2),
+  };
+}
+
+// ---- Conversion funnel cohorts ----
+// Groups stage-entry rows into months and pivots to a recharts-friendly shape:
+// [{ month: "Jan 2025", in_market: 3, monitor_for_exit: 7, on_hold: 1 }, ...]
+
+export interface FunnelCohortData {
+  month: string; // e.g. "Jan 2025"
+  in_market: number;
+  monitor_for_exit: number;
+  on_hold: number;
+  pulled: number;
+}
+
+export function toFunnelCohorts(rows: FunnelCohortRow[]): FunnelCohortData[] {
+  const map = new Map<string, FunnelCohortData>();
+  for (const r of rows) {
+    const d = new Date(r.cohort_month + "T12:00:00");
+    const key = r.cohort_month;
+    const label = `${MONTH[d.getMonth()]} ${d.getFullYear()}`;
+    const entry = map.get(key) ?? {
+      month: label,
+      in_market: 0,
+      monitor_for_exit: 0,
+      on_hold: 0,
+      pulled: 0,
+    };
+    const stage = r.stage as keyof Omit<FunnelCohortData, "month">;
+    if (stage in entry) entry[stage] = r.entries;
+    map.set(key, entry);
+  }
+  return [...map.values()];
+}
+
+// ---- Valuation multiples by sector ----
+export interface ValuationMultipleData {
+  sector: string; // human label
+  sectorKey: string;
+  deals: number;
+  avgMultiple: number | null;
+  medianMultiple: number | null;
+}
+
+export function toValuationMultiples(
+  rows: ValuationMultipleRow[]
+): ValuationMultipleData[] {
+  return rows
+    .filter((r) => r.deals > 0)
+    .map((r) => ({
+      sector: (SECTOR_LABELS as Record<string, string>)[r.sector] ?? r.sector,
+      sectorKey: r.sector,
+      deals: r.deals,
+      avgMultiple: r.avg_multiple,
+      medianMultiple: r.median_multiple,
+    }));
+}
+
+// ---- Win/loss by sector and confidence ----
+export interface WinLossData {
+  bySector: { sector: string; sectorKey: string; wins: number; losses: number }[];
+  byConfidence: { label: string; wins: number; losses: number }[];
+  totals: { wins: number; losses: number; winRate: number };
+}
+
+export function toWinLoss(rows: WinLossRow[]): WinLossData {
+  const sectorMap = new Map<string, { wins: number; losses: number }>();
+  const confMap = new Map<string, { wins: number; losses: number }>();
+  let totalWins = 0;
+  let totalLosses = 0;
+
+  for (const r of rows) {
+    const s = sectorMap.get(r.sector) ?? { wins: 0, losses: 0 };
+    s.wins += r.wins;
+    s.losses += r.losses;
+    sectorMap.set(r.sector, s);
+
+    const cf = confMap.get(r.confidence) ?? { wins: 0, losses: 0 };
+    cf.wins += r.wins;
+    cf.losses += r.losses;
+    confMap.set(r.confidence, cf);
+
+    totalWins += r.wins;
+    totalLosses += r.losses;
+  }
+
+  const total = totalWins + totalLosses;
+  const winRate = total === 0 ? 0 : Math.round((totalWins / total) * 100);
+
+  const CONF_ORDER: Record<string, number> = {
+    high: 0,
+    medium: 1,
+    low: 2,
+    needs_review: 3,
+  };
+
+  return {
+    bySector: [...sectorMap.entries()]
+      .map(([sector, v]) => ({
+        sector: (SECTOR_LABELS as Record<string, string>)[sector] ?? sector,
+        sectorKey: sector,
+        ...v,
+      }))
+      .sort((a, b) => b.wins + b.losses - (a.wins + a.losses)),
+    byConfidence: [...confMap.entries()]
+      .map(([confidence, v]) => ({
+        label: CONF_META[confidence]?.label ?? confidence,
+        ...v,
+      }))
+      .sort(
+        (a, b) =>
+          (CONF_ORDER[a.label.toLowerCase()] ?? 9) -
+          (CONF_ORDER[b.label.toLowerCase()] ?? 9)
+      ),
+    totals: { wins: totalWins, losses: totalLosses, winRate },
   };
 }

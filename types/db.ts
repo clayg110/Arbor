@@ -66,6 +66,13 @@ export type DbCompany = {
   ebitda_source_url: string | null;
   created_at: string;
   updated_at: string;
+  // outcome fields (migration 0026) — null until migration is applied
+  outcome?: "closed" | "withdrawn" | null;
+  acquirer?: string | null;
+  close_multiple?: string | null;
+  closed_at?: string | null;
+  // deal workflow (migration 0030)
+  owner_id?: string | null;
 };
 
 // Monitored company universe (Backend §2.1) — no deal stage.
@@ -130,6 +137,88 @@ export type DbNote = {
   author: string | null;
   content: string;
   created_at: string;
+};
+
+export type DbCompanyMemo = {
+  company_id: string;
+  memo: string;
+  signals_hash: string;
+  model: string | null;
+  generated_at: string;
+};
+
+export type DbAlertRule = {
+  id: string;
+  user_id: string;
+  org_id: string | null;
+  name: string;
+  predicate: Record<string, unknown>;
+  webhook: boolean;
+  email_delivery: boolean;
+  active: boolean;
+  created_at: string;
+};
+
+// ---- deal workflow (0030) ----
+export type DbDealTask = {
+  id: string;
+  company_id: string;
+  user_id: string;
+  org_id: string | null;
+  title: string;
+  due_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type DbOutreachLog = {
+  id: string;
+  company_id: string;
+  user_id: string;
+  org_id: string | null;
+  type: "call" | "email" | "meeting" | "other";
+  note: string;
+  contacted_at: string;
+  created_at: string;
+};
+
+// ---- saved radar views (0029) ----
+export type DbSavedView = {
+  id: string;
+  user_id: string;
+  org_id: string | null;
+  name: string;
+  filters: Record<string, unknown>;
+  created_at: string;
+};
+
+// ---- user preferences (0028 + 0033) ----
+export type DbUserPreferences = {
+  user_id: string;
+  briefing_frequency: "off" | "daily" | "weekly";
+  report_frequency: "off" | "weekly" | "monthly";
+  updated_at: string;
+};
+
+// ---- analytics views (0032) ----
+export type FunnelCohortRow = {
+  cohort_month: string; // ISO date (first of month)
+  stage: Stage;
+  entries: number;
+};
+
+export type ValuationMultipleRow = {
+  sector: Sector;
+  deals: number;
+  avg_multiple: number | null;
+  median_multiple: number | null;
+};
+
+export type WinLossRow = {
+  sector: Sector;
+  confidence: Confidence;
+  wins: number;
+  losses: number;
 };
 
 // ---- multi-tenant + governance (0014) ----
@@ -239,6 +328,12 @@ export type LastSignalRow = {
   doc_type: string | null;
   key_quote: string | null;
 };
+export type ConvictionRow = {
+  company_id: string;
+  signal_count_30d: number;
+  distinct_source_types: number;
+  last_signal_at: string | null;
+};
 export type SummaryCountsRow = {
   total: number;
   in_market: number;
@@ -264,6 +359,21 @@ export type SponsorActivityRow = {
   sponsor: string;
   processes: number;
   top_sector: Sector;
+};
+export type SponsorHoldingRow = {
+  sponsor: string;
+  total_deals: number;
+  market_count: number;
+  avg_days_hold: number | null;
+  exit_rate_pct: number;
+  top_sector: Sector;
+};
+export type CalibrationRow = {
+  confidence: Confidence;
+  total: number;
+  closed_count: number;
+  lost_count: number;
+  close_rate_pct: number;
 };
 export type SignalSourceRow = { source_type: SourceType; count: number; pct: number };
 export type TransitionRateRow = {
@@ -357,6 +467,22 @@ export interface Database {
         Update: Partial<DbNote>;
         Relationships: Rel;
       };
+      company_memos: {
+        Row: DbCompanyMemo;
+        Insert: Partial<DbCompanyMemo> & {
+          company_id: string;
+          memo: string;
+          signals_hash: string;
+        };
+        Update: Partial<DbCompanyMemo>;
+        Relationships: Rel;
+      };
+      alert_rules: {
+        Row: DbAlertRule;
+        Insert: Partial<DbAlertRule> & { user_id: string; name: string };
+        Update: Partial<DbAlertRule>;
+        Relationships: Rel;
+      };
       llm_usage: {
         Row: DbLlmUsage;
         Insert: Partial<DbLlmUsage>;
@@ -414,9 +540,47 @@ export interface Database {
         Update: Partial<DbApiKey>;
         Relationships: Rel;
       };
+      user_preferences: {
+        Row: DbUserPreferences;
+        Insert: Partial<DbUserPreferences> & { user_id: string };
+        Update: Partial<DbUserPreferences>;
+        Relationships: Rel;
+      };
+      saved_views: {
+        Row: DbSavedView;
+        Insert: Partial<DbSavedView> & {
+          user_id: string;
+          name: string;
+          filters: Record<string, unknown>;
+        };
+        Update: Partial<DbSavedView>;
+        Relationships: Rel;
+      };
+      deal_tasks: {
+        Row: DbDealTask;
+        Insert: Partial<DbDealTask> & {
+          company_id: string;
+          user_id: string;
+          title: string;
+        };
+        Update: Partial<DbDealTask>;
+        Relationships: Rel;
+      };
+      outreach_log: {
+        Row: DbOutreachLog;
+        Insert: Partial<DbOutreachLog> & {
+          company_id: string;
+          user_id: string;
+          type: DbOutreachLog["type"];
+          note: string;
+        };
+        Update: Partial<DbOutreachLog>;
+        Relationships: Rel;
+      };
     };
     Views: {
       v_company_last_signal: { Row: LastSignalRow; Relationships: Rel };
+      v_company_conviction: { Row: ConvictionRow; Relationships: Rel };
       v_pipeline_latest: { Row: PipelineLatestRow; Relationships: Rel };
       v_universe_counts: { Row: UniverseCountsRow; Relationships: Rel };
       v_summary_counts: { Row: SummaryCountsRow; Relationships: Rel };
@@ -426,9 +590,14 @@ export interface Database {
       v_exit_funnel: { Row: ExitFunnelRow; Relationships: Rel };
       v_top_sectors: { Row: TopSectorRow; Relationships: Rel };
       v_sponsor_activity: { Row: SponsorActivityRow; Relationships: Rel };
+      v_sponsor_holding: { Row: SponsorHoldingRow; Relationships: Rel };
+      v_confidence_calibration: { Row: CalibrationRow; Relationships: Rel };
       v_signal_sources: { Row: SignalSourceRow; Relationships: Rel };
       v_transition_rates: { Row: TransitionRateRow; Relationships: Rel };
       v_recent_changes: { Row: RecentChangeRow; Relationships: Rel };
+      v_funnel_cohorts: { Row: FunnelCohortRow; Relationships: Rel };
+      v_valuation_multiples: { Row: ValuationMultipleRow; Relationships: Rel };
+      v_win_loss: { Row: WinLossRow; Relationships: Rel };
     };
     Functions: {
       rpc_velocity: { Args: { p_from?: string; p_to?: string }; Returns: VelocityRow[] };

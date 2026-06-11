@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { RadarCompanyCard } from "@/components/ui/RadarCompanyCard";
 import {
   RadarTable,
@@ -16,7 +16,12 @@ import {
   PlusIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  XIcon,
 } from "@/components/ui/icons";
+import { NewAlertForm, type NewAlertInitial } from "@/components/ui/AlertsSection";
+import { SavedViewsMenu } from "@/components/ui/SavedViewsMenu";
+import { useFocusTrap } from "@/lib/use-focus-trap";
+import type { SavedViewFilters } from "@/lib/api-client";
 import {
   radarCompanies,
   summaryStrip,
@@ -43,6 +48,8 @@ function sortList(rows: RadarCompany[], key: SortKey, dir: SortDir): RadarCompan
     if (key === "name") d = a.name.localeCompare(b.name);
     else if (key === "days") d = a.days - b.days;
     else if (key === "added") d = a.added.localeCompare(b.added);
+    else if (key === "conviction")
+      d = (a.conviction?.score ?? 0) - (b.conviction?.score ?? 0);
     else d = CONF_RANK[a.confidence] - CONF_RANK[b.confidence];
     return dir === "asc" ? d : -d;
   });
@@ -66,6 +73,7 @@ const COLUMNS: { id: string; title: string; stages: Stage[]; color: Stage }[] = 
 ];
 
 const SORT_OPTIONS: { id: string; label: string; key: SortKey; dir: SortDir }[] = [
+  { id: "conv_desc", label: "Conviction (highest)", key: "conviction", dir: "desc" },
   { id: "days_desc", label: "Days in stage (longest)", key: "days", dir: "desc" },
   { id: "name_asc", label: "Company name A→Z", key: "name", dir: "asc" },
   { id: "name_desc", label: "Company name Z→A", key: "name", dir: "desc" },
@@ -75,6 +83,7 @@ const SORT_OPTIONS: { id: string; label: string; key: SortKey; dir: SortDir }[] 
 ];
 
 const COL_SORT: { id: string; label: string; key: SortKey; dir: SortDir }[] = [
+  { id: "conviction", label: "Conviction", key: "conviction", dir: "desc" },
   { id: "days", label: "Days in stage", key: "days", dir: "desc" },
   { id: "name", label: "Name", key: "name", dir: "asc" },
   { id: "confidence", label: "Confidence", key: "confidence", dir: "desc" },
@@ -154,7 +163,9 @@ export default function RadarPage() {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [shown, setShown] = useState<Record<string, number>>({});
   const [showAdd, setShowAdd] = useState(false);
+  const [showSaveAlert, setShowSaveAlert] = useState(false);
   const [newThisWeek, setNewThisWeek] = useState(false);
+  const [heating, setHeating] = useState(false); // conviction band = hot
 
   // "this week" = added on/after 7 days before the mock anchor (2026-06-03)
   const WEEK_CUTOFF = "2026-05-27";
@@ -237,13 +248,24 @@ export default function RadarPage() {
       if (stages.size && !stages.has(c.stage)) return false;
       if (sponsor !== "all" && c.ownerName !== sponsor) return false;
       if (newThisWeek && c.added < WEEK_CUTOFF) return false;
+      if (heating && c.conviction?.band !== "hot") return false;
       if (q) {
         const hay = `${c.name} ${c.ownerName} ${SECTOR_LABELS[c.sector]}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     });
-  }, [companies, sector, deal, confidence, stages, sponsor, search, newThisWeek]);
+  }, [
+    companies,
+    sector,
+    deal,
+    confidence,
+    stages,
+    sponsor,
+    search,
+    newThisWeek,
+    heating,
+  ]);
 
   const activeCount =
     (sector !== "all" ? 1 : 0) +
@@ -252,6 +274,7 @@ export default function RadarPage() {
     stages.size +
     (sponsor !== "all" ? 1 : 0) +
     (newThisWeek ? 1 : 0) +
+    (heating ? 1 : 0) +
     (search.trim() ? 1 : 0);
 
   function clearAll() {
@@ -262,6 +285,43 @@ export default function RadarPage() {
     setSponsor("all");
     setSearch("");
     setNewThisWeek(false);
+    setHeating(false);
+  }
+
+  function buildFilterObject(): SavedViewFilters {
+    const f: SavedViewFilters = {};
+    if (sector !== "all") f.sector = sector;
+    if (deal !== "all") f.deal = deal;
+    if (confidence.size) f.confidence = [...confidence];
+    if (stages.size) f.stages = [...stages];
+    if (sponsor !== "all") f.sponsor = sponsor;
+    if (search.trim()) f.search = search.trim();
+    if (newThisWeek) f.newThisWeek = true;
+    if (heating) f.heating = true;
+    return f;
+  }
+
+  function applyView(f: SavedViewFilters) {
+    setSector((f.sector as Sector) ?? "all");
+    setDeal((f.deal as DealType) ?? "all");
+    setConfidence(f.confidence ? new Set(f.confidence) : new Set());
+    setStages(f.stages ? new Set(f.stages) : new Set());
+    setSponsor(f.sponsor ?? "all");
+    setSearch(f.search ?? "");
+    setNewThisWeek(f.newThisWeek ?? false);
+    setHeating(f.heating ?? false);
+  }
+
+  function buildFilterQs(): string {
+    const p = new URLSearchParams();
+    if (sector !== "all") p.set("sector", sector);
+    if (deal !== "all") p.set("deal", deal);
+    if (confidence.size) p.set("confidence", [...confidence].join(","));
+    if (stages.size) p.set("stage", [...stages].join(","));
+    if (sponsor !== "all") p.set("sponsor", sponsor);
+    if (search.trim()) p.set("q", search.trim());
+    const s = p.toString();
+    return s ? `?${s}` : "";
   }
 
   // Summary-strip quick filters: reset everything, then apply one category.
@@ -376,6 +436,32 @@ export default function RadarPage() {
               className="w-64"
               placeholder="Search company, sponsor, sector…"
             />
+            <SavedViewsMenu currentFilters={buildFilterObject()} onLoad={applyView} />
+            <button
+              type="button"
+              onClick={() => setShowSaveAlert(true)}
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-muted hover:text-ink"
+              style={{ border: "0.5px solid var(--border)" }}
+            >
+              Save as alert
+            </button>
+            <a
+              href={`/api/radar/export${buildFilterQs()}`}
+              download="arbor-radar.csv"
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-muted hover:text-ink"
+              style={{ border: "0.5px solid var(--border)" }}
+            >
+              Export CSV
+            </a>
+            <a
+              href={`/print/radar${buildFilterQs()}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium text-muted hover:text-ink"
+              style={{ border: "0.5px solid var(--border)" }}
+            >
+              Print view
+            </a>
             <button
               type="button"
               onClick={() => setShowAdd(true)}
@@ -418,6 +504,10 @@ export default function RadarPage() {
             onClick={() => setDeal("private_asset")}
           >
             Private assets
+          </Chip>
+          <Divider />
+          <Chip active={heating} onClick={() => setHeating((v) => !v)}>
+            Heating up
           </Chip>
           <Divider />
           {ALL_CONF.map((cf) => (
@@ -773,6 +863,10 @@ export default function RadarPage() {
         />
       )}
 
+      {live.source === "live" && (
+        <SuggestionsBar onToggleWatch={toggleWatch} watch={watch} />
+      )}
+
       {showAdd && (
         <AddCompanyModal
           live={live.source === "live"}
@@ -783,7 +877,113 @@ export default function RadarPage() {
           }}
         />
       )}
+
+      {showSaveAlert && (
+        <SaveAlertModal
+          initial={{
+            sector: sector !== "all" ? sector : undefined,
+            dealType: deal !== "all" ? deal : undefined,
+            sponsorContains: sponsor !== "all" ? sponsor : undefined,
+            nameContains: search.trim() || undefined,
+          }}
+          onClose={() => setShowSaveAlert(false)}
+        />
+      )}
     </div>
+  );
+}
+
+function SaveAlertModal({
+  initial,
+  onClose,
+}: {
+  initial: NewAlertInitial;
+  onClose: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useFocusTrap(ref, onClose);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div
+        ref={ref}
+        role="dialog"
+        aria-label="Save current filters as alert"
+        className="mx-4 w-full max-w-[520px] rounded-lg bg-surface p-5 shadow-lg"
+        style={{ border: "0.5px solid var(--border)" }}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-[14px] font-medium text-ink">Save as alert</h2>
+          <button type="button" onClick={onClose} aria-label="Close">
+            <XIcon className="h-4 w-4 text-muted hover:text-ink" />
+          </button>
+        </div>
+        <NewAlertForm initial={initial} onCreated={onClose} onCancel={onClose} />
+      </div>
+    </div>
+  );
+}
+
+// Lazy-loads similar-company recommendations from the watchlist.
+// Only renders when there are results; hidden in mock mode (live.source check above).
+function SuggestionsBar({
+  onToggleWatch,
+  watch,
+}: {
+  onToggleWatch: (id: string) => void;
+  watch: Set<string>;
+}) {
+  const [items, setItems] = useState<
+    {
+      id: string;
+      name: string;
+      sector: string;
+      dealType: string;
+      stage: string;
+      score: number;
+      matchReasons: string[];
+    }[]
+  >([]);
+
+  useEffect(() => {
+    api
+      .suggestions()
+      .then((r) => setItems(r.suggestions))
+      .catch(() => {});
+  }, []);
+
+  if (items.length === 0) return null;
+
+  return (
+    <section className="mt-6">
+      <h2 className="mb-2 text-[12px] font-medium text-muted">
+        Similar to your watchlist
+      </h2>
+      <div className="flex flex-wrap gap-2">
+        {items.map((c) => (
+          <div
+            key={c.id}
+            className="flex items-center gap-3 rounded-lg bg-surface px-3 py-2"
+            style={{ border: "0.5px solid var(--border)" }}
+          >
+            <div>
+              <p className="text-[13px] font-medium text-ink">{c.name}</p>
+              <p className="text-[11px] text-muted">
+                {c.sector} · {c.stage.replace(/_/g, " ")} · {c.matchReasons[0]}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onToggleWatch(c.id)}
+              aria-label={watch.has(c.id) ? `Unwatch ${c.name}` : `Watch ${c.name}`}
+              className="shrink-0 rounded px-2 py-1 text-[11px] font-medium text-[#185FA5] hover:bg-[#E6F1FB]"
+              style={{ border: "0.5px solid var(--border)" }}
+            >
+              {watch.has(c.id) ? "Watching" : "+ Watch"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

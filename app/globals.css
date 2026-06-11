@@ -13,6 +13,39 @@
      audit (e2e/a11y-audit.spec.ts). Do not lighten without re-checking contrast. */
   --text-muted: #5f5e57;
   --text-subtle: #6a6963;
+  color-scheme: light;
+}
+
+/* Dark mode: override CSS tokens only. Hardcoded accent colors (badge tints,
+   chart lines) intentionally kept — they're contrast-safe on dark surfaces too. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111110;
+    --surface: #1c1c1a;
+    --border: #2e2e2c;
+    --text: #f0ede6;
+    --text-muted: #a8a49c;
+    --text-subtle: #9a968e;
+    color-scheme: dark;
+  }
+}
+[data-theme="dark"] {
+  --bg: #111110;
+  --surface: #1c1c1a;
+  --border: #2e2e2c;
+  --text: #f0ede6;
+  --text-muted: #a8a49c;
+  --text-subtle: #9a968e;
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --bg: #faf9f6;
+  --surface: #ffffff;
+  --border: #e6e4dd;
+  --text: #1a1a18;
+  --text-muted: #5f5e57;
+  --text-subtle: #6a6963;
+  color-scheme: light;
 }
 
 html,
@@ -55,11 +88,11 @@ strong {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #dedcd3;
+  background: var(--border);
   border-radius: 6px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #cfcdc3;
+  background: var(--text-subtle);
 }
 
 /* Respect the OS "reduce motion" setting — neutralizes the pulse dot, feed

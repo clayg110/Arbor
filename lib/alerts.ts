@@ -1,6 +1,7 @@
-// Best-effort operational alerts. Posts to a Slack-compatible incoming webhook
-// (ALERT_WEBHOOK_URL) when set; otherwise a no-op. Never throws to callers — a
-// broken alert channel must not take down a pipeline.
+// Best-effort operational alerts. Posts to Slack-compatible (ALERT_WEBHOOK_URL)
+// and/or Teams (TEAMS_WEBHOOK_URL) incoming webhooks when configured; otherwise
+// a no-op. Never throws to callers — a broken alert channel must not take down a
+// pipeline.
 
 export interface PipelineReport {
   pipeline: string;
@@ -12,7 +13,7 @@ export interface PipelineReport {
 }
 
 export function hasAlertEnv(): boolean {
-  return !!process.env.ALERT_WEBHOOK_URL;
+  return !!process.env.ALERT_WEBHOOK_URL || !!process.env.TEAMS_WEBHOOK_URL;
 }
 
 export async function sendAlert(text: string): Promise<boolean> {
@@ -29,6 +30,34 @@ export async function sendAlert(text: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Teams incoming webhook — uses legacy MessageCard format (universally supported).
+export async function sendTeamsAlert(text: string): Promise<boolean> {
+  const url = process.env.TEAMS_WEBHOOK_URL;
+  if (!url) return false;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        "@type": "MessageCard",
+        "@context": "http://schema.org/extensions",
+        text,
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Fan out to all configured channels (Slack + Teams). Returns true if at least
+// one delivery succeeded.
+export async function sendAllAlerts(text: string): Promise<boolean> {
+  const [slack, teams] = await Promise.all([sendAlert(text), sendTeamsAlert(text)]);
+  return slack || teams;
 }
 
 // Alert only when a run logged errors. Safe to call unconditionally — returns

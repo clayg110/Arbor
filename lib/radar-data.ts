@@ -1,4 +1,5 @@
 import type { DealType, Sector, Confidence, Stage, SourceType } from "./types";
+import { computeConviction, type Conviction } from "./conviction";
 
 export interface LastSignal {
   label: string; // "2 days ago"
@@ -34,6 +35,7 @@ export interface RadarCompany {
   description?: string | null;
   revenueSource?: string | null;
   ebitdaSource?: string | null;
+  conviction?: Conviction; // 0–100 "likely to transact" + band
 }
 
 const sig = (
@@ -43,7 +45,7 @@ const sig = (
   daysAgo: number
 ): LastSignal => ({ label, sourceName, source, daysAgo });
 
-export const radarCompanies: RadarCompany[] = [
+const baseRadarCompanies: RadarCompany[] = [
   // ---------------- IN MARKET ----------------
   {
     id: "r1",
@@ -408,6 +410,18 @@ export const radarCompanies: RadarCompany[] = [
     lastSignal: sig("5 weeks ago", "Earnings call", "earnings_transcript", 35),
   },
 ];
+
+// Mock companies lack stored signal aggregates, so conviction is derived from the
+// last-signal recency + confidence + stage (the live path enriches it with real
+// 30-day signal counts via v_company_conviction).
+export const radarCompanies: RadarCompany[] = baseRadarCompanies.map((c) => ({
+  ...c,
+  conviction: computeConviction({
+    lastSignalAgeDays: c.lastSignal.daysAgo,
+    confidence: c.confidence,
+    stage: c.stage,
+  }),
+}));
 
 // ---- summary strip (always unfiltered) ----
 export const summaryStrip = {
