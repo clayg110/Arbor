@@ -77,7 +77,8 @@ export function GlobalSearch() {
       setActive((a) => Math.max(a - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      go(hits[active]);
+      const hit = hits[active];
+      if (hit) go(hit);
     } else if (e.key === "Escape") {
       setOpen(false);
     }

@@ -109,6 +109,6 @@ describe("computeWinLoss", () => {
     ];
     const result = computeWinLoss(companies);
     // chemicals has 3 outcomes, industrials has 1
-    expect(result.bySector[0].sector).toBe("chemicals");
+    expect(result.bySector[0]!.sector).toBe("chemicals");
   });
 });

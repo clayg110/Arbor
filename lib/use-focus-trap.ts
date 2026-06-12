@@ -36,8 +36,8 @@ export function useFocusTrap(
       if (e.key !== "Tab") return;
       const els = list();
       if (els.length === 0) return;
-      const first = els[0];
-      const last = els[els.length - 1];
+      const first = els[0]!;
+      const last = els[els.length - 1]!;
       if (e.shiftKey && document.activeElement === first) {
         e.preventDefault();
         last.focus();

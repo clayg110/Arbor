@@ -50,7 +50,7 @@ describe("applyCompsFilter", () => {
   it("filters by sector", () => {
     const result = applyCompsFilter(BASE, { ...EMPTY_FILTER, sector: "chemicals" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("2");
+    expect(result[0]!.id).toBe("2");
   });
 
   it("filters by dealType", () => {
@@ -59,13 +59,13 @@ describe("applyCompsFilter", () => {
       dealType: "private_asset",
     });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("2");
+    expect(result[0]!.id).toBe("2");
   });
 
   it("filters by outcome closed", () => {
     const result = applyCompsFilter(BASE, { ...EMPTY_FILTER, outcome: "closed" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("2");
+    expect(result[0]!.id).toBe("2");
   });
 
   it("filters by outcome withdrawn", () => {
@@ -74,25 +74,25 @@ describe("applyCompsFilter", () => {
       outcome: "withdrawn",
     });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("3");
+    expect(result[0]!.id).toBe("3");
   });
 
   it("filters by sizeBand large", () => {
     const result = applyCompsFilter(BASE, { ...EMPTY_FILTER, sizeBand: "large" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("2");
+    expect(result[0]!.id).toBe("2");
   });
 
   it("filters by sizeBand small", () => {
     const result = applyCompsFilter(BASE, { ...EMPTY_FILTER, sizeBand: "small" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("3");
+    expect(result[0]!.id).toBe("3");
   });
 
   it("filters by sizeBand mid", () => {
     const result = applyCompsFilter(BASE, { ...EMPTY_FILTER, sizeBand: "mid" });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("1");
+    expect(result[0]!.id).toBe("1");
   });
 
   it("filters by closedAfter", () => {
@@ -101,7 +101,7 @@ describe("applyCompsFilter", () => {
       closedAfter: "2025-01-01",
     });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("2");
+    expect(result[0]!.id).toBe("2");
   });
 
   it("filters by closedBefore", () => {
@@ -110,7 +110,7 @@ describe("applyCompsFilter", () => {
       closedBefore: "2025-01-01",
     });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("3");
+    expect(result[0]!.id).toBe("3");
   });
 
   it("closedAfter excludes comps without closedAt", () => {
@@ -128,7 +128,7 @@ describe("applyCompsFilter", () => {
       outcome: "withdrawn",
     });
     expect(result).toHaveLength(1);
-    expect(result[0].id).toBe("3");
+    expect(result[0]!.id).toBe("3");
   });
 
   it("returns empty when no comps match", () => {
@@ -172,7 +172,7 @@ describe("compsToCSV", () => {
   });
 
   it("includes closeMultiple and closedAt", () => {
-    const csv = compsToCSV([BASE[1]]);
+    const csv = compsToCSV([BASE[1]!]);
     expect(csv).toContain("11.5x");
     expect(csv).toContain("2025-03-01");
   });

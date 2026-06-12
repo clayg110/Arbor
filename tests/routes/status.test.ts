@@ -52,7 +52,7 @@ describe("GET /api/status", () => {
     };
     expect(json.status).toBe("operational");
     expect(json.db).toBe("ok");
-    expect(json.pipelines[0].pipeline).toBe("carveouts");
+    expect(json.pipelines[0]!.pipeline).toBe("carveouts");
   });
 
   it("degraded when stale", async () => {

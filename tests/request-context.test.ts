@@ -18,14 +18,14 @@ describe("request context", () => {
   it("auto-enriches log lines with the active requestId", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     runWithRequestId("rid-9", () => log.info("hello"));
-    const payload = JSON.parse(spy.mock.calls[0][0] as string);
+    const payload = JSON.parse(spy.mock.calls[0]![0] as string);
     expect(payload.requestId).toBe("rid-9");
   });
 
   it("omits requestId when none is bound", () => {
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     log.info("nope");
-    const payload = JSON.parse(spy.mock.calls[0][0] as string);
+    const payload = JSON.parse(spy.mock.calls[0]![0] as string);
     expect(payload.requestId).toBeUndefined();
   });
 });

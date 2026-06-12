@@ -62,7 +62,7 @@ describe("truncate", () => {
 describe("memoSignalsHash", () => {
   it("is stable + order-independent over the same signal set", () => {
     const h1 = memoSignalsHash(signals);
-    const h2 = memoSignalsHash([signals[1], signals[0]]);
+    const h2 = memoSignalsHash([signals[1]!, signals[0]!]);
     expect(h1).toBe(h2);
     expect(h1).toMatch(/^[0-9a-f]{64}$/);
   });
@@ -70,7 +70,7 @@ describe("memoSignalsHash", () => {
   it("changes when a signal is added", () => {
     const more = [
       ...signals,
-      { ...signals[0], id: "s3", ingestedAt: "2026-06-02T00:00:00Z" },
+      { ...signals[0]!, id: "s3", ingestedAt: "2026-06-02T00:00:00Z" },
     ];
     expect(memoSignalsHash(more)).not.toBe(memoSignalsHash(signals));
   });

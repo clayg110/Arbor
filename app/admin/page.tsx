@@ -670,7 +670,7 @@ function InviteModal({
     setBusy(true);
 
     const row: UserRow = {
-      name: email.split("@")[0],
+      name: email.split("@")[0]!,
       email,
       role,
       lastActive: "Invited",
@@ -818,7 +818,7 @@ function AddUserModal({
     setBusy(true);
 
     const row: UserRow = {
-      name: name.trim() || email.split("@")[0],
+      name: name.trim() || email.split("@")[0]!,
       email,
       role,
       lastActive: "—",

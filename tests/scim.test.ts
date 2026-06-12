@@ -13,7 +13,7 @@ describe("toScimUser", () => {
     expect(r.id).toBe("u1");
     expect(r.userName).toBe("Jane@x.com");
     expect(r.active).toBe(true);
-    expect(r.emails[0].value).toBe("Jane@x.com");
+    expect(r.emails[0]!.value).toBe("Jane@x.com");
     expect(r.schemas[0]).toContain("core:2.0:User");
   });
 });

@@ -10,6 +10,7 @@ import { topComps, type CompInput, type CompResult } from "./comps";
 import { bankerIntelligence, type Contact, type CompanyContact } from "./contacts";
 import type { Bid } from "./bids";
 import type { PipelineDeal } from "./pipeline";
+import { buildLpReport, currentQuarter, type LpDeal, type LpFund } from "./lp-report";
 
 // All dates are anchored around "today" = 2026-06-02 for realistic relative ages.
 
@@ -1087,12 +1088,12 @@ export const mockContacts: Contact[] = [
 // company id -> attached contacts (with link id + role).
 const MOCK_COMPANY_CONTACTS: Record<string, CompanyContact[]> = {
   "1": [
-    { ...mockContacts[0], linkId: "lc1", role: "M&A Advisor" },
-    { ...mockContacts[4], linkId: "lc2", role: "M&A Advisor" },
-    { ...mockContacts[5], linkId: "lc3", role: "Counsel" },
+    { ...mockContacts[0]!, linkId: "lc1", role: "M&A Advisor" },
+    { ...mockContacts[4]!, linkId: "lc2", role: "M&A Advisor" },
+    { ...mockContacts[5]!, linkId: "lc3", role: "Counsel" },
   ],
-  "6": [{ ...mockContacts[3], linkId: "lc4", role: "CFO" }],
-  "5": [{ ...mockContacts[2], linkId: "lc5", role: "M&A Advisor" }],
+  "6": [{ ...mockContacts[3]!, linkId: "lc4", role: "CFO" }],
+  "5": [{ ...mockContacts[2]!, linkId: "lc5", role: "M&A Advisor" }],
 };
 
 export function getCompanyContacts(companyId: string): CompanyContact[] {
@@ -1162,7 +1163,7 @@ export function getMockPipelineDeals(): PipelineDeal[] {
         dealType: c.dealType,
         ourProcessStage: c.ourProcessStage!,
         keyDates: c.processKeyDates ?? {},
-        daysInStage: [12, 5, 18, 3, 30, 8, 45, 2][i % 8],
+        daysInStage: [12, 5, 18, 3, 30, 8, 45, 2][i % 8]!,
         ownerId: null,
         ownerEmail: null,
         bidCount: compBids.length,
@@ -1170,3 +1171,38 @@ export function getMockPipelineDeals(): PipelineDeal[] {
       } satisfies PipelineDeal;
     });
 }
+
+// ---- funds / LP reporting (mock mode) -------------------------------------
+
+export interface MockFund extends LpFund {
+  dealCount: number;
+}
+
+export const mockFunds: MockFund[] = [
+  { id: "fund-growth-iv", name: "Arbor Growth Fund IV", vintageYear: 2024, dealCount: 0 },
+  { id: "fund-buyout-ii", name: "Arbor Buyout Fund II", vintageYear: 2021, dealCount: 0 },
+];
+
+// Assign the first tracked companies to the two funds, round-robin, so the LP
+// report has populated sections in mock mode.
+const mockLpDeals: LpDeal[] = mockCompanies.slice(0, 8).map((c, i) => ({
+  companyId: c.id,
+  companyName: c.name,
+  sector: c.sector,
+  fundId: i % 3 === 2 ? null : mockFunds[i % 2]!.id,
+  stage: c.currentStage,
+  conviction: [82, 64, 48, 71, 55, 90, 38, 60][i % 8]!,
+  bidCount: [2, 0, 1, 3, 0, 1, 0, 2][i % 8]!,
+  createdAt: c.firstTracked,
+}));
+
+for (const d of mockLpDeals) {
+  const f = mockFunds.find((x) => x.id === d.fundId);
+  if (f) f.dealCount += 1;
+}
+
+export const mockLpReport = buildLpReport(
+  mockLpDeals,
+  mockFunds.map(({ id, name, vintageYear }) => ({ id, name, vintageYear })),
+  currentQuarter()
+);

@@ -17,8 +17,8 @@ describe("buildUserDigests", () => {
     const digests = buildUserDigests(changes, wl);
     const byUser = Object.fromEntries(digests.map((d) => [d.userId, d.items]));
     expect(Object.keys(byUser).sort()).toEqual(["u1", "u2"]);
-    expect(byUser.u1.map((i) => i.companyId)).toEqual(["c1"]);
-    expect(byUser.u2.map((i) => i.companyId)).toEqual(["c1"]);
+    expect(byUser.u1!.map((i) => i.companyId)).toEqual(["c1"]);
+    expect(byUser.u2!.map((i) => i.companyId)).toEqual(["c1"]);
     expect(byUser.u3).toBeUndefined();
   });
 

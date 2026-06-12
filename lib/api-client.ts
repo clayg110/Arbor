@@ -18,6 +18,19 @@ import type {
 import type { Contact, CompanyContact, ContactRole, FirmActivity } from "@/lib/contacts";
 import type { Bid, BidType, BidRound } from "@/lib/bids";
 import type { PipelineDeal } from "@/lib/pipeline";
+import type { LpFund, LpReport } from "@/lib/lp-report";
+
+export interface FundView extends LpFund {
+  dealCount: number;
+}
+
+export interface CrmSyncView {
+  provider: string;
+  status: "synced" | "error";
+  externalId: string | null;
+  error: string | null;
+  syncedAt: string;
+}
 
 export class BackendOff extends Error {
   constructor() {
@@ -253,6 +266,8 @@ export const api = {
     briefingFrequency?: "off" | "daily" | "weekly";
     reportFrequency?: "off" | "weekly" | "monthly";
   }) => jsend<{ ok: boolean }>(`/api/account/preferences`, "PATCH", body),
+  calendarFeed: () =>
+    jget<{ enabled: boolean; url: string | null }>(`/api/calendar/feed`),
   listTasks: (companyId: string) =>
     jget<{ tasks: import("@/lib/deal-tasks").DealTask[] }>(
       `/api/companies/${companyId}/tasks`
@@ -371,6 +386,29 @@ export const api = {
       "DELETE"
     ),
   firmActivity: () => jget<{ firms: FirmActivity[] }>(`/api/contacts/firms`),
+
+  // ---- funds / LP reporting ----
+  listFunds: () => jget<{ funds: FundView[] }>(`/api/funds`),
+  createFund: (body: { name: string; vintageYear?: number | null }) =>
+    jsend<{ fund: FundView }>(`/api/funds`, "POST", body),
+  updateFund: (id: string, body: { name?: string; vintageYear?: number | null }) =>
+    jsend<{ fund: FundView }>(`/api/funds/${id}`, "PATCH", body),
+  deleteFund: (id: string) => jsend<{ ok: boolean }>(`/api/funds/${id}`, "DELETE"),
+  assignFund: (companyId: string, fundId: string | null) =>
+    jsend<{ ok: boolean }>(`/api/companies/${companyId}`, "PATCH", {
+      action: "assign_fund",
+      fundId,
+    }),
+  lpReport: (quarter: string) =>
+    jget<{ report: LpReport }>(`/api/reports/lp?quarter=${encodeURIComponent(quarter)}`),
+
+  // ---- CRM sync ----
+  crmStatus: (companyId: string) =>
+    jget<{ configured: boolean; provider: string | null; sync: CrmSyncView | null }>(
+      `/api/companies/${companyId}/crm-sync`
+    ),
+  crmSync: (companyId: string) =>
+    jsend<{ sync: CrmSyncView | null }>(`/api/companies/${companyId}/crm-sync`, "POST"),
 
   // ---- bids ----
   listBids: (companyId: string) =>

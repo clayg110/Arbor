@@ -53,10 +53,10 @@ export function toVelocity(rows: VelocityRow[]): VelocityPointData[] {
   return rows.map((r, i) => {
     const start = Math.max(0, i - 3);
     let sum = 0;
-    for (let k = start; k <= i; k++) sum += rows[k].total;
+    for (let k = start; k <= i; k++) sum += rows[k]!.total;
     const rolling = +(sum / (i - start + 1)).toFixed(1);
     const month = new Date(r.week_start + "T12:00:00").getMonth();
-    const label = month !== prevMonth ? MONTH[month] : "";
+    const label = month !== prevMonth ? MONTH[month]! : "";
     prevMonth = month;
     return {
       i,
@@ -111,7 +111,7 @@ const CONF_META: Record<string, { label: string; color: string; order: number }>
 };
 export function toConfidenceDist(rows: ConfidenceDistRow[]) {
   return rows
-    .map((r) => ({ ...CONF_META[r.confidence], count: r.count, pct: r.pct }))
+    .map((r) => ({ ...CONF_META[r.confidence]!, count: r.count, pct: r.pct }))
     .sort((a, b) => a.order - b.order);
 }
 

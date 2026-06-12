@@ -114,7 +114,7 @@ describe("toNotes", () => {
       content: "Looks active.",
       created_at: new Date().toISOString(),
     };
-    const [n] = toNotes([row]);
+    const n = toNotes([row])[0]!;
     expect(n.initials).toBe("AS");
     expect(n.userId).toBe("user-9");
   });

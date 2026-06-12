@@ -119,7 +119,7 @@ describe("icMemoHash", () => {
   });
 
   it("changes when signals change", () => {
-    const more = [...signals, { ...signals[0], id: "s2" }];
+    const more = [...signals, { ...signals[0]!, id: "s2" }];
     expect(icMemoHash(signals, null, comps)).not.toBe(icMemoHash(more, null, comps));
   });
 });
@@ -166,12 +166,12 @@ RECOMMENDATION — Progress to management presentation.`;
     const parsed = parseIcMemo("EXECUTIVE SUMMARY — Just this.");
     const empty = parsed.filter((s) => s.body === "");
     expect(empty.length).toBe(7);
-    expect(parsed[0].body).toBe("Just this.");
+    expect(parsed[0]!.body).toBe("Just this.");
   });
 
   it("ignores preamble before the first header", () => {
     const parsed = parseIcMemo("Here is your memo:\nEXECUTIVE SUMMARY — Body.");
-    expect(parsed[0].body).toBe("Body.");
+    expect(parsed[0]!.body).toBe("Body.");
   });
 });
 

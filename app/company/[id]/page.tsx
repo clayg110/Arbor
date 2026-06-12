@@ -21,6 +21,8 @@ import {
 import { ProcessStageSection } from "@/components/ui/ProcessStageSection";
 import { CompanyContactsSection } from "@/components/ui/CompanyContactsSection";
 import { BidTrackerSection } from "@/components/ui/BidTrackerSection";
+import { FundPickerSection } from "@/components/ui/FundPickerSection";
+import { CrmSyncSection } from "@/components/ui/CrmSyncSection";
 import { SignalTimeline } from "@/components/ui/SignalTimeline";
 import { CompsSection } from "@/components/ui/CompsSection";
 import {
@@ -67,6 +69,7 @@ export default async function CompanyPage({
   let comps: CompResult[] = [];
   let currentUserId: string | undefined;
   let rawOwnerId: string | null = null;
+  let rawFundId: string | null = null;
   let momentum: MomentumResult | null = null;
   let corroboration: CorroborationResult | null = null;
 
@@ -118,6 +121,7 @@ export default async function CompanyPage({
               .limit(80),
           ]);
         rawOwnerId = cc.owner_id ?? null;
+        rawFundId = cc.fund_id ?? null;
         company = toCompanyProfile(cc);
         history = toStageHistory((h ?? []) as DbHistory[]);
         signals = toSignals((s ?? []) as DbSignal[]);
@@ -335,6 +339,14 @@ export default async function CompanyPage({
               currentUserId={currentUserId}
               initialOwner={rawOwnerId ? { id: rawOwnerId, email: "Assigned" } : null}
             />
+          </Section>
+
+          <Section title="Fund">
+            <FundPickerSection companyId={company.id} initialFundId={rawFundId} />
+          </Section>
+
+          <Section title="CRM">
+            <CrmSyncSection companyId={company.id} />
           </Section>
 
           <Section title="Tasks">

@@ -3,11 +3,14 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, LlmOutput, DbFeedEvent, DbCompany } from "@/types/db";
-import type { Stage, SourceType } from "@/lib/types";
+import type { Stage, SourceType, Confidence } from "@/lib/types";
 import type { ExtractedSignal } from "@/lib/extract-signal";
 import { resolveCompany } from "./resolve";
 import { fetchLogoUrl } from "./logo";
 import { dedupeKey } from "@/lib/dedupe";
+import { corroboratedConfidence, distinctSourceCount } from "@/lib/corroboration";
+
+const CORROBORATION_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
 type Svc = SupabaseClient<Database>;
 
@@ -115,13 +118,29 @@ export async function processSignal(
     const sigId = await insertSignal(svc, match.id, meta, llm);
     if (!co) return { outcome: "skipped", companyId: match.id };
 
-    // Low-confidence signal → flag for analyst, no stage change.
+    // Multi-source corroboration: count distinct source types backing this
+    // company in the 30-day window (incl. the signal just inserted). When ≥3
+    // independent sources agree, auto-promote confidence to high — strong enough
+    // to override a single low-quality signal's flag.
+    const cutoff = new Date(Date.now() - CORROBORATION_WINDOW_MS).toISOString();
+    const { data: recentRows } = await svc
+      .from("signals_raw")
+      .select("source_type")
+      .eq("company_id", match.id)
+      .gte("ingested_at", cutoff);
+    const bump = corroboratedConfidence(
+      co.confidence as Confidence,
+      distinctSourceCount((recentRows ?? []) as { source_type: SourceType | null }[])
+    );
+
+    // Low-confidence signal → flag for analyst (no stage change), unless
+    // independent corroboration promotes it to high.
     if (lowConf) {
       await svc
         .from("companies")
-        .update({ confidence: "needs_review", ...fin })
+        .update({ confidence: bump ?? "needs_review", ...fin })
         .eq("id", match.id);
-      return { outcome: "flagged", companyId: match.id };
+      return { outcome: bump ? "updated" : "flagged", companyId: match.id };
     }
 
     if (ex.stage && ex.stage !== co.current_stage) {
@@ -129,7 +148,7 @@ export async function processSignal(
         .from("companies")
         .update({
           current_stage: ex.stage,
-          confidence: ex.confidence ?? co.confidence,
+          confidence: bump ?? ex.confidence ?? co.confidence,
           ...fin,
         })
         .eq("id", match.id);
@@ -148,11 +167,17 @@ export async function processSignal(
       return { outcome: "updated", companyId: match.id };
     }
 
-    // No stage change, but enrich financials if the source provided any.
-    if (Object.keys(fin).length > 0) {
-      await svc.from("companies").update(fin).eq("id", match.id);
+    // No stage change. Apply a corroboration bump and/or financial enrichment.
+    if (bump || Object.keys(fin).length > 0) {
+      await svc
+        .from("companies")
+        .update({ ...(bump ? { confidence: bump } : {}), ...fin })
+        .eq("id", match.id);
     }
-    return { outcome: "matched_nochange", companyId: match.id };
+    return {
+      outcome: bump ? "updated" : "matched_nochange",
+      companyId: match.id,
+    };
   }
 
   // No match → create a needs_review company. Best-effort logo enrichment

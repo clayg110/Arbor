@@ -101,26 +101,26 @@ describe("sortTasks", () => {
 
   it("incomplete before completed", () => {
     const sorted = sortTasks([done, noDue], NOW);
-    expect(sorted[0].id).toBe("t-none");
-    expect(sorted[1].id).toBe("t-done");
+    expect(sorted[0]!.id).toBe("t-none");
+    expect(sorted[1]!.id).toBe("t-done");
   });
 
   it("overdue before future-due", () => {
     const sorted = sortTasks([future, overdue], NOW);
-    expect(sorted[0].id).toBe("t-over");
+    expect(sorted[0]!.id).toBe("t-over");
   });
 
   it("due-date ordering among incomplete", () => {
     const early: DealTask = { ...base, id: "t-early", dueAt: "2026-06-15T00:00:00Z" };
     const late: DealTask = { ...base, id: "t-late", dueAt: "2026-06-25T00:00:00Z" };
     const sorted = sortTasks([late, early], NOW);
-    expect(sorted[0].id).toBe("t-early");
+    expect(sorted[0]!.id).toBe("t-early");
   });
 
   it("no-due tasks after due-date tasks", () => {
     const sorted = sortTasks([noDue, future], NOW);
-    expect(sorted[0].id).toBe("t-fut");
-    expect(sorted[1].id).toBe("t-none");
+    expect(sorted[0]!.id).toBe("t-fut");
+    expect(sorted[1]!.id).toBe("t-none");
   });
 });
 

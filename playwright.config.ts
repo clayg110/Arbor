@@ -10,11 +10,16 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  // Dev server compiles each route on first hit — give navigations headroom.
-  timeout: 60_000,
-  expect: { timeout: 15_000 },
+  // The dev server compiles each route on first hit, so the first navigation to
+  // a cold route can be slow under load. Retry once locally to absorb a cold-compile
+  // miss, and cap workers so parallel specs don't trigger a thundering herd of
+  // simultaneous compiles that starve each other's CPU.
+  retries: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 1 : 4,
+  // Per-test cap; cold compiles of heavy routes (analytics/Recharts) eat into this.
+  timeout: 90_000,
+  // Navigation/visibility waits must outlast a cold route compile.
+  expect: { timeout: 30_000 },
   reporter: process.env.CI ? "list" : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: BASE_URL,

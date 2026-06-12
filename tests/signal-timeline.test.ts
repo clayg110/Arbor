@@ -44,7 +44,7 @@ describe("buildSignalTimeline", () => {
     const { dots } = buildSignalTimeline([s], TODAY);
     expect(dots).toHaveLength(1);
     // Signal on endDate should be at 100%
-    expect(dots[0].x).toBeCloseTo(100, 0);
+    expect(dots[0]!.x).toBeCloseTo(100, 0);
   });
 
   it("excludes signals before the window", () => {
@@ -64,7 +64,7 @@ describe("buildSignalTimeline", () => {
     const s2 = sig("s2", "2026-05-15", "google_news");
     const { dots } = buildSignalTimeline([s1, s2], TODAY);
     expect(dots).toHaveLength(1);
-    expect(dots[0].signals).toHaveLength(2);
+    expect(dots[0]!.signals).toHaveLength(2);
   });
 
   it("keeps signals on different dates as separate dots", () => {
@@ -78,22 +78,22 @@ describe("buildSignalTimeline", () => {
     const early = sig("e", "2025-12-01");
     const late = sig("l", "2026-05-01");
     const { dots } = buildSignalTimeline([late, early], TODAY);
-    expect(dots[0].date).toBe("2025-12-01");
-    expect(dots[1].date).toBe("2026-05-01");
+    expect(dots[0]!.date).toBe("2025-12-01");
+    expect(dots[1]!.date).toBe("2026-05-01");
   });
 
   it("primarySource picks hsr_filing over sec_filing", () => {
     const s1 = sig("s1", "2026-05-15", "sec_filing");
     const s2 = sig("s2", "2026-05-15", "hsr_filing");
     const { dots } = buildSignalTimeline([s1, s2], TODAY);
-    expect(dots[0].primarySource).toBe("sec_filing");
+    expect(dots[0]!.primarySource).toBe("sec_filing");
   });
 
   it("x is clamped to 0–100", () => {
     const borderline = sig("b", TODAY);
     const { dots } = buildSignalTimeline([borderline], TODAY);
-    expect(dots[0].x).toBeGreaterThanOrEqual(0);
-    expect(dots[0].x).toBeLessThanOrEqual(100);
+    expect(dots[0]!.x).toBeGreaterThanOrEqual(0);
+    expect(dots[0]!.x).toBeLessThanOrEqual(100);
   });
 
   it("tick labels are month abbreviations", () => {

@@ -148,7 +148,7 @@ describe("suggestAdvisorsFromSignals", () => {
 
 describe("ContactRole type", () => {
   it("CONTACT_ROLES members are assignable to ContactRole", () => {
-    const r: ContactRole = CONTACT_ROLES[0];
+    const r: ContactRole = CONTACT_ROLES[0]!;
     expect(r).toBe("M&A Advisor");
   });
 });

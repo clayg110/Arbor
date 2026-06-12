@@ -174,7 +174,7 @@ function FeedInner() {
 
   const watchEntries = Array.from(watch)
     .map((name) => WATCH_META[name])
-    .filter(Boolean);
+    .filter((w): w is NonNullable<typeof w> => Boolean(w));
 
   return (
     <div>

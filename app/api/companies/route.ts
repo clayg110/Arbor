@@ -1,6 +1,7 @@
-import { type NextRequest } from "next/server";
+import { type NextRequest, after } from "next/server";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { enrichCompanyOnAdd } from "@/lib/ingest/enrich";
 import {
   ok,
   fail,
@@ -226,6 +227,18 @@ export async function POST(request: NextRequest) {
     entityType: "company",
     entityId: c.id,
     metadata: { name: c.name, sector: c.sector, dealType: c.deal_type, stage },
+  });
+
+  // Enrich-on-add: kick a targeted web search for this company after the
+  // response is sent (next/server `after`), so the add stays instant. No-op
+  // without Google CSE env. Service client because this runs outside the
+  // request's auth context.
+  after(async () => {
+    try {
+      await enrichCompanyOnAdd(createServiceClient(), c.name, c.deal_type as DealType);
+    } catch {
+      // best-effort enrichment — never affects the add
+    }
   });
 
   return ok({ company: toRadarCompany(c) }, { status: 201 });

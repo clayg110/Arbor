@@ -32,7 +32,7 @@ interface Props {
 
 // A compact badge + optional inline sparkline for the signal momentum trend.
 export function MomentumBadge({ momentum, showSparkline = false }: Props) {
-  const meta = TREND_META[momentum.trend] ?? TREND_META.stable;
+  const meta = TREND_META[momentum.trend] ?? TREND_META.stable!;
 
   return (
     <div className="inline-flex items-center gap-2">

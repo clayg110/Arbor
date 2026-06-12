@@ -30,7 +30,7 @@ export function toScimUser(u: ScimUserInput) {
 export function parseUserNameFilter(filter: string | null | undefined): string | null {
   if (!filter) return null;
   const m = filter.match(/userName\s+eq\s+"([^"]+)"/i);
-  return m ? m[1].trim().toLowerCase() : null;
+  return m ? m[1]!.trim().toLowerCase() : null;
 }
 
 export function scimList(resources: unknown[], total: number, startIndex = 1) {

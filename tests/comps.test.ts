@@ -104,8 +104,8 @@ describe("topComps", () => {
   it("orders results by score descending", () => {
     const adj: CompInput = { ...sectorMatch, id: "c3", stage: "monitor_for_exit" };
     const results = topComps(base, [adj, sectorMatch], 5);
-    expect(results[0].id).toBe(sectorMatch.id); // 90 > 80
-    expect(results[1].id).toBe(adj.id);
+    expect(results[0]!.id).toBe(sectorMatch.id); // 90 > 80
+    expect(results[1]!.id).toBe(adj.id);
   });
 
   it("excludes candidates scoring below 30", () => {
@@ -115,7 +115,7 @@ describe("topComps", () => {
   it("excludes self", () => {
     const results = topComps(base, [base, sectorMatch], 5);
     expect(results.find((r) => r.id === base.id)).toBeUndefined();
-    expect(results[0].id).toBe(sectorMatch.id);
+    expect(results[0]!.id).toBe(sectorMatch.id);
   });
 
   it("respects limit", () => {

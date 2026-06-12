@@ -157,7 +157,7 @@ export async function answerQuestionWithCitations(
   const citations: Citation[] = citNums
     .filter((n) => n >= 1 && n <= signals.length)
     .map((n) => {
-      const s = signals[n - 1];
+      const s = signals[n - 1]!;
       return {
         signalId: s.id,
         quote: truncate(s.excerpt || s.rawExcerpt || "", 200),

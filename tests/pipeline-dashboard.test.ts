@@ -73,17 +73,17 @@ describe("ownerWorkload", () => {
       makeDeal({ ownerId: "u2", ownerEmail: "bob@co.com" }),
     ];
     const result = ownerWorkload(deals);
-    expect(result[0].ownerId).toBe("u1");
-    expect(result[0].count).toBe(2);
-    expect(result[1].count).toBe(1);
+    expect(result[0]!.ownerId).toBe("u1");
+    expect(result[0]!.count).toBe(2);
+    expect(result[1]!.count).toBe(1);
   });
 
   it("null ownerId grouped together", () => {
     const deals = [makeDeal({ ownerId: null }), makeDeal({ ownerId: null })];
     const result = ownerWorkload(deals);
     expect(result.length).toBe(1);
-    expect(result[0].ownerId).toBeNull();
-    expect(result[0].count).toBe(2);
+    expect(result[0]!.ownerId).toBeNull();
+    expect(result[0]!.count).toBe(2);
   });
 });
 
@@ -95,10 +95,10 @@ describe("sectorConcentration", () => {
       makeDeal({ sector: "industrials" }),
     ];
     const result = sectorConcentration(deals);
-    expect(result[0].sector).toBe("chemicals");
-    expect(result[0].count).toBe(2);
-    expect(result[1].sector).toBe("industrials");
-    expect(result[1].count).toBe(1);
+    expect(result[0]!.sector).toBe("chemicals");
+    expect(result[0]!.count).toBe(2);
+    expect(result[1]!.sector).toBe("industrials");
+    expect(result[1]!.count).toBe(1);
   });
 });
 
@@ -120,8 +120,8 @@ describe("upcomingKeyDates", () => {
     ];
     const result = upcomingKeyDates(deals, "2026-06-11", 30);
     expect(result.length).toBe(2);
-    expect(result[0].companyName).toBe("Alpha");
-    expect(result[1].companyName).toBe("Beta");
+    expect(result[0]!.companyName).toBe("Alpha");
+    expect(result[1]!.companyName).toBe("Beta");
   });
 
   it("excludes dates before today", () => {
@@ -137,7 +137,7 @@ describe("upcomingKeyDates", () => {
   it("computes daysUntil correctly", () => {
     const deals = [makeDeal({ keyDates: { nda_signed: "2026-06-21" } })];
     const result = upcomingKeyDates(deals, "2026-06-11", 30);
-    expect(result[0].daysUntil).toBe(10);
+    expect(result[0]!.daysUntil).toBe(10);
   });
 });
 
@@ -150,13 +150,13 @@ describe("staleDeals", () => {
     ];
     const result = staleDeals(deals, 30);
     expect(result.length).toBe(1);
-    expect(result[0].daysInStage).toBe(35);
+    expect(result[0]!.daysInStage).toBe(35);
   });
 
   it("default threshold is 30, boundary is exclusive", () => {
     const deals = [makeDeal({ daysInStage: 31 }), makeDeal({ daysInStage: 30 })];
     const result = staleDeals(deals);
     expect(result.length).toBe(1);
-    expect(result[0].daysInStage).toBe(31);
+    expect(result[0]!.daysInStage).toBe(31);
   });
 });

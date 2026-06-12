@@ -114,9 +114,9 @@ export function parseIcMemo(raw: string): IcMemoSection[] {
 
   const byTitle = new Map<string, string>();
   for (let i = 0; i < marks.length; i++) {
-    const start = marks[i].idx + marks[i].len;
-    const end = i + 1 < marks.length ? marks[i + 1].idx : text.length;
-    byTitle.set(marks[i].title, text.slice(start, end).trim());
+    const start = marks[i]!.idx + marks[i]!.len;
+    const end = i + 1 < marks.length ? marks[i + 1]!.idx : text.length;
+    byTitle.set(marks[i]!.title, text.slice(start, end).trim());
   }
 
   return IC_SECTIONS.map(({ title }) => ({ title, body: byTitle.get(title) ?? "" }));

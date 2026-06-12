@@ -25,7 +25,7 @@ no Claude co-author footer. User is the sole git author.
 
 `pnpm format:check && pnpm tsc --noEmit && pnpm lint && pnpm test:coverage && pnpm build && pnpm test:e2e`
 Coverage floors (vitest.config.ts thresholds — never lower): lines 65, functions 48, statements 65, branches 55.
-All 558 unit + 26 E2E must pass.
+All 613 unit + 26 E2E must pass.
 
 ### Node/pnpm setup
 
@@ -62,8 +62,8 @@ Fix: `rm -rf .next` then restart dev server.
 - ALL 8 phases + full backlog (hardening + @mention + landing page) DONE + green. **COMMITTED.**
 - Tier 1 features 1–3 DONE + green. **COMMITTED.**
 - Tier 2 features 1–3 + Tier 3 features 1–2 DONE + green. **COMMITTED.** (latest commit: see `git log`)
-- 558 unit tests, 26 E2E, prod build all passing.
-- Migration counter: **next is 0040** (last used: 0039 = deal_bids).
+- 613 unit tests, 26 E2E, prod build all passing.
+- Migration counter: **next is 0042** (last used: 0041 = crm_sync).
 
 **What was built in latest commit:**
 
@@ -207,12 +207,12 @@ Tier 1 complete. Build Tier 2 next.
 
 - **Per-Company Signal Timeline** — DONE. `lib/signal-timeline.ts`, `SignalTimeline.tsx`. Horizontal 12-month dot timeline on company profile above Key Signals.
 - **Comps Database Filter UI** — DONE. `CompsSection.tsx`. Sector/size/type/outcome/date filters + CSV export. Replaced static list on company profile.
-- **Calendar Sync (Google/Outlook)** — Deal milestones + task due dates → calendar events via CalDAV/Google Calendar API. S.
-- **Automatic Company Enrichment on Add** — When analyst adds a company manually, trigger background signal search immediately (instead of waiting for next cron run). S.
-- **LP / Fund-Level Reporting** — One-click quarterly pipeline snapshot filtered by fund vintage/sector. Enterprise tier feature. M.
-- **CRM sync (Affinity / DealCloud / Salesforce)** — L, per-CRM key. Enterprise stickiness.
-- **Multi-source corroboration** — Auto-bump confidence when N independent sources agree. S.
-- **`noUncheckedIndexedAccess`** — ~54 tsc errors if enabled (array-index in pages). Separate pass.
+- **Calendar Sync (Google/Outlook)** — DONE. ICS subscription feed (read-only, one-way). `lib/calendar.ts` (RFC-5545 builder + `gatherDealEvents`), `lib/calendar-token.ts` (stateless HMAC token, dormant until `CALENDAR_FEED_SECRET`), `/api/calendar/[token].ics` (service-client feed of a user's task due dates + process key dates + bid dates), `/api/calendar/feed` (signed subscription URL for UI), "Calendar subscription" card in `/settings`. No migration (stateless token). Subscribe via "add calendar from URL" in Google/Outlook/Apple.
+- **Automatic Company Enrichment on Add** — DONE. `lib/ingest/enrich.ts` (`enrichCompanyOnAdd`): on manual add, POST `/api/companies` schedules a targeted Google CSE search via `after()` (post-response, instant add), feeding the same extract→resolve→persist pipeline. Carve-outs → divestiture query, private-asset → sale-process query. Dormant without Google CSE env. No migration.
+- **LP / Fund-Level Reporting** — DONE. Migration 0040 (`funds` table, org-scoped RLS + `companies.fund_id` FK ON DELETE SET NULL). `lib/lp-report.ts` (`buildLpReport`/`lpReportToCsv`/quarter helpers, pure), `lib/adapters/funds.ts`. APIs: `/api/funds` (CRUD), `/api/funds/[id]`, `/api/reports/lp?quarter=&format=csv`, company PATCH `assign_fund` action. `/reports/lp` page (quarter selector, per-fund snapshot cards, fund manager, CSV download), `FundPickerSection` on company profile, "LP Report" nav link. Mock-mode via `mockFunds`/`mockLpReport`.
+- **CRM sync (Affinity / DealCloud / Salesforce)** — DONE (Affinity provider; others slot into the same interface). Migration 0041 (`crm_sync` table, org-scoped RLS, unique per company+provider). `lib/crm/map.ts` (pure `toCrmOrg`/`crmNoteText`/`domainFromWebsite`, tested), `lib/crm/provider.ts` (`CrmProvider` interface), `lib/crm/affinity.ts` (one-way push: org + note, dormant without `AFFINITY_API_KEY`), `lib/crm/index.ts` (`getCrmProvider`/`hasCrmEnv`/`crmProviderLabel`). `/api/companies/[id]/crm-sync` (GET status / POST push, upserts crm_sync). `CrmSyncSection` on company profile. One-way export for now.
+- **Multi-source corroboration** — DONE. `lib/corroboration.ts` (`corroboratedConfidence`, `distinctSourceCount`, `CORROBORATION_THRESHOLD=3`). In `lib/ingest/persist.ts` matched path: counts distinct source types in the 30-day window (incl. the new signal); ≥3 independent sources auto-promote confidence to `high`, overriding a single low-quality signal's flag. No migration.
+- **`noUncheckedIndexedAccess`** — DONE. Enabled in `tsconfig.json`; fixed 168 resulting errors across lib/app/components/tests (guards + non-null assertions on provably-safe index access). tsc clean with the flag on.
 
 ### What these unlock together
 
@@ -256,6 +256,8 @@ TURNSTILE_SECRET_KEY=
 CRON_SECRET=              # Secures /api/cron/* routes
 NEXT_PUBLIC_APP_URL=      # e.g. https://app.arbor.ai
 HSR_SOURCE_URL=           # FTC HSR filing JSON endpoint (dormant without; e.g. https://efts.ftc.gov/LATEST/search-index)
+CALENDAR_FEED_SECRET=     # HMAC secret for the ICS calendar subscription feed (dormant without)
+AFFINITY_API_KEY=         # Affinity CRM API key for one-way deal push (dormant without)
 
 # Alerts/notify webhook (deprecated — use SLACK/TEAMS above)
 ALERT_WEBHOOK=

@@ -53,7 +53,7 @@ describe("radarToCsv", () => {
 
   it("conviction score blank when missing", () => {
     const out = radarToCsv([{ ...base, conviction: undefined }]);
-    const row = out.split("\r\n")[1];
+    const row = out.split("\r\n")[1]!;
     const cols = row.split(",");
     const convIdx = RADAR_CSV_COLUMNS.findIndex((c) => c.header === "Conviction Score");
     expect(cols[convIdx]).toBe("");
@@ -68,7 +68,7 @@ describe("radarToCsv", () => {
 
   it("revenue / ebitda blank when null", () => {
     const out = radarToCsv([{ ...base, revenue: null, ebitda: null }]);
-    const row = out.split("\r\n")[1];
+    const row = out.split("\r\n")[1]!;
     const revenueIdx = RADAR_CSV_COLUMNS.findIndex((c) => c.header === "Revenue");
     const ebitdaIdx = RADAR_CSV_COLUMNS.findIndex((c) => c.header === "EBITDA");
     const cols = row.split(",");

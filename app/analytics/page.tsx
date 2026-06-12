@@ -1094,7 +1094,7 @@ function tipBox(rows: [string, string][]) {
 
 function VelocityTip({ active, payload }: TipProps) {
   if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
+  const d = payload[0]!.payload;
   return tipBox([
     ["Week", `${Number(d.i) + 1}`],
     ["Carveouts", `${d.carveout}`],
@@ -1106,7 +1106,7 @@ function VelocityTip({ active, payload }: TipProps) {
 
 function SectorTip({ active, payload }: TipProps) {
   if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
+  const d = payload[0]!.payload;
   return tipBox([
     ["Sector", `${d.sector}`],
     ["In market", `${d.in_market}`],
@@ -1118,7 +1118,7 @@ function SectorTip({ active, payload }: TipProps) {
 
 function DealTip({ active, payload }: TipProps) {
   if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
+  const d = payload[0]!.payload;
   const pct = Math.round((Number(d.value) / 1084) * 100);
   return tipBox([
     ["Type", `${d.name}`],
@@ -1129,7 +1129,7 @@ function DealTip({ active, payload }: TipProps) {
 
 function SignalTip({ active, payload }: TipProps) {
   if (!active || !payload?.length) return null;
-  const d = payload[0].payload;
+  const d = payload[0]!.payload;
   return tipBox([
     ["Source", `${d.name}`],
     ["Signals", `${d.count}`],

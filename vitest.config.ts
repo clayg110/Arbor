@@ -81,6 +81,10 @@ export default defineConfig({
         "lib/ingest/hsr.ts",
         "lib/signal-timeline.ts",
         "lib/comps.ts",
+        "lib/calendar.ts",
+        "lib/calendar-token.ts",
+        "lib/lp-report.ts",
+        "lib/crm/map.ts",
       ],
       exclude: ["**/*.d.ts"],
       // Honest ratchet floor: the suite currently clears this; raise it as

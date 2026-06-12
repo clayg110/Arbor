@@ -14,6 +14,8 @@ interface Opts {
   candidates?: { id: string; name: string }[];
   companyRow?: Record<string, unknown> | null;
   createdId?: string;
+  // Recent signal rows returned by the corroboration source-count query.
+  recentSources?: { source_type: string | null }[];
 }
 
 function makeSvc(opts: Opts = {}) {
@@ -60,10 +62,18 @@ function makeSvc(opts: Opts = {}) {
             ilike: () => builder,
             neq: () => builder,
             in: () => builder,
+            gte: () => builder,
             order: () => builder,
             limit: async () => ({ data: opts.candidates ?? [], error: null }),
             maybeSingle: async () => ({ data: opts.companyRow ?? null, error: null }),
             single: async () => ({ data: opts.companyRow ?? null, error: null }),
+            // Awaiting the builder directly resolves the corroboration query
+            // (signals_raw.select("source_type").eq().gte()).
+            then: (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) =>
+              Promise.resolve({ data: opts.recentSources ?? [], error: null }).then(
+                res,
+                rej
+              ),
           };
           return builder;
         },
@@ -103,7 +113,7 @@ describe("processSignal", () => {
     const r = await processSignal(svc, ex, meta, "carveout");
     expect(r.outcome).toBe("skipped");
     expect(captured.signalInserts).toHaveLength(1);
-    expect(captured.signalInserts[0].company_id).toBeNull();
+    expect(captured.signalInserts[0]!.company_id).toBeNull();
   });
 
   it("creates a needs_review company on no match", async () => {
@@ -118,10 +128,10 @@ describe("processSignal", () => {
     };
     const r = await processSignal(svc, ex, meta, "carveout");
     expect(r.outcome).toBe("created");
-    expect(captured.companyInserts[0].name).toBe("Acme Specialty Chemicals");
-    expect(captured.companyInserts[0].confidence).toBe("needs_review");
-    expect(captured.companyInserts[0].logo_url).toBeNull();
-    expect(captured.historyInserts[0].event_type).toBe("new_entry");
+    expect(captured.companyInserts[0]!.name).toBe("Acme Specialty Chemicals");
+    expect(captured.companyInserts[0]!.confidence).toBe("needs_review");
+    expect(captured.companyInserts[0]!.logo_url).toBeNull();
+    expect(captured.historyInserts[0]!.event_type).toBe("new_entry");
   });
 
   it("matches without change when stage is unchanged", async () => {
@@ -155,10 +165,10 @@ describe("processSignal", () => {
     };
     const r = await processSignal(svc, ex, meta, "carveout");
     expect(r.outcome).toBe("updated");
-    expect(captured.companyUpdates[0].current_stage).toBe("in_market");
-    expect(captured.historyInserts[0].stage).toBe("in_market");
-    expect(captured.historyInserts[0].event_type).toBe("moved_in_market");
-    expect(captured.historyInserts[0].changed_by).toBe("system_auto");
+    expect(captured.companyUpdates[0]!.current_stage).toBe("in_market");
+    expect(captured.historyInserts[0]!.stage).toBe("in_market");
+    expect(captured.historyInserts[0]!.event_type).toBe("moved_in_market");
+    expect(captured.historyInserts[0]!.changed_by).toBe("system_auto");
   });
 
   it("flags (no stage change) on a low-confidence match", async () => {
@@ -174,8 +184,71 @@ describe("processSignal", () => {
     };
     const r = await processSignal(svc, ex, meta, "carveout");
     expect(r.outcome).toBe("flagged");
-    expect(captured.companyUpdates[0].confidence).toBe("needs_review");
+    expect(captured.companyUpdates[0]!.confidence).toBe("needs_review");
     expect(captured.historyInserts).toHaveLength(0);
+  });
+
+  it("auto-promotes to high when ≥3 independent sources corroborate", async () => {
+    const { svc, captured } = makeSvc({
+      candidates: [{ id: "co-1", name: "Dow Polyurethanes" }],
+      companyRow: existing, // confidence: medium, stage unchanged below
+      recentSources: [
+        { source_type: "sec_filing" },
+        { source_type: "google_news" },
+        { source_type: "earnings_transcript" },
+      ],
+    });
+    const ex: ExtractedSignal = {
+      found: true,
+      company_name: "Dow Polyurethanes",
+      stage: "monitor_for_exit", // same as existing → no stage change
+      confidence: "high",
+    };
+    const r = await processSignal(svc, ex, meta, "carveout");
+    expect(r.outcome).toBe("updated");
+    expect(captured.companyUpdates[0]!.confidence).toBe("high");
+    expect(captured.historyInserts).toHaveLength(0); // bump only, no stage move
+  });
+
+  it("corroboration overrides a low-confidence flag", async () => {
+    const { svc, captured } = makeSvc({
+      candidates: [{ id: "co-1", name: "Dow Polyurethanes" }],
+      companyRow: existing,
+      recentSources: [
+        { source_type: "sec_filing" },
+        { source_type: "google_news" },
+        { source_type: "rss" },
+      ],
+    });
+    const ex: ExtractedSignal = {
+      found: true,
+      company_name: "Dow Polyurethanes",
+      stage: "in_market",
+      confidence: "needs_review", // would normally flag
+    };
+    const r = await processSignal(svc, ex, meta, "carveout");
+    expect(r.outcome).toBe("updated");
+    expect(captured.companyUpdates[0]!.confidence).toBe("high");
+  });
+
+  it("does not bump with fewer than 3 distinct sources", async () => {
+    const { svc, captured } = makeSvc({
+      candidates: [{ id: "co-1", name: "Dow Polyurethanes" }],
+      companyRow: existing,
+      recentSources: [
+        { source_type: "sec_filing" },
+        { source_type: "sec_filing" }, // same type → 1 distinct
+      ],
+    });
+    const ex: ExtractedSignal = {
+      found: true,
+      company_name: "Dow Polyurethanes",
+      stage: "monitor_for_exit",
+      confidence: "high",
+    };
+    const r = await processSignal(svc, ex, meta, "carveout");
+    expect(r.outcome).toBe("matched_nochange");
+    expect(captured.companyUpdates).toHaveLength(0);
   });
 
   it("enriches financials on a no-stage-change match", async () => {
@@ -192,7 +265,7 @@ describe("processSignal", () => {
     };
     const r = await processSignal(svc, ex, meta, "carveout");
     expect(r.outcome).toBe("matched_nochange");
-    expect(captured.companyUpdates[0].revenue).toBe("$1.2B");
-    expect(captured.companyUpdates[0].revenue_source_url).toBe(meta.sourceUrl);
+    expect(captured.companyUpdates[0]!.revenue).toBe("$1.2B");
+    expect(captured.companyUpdates[0]!.revenue_source_url).toBe(meta.sourceUrl);
   });
 });

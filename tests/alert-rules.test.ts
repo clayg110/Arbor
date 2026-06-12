@@ -113,7 +113,7 @@ describe("alertNotificationRows", () => {
       entity_id: "c1",
       dedupe_key: "alert:r1:c1:moved_in_market:2026-06-01T00:00:00Z",
     });
-    expect(rows[0].body).toContain("entered In market");
+    expect(rows[0]!.body).toContain("entered In market");
   });
 });
 

@@ -32,8 +32,8 @@ export function sizeBand(s: string | null | undefined): "small" | "mid" | "large
   if (!s) return null;
   const m = s.match(/\$?([\d.]+)\s*([BbMm])/);
   if (!m) return null;
-  let v = parseFloat(m[1]);
-  if (m[2].toLowerCase() === "b") v *= 1000; // billions → millions
+  let v = parseFloat(m[1]!);
+  if (m[2]!.toLowerCase() === "b") v *= 1000; // billions → millions
   if (v >= 1000) return "large";
   if (v >= 200) return "mid";
   return "small";

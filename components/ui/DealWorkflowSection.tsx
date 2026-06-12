@@ -351,7 +351,7 @@ export function OutreachLogSection({
     const before = e.target.value.slice(0, cursor);
     const m = before.match(/@([A-Za-z0-9._-]*)$/);
     if (m) {
-      setMentionQuery(m[1].toLowerCase());
+      setMentionQuery(m[1]!.toLowerCase());
       setMentionIdx(0);
     } else {
       setMentionQuery(null);
@@ -396,7 +396,8 @@ export function OutreachLogSection({
       );
     } else if (e.key === "Enter" || e.key === "Tab") {
       e.preventDefault();
-      insertMention(mentionSuggestions[mentionIdx]);
+      const sel = mentionSuggestions[mentionIdx];
+      if (sel) insertMention(sel);
     } else if (e.key === "Escape") {
       setMentionQuery(null);
     }

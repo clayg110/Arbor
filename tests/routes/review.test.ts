@@ -62,6 +62,6 @@ describe("POST /api/review/[id]", () => {
     expect(res.status).toBe(200);
     const json = (await res.json()) as { ok: boolean; history: { id: string }[] };
     expect(json.ok).toBe(true);
-    expect(json.history[0].id).toBe("h1");
+    expect(json.history[0]!.id).toBe("h1");
   });
 });

@@ -80,6 +80,29 @@ export type DbCompany = {
   // deal process stage (migration 0035)
   our_process_stage?: OurProcessStage | null;
   process_key_dates?: Record<string, string> | null;
+  // fund assignment (migration 0040)
+  fund_id?: string | null;
+};
+
+export type DbFund = {
+  id: string;
+  org_id: string | null;
+  created_by: string | null;
+  name: string;
+  vintage_year: number | null;
+  created_at: string;
+};
+
+export type DbCrmSync = {
+  id: string;
+  company_id: string;
+  org_id: string | null;
+  created_by: string | null;
+  provider: string;
+  external_id: string | null;
+  status: "synced" | "error";
+  error: string | null;
+  synced_at: string;
 };
 
 // Monitored company universe (Backend §2.1) — no deal stage.
@@ -669,6 +692,22 @@ export interface Database {
         Row: DbContact;
         Insert: Partial<DbContact> & { name: string };
         Update: Partial<DbContact>;
+        Relationships: Rel;
+      };
+      funds: {
+        Row: DbFund;
+        Insert: Partial<DbFund> & { name: string };
+        Update: Partial<DbFund>;
+        Relationships: Rel;
+      };
+      crm_sync: {
+        Row: DbCrmSync;
+        Insert: Partial<DbCrmSync> & {
+          company_id: string;
+          provider: string;
+          status: DbCrmSync["status"];
+        };
+        Update: Partial<DbCrmSync>;
         Relationships: Rel;
       };
       company_contacts: {

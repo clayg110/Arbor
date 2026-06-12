@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { computeCorroboration } from "@/lib/corroboration";
+import {
+  computeCorroboration,
+  corroboratedConfidence,
+  distinctSourceCount,
+  CORROBORATION_THRESHOLD,
+} from "@/lib/corroboration";
 import type { Signal } from "@/lib/types";
 import type { SourceType } from "@/lib/types";
 
@@ -95,5 +100,37 @@ describe("computeCorroboration", () => {
     // All signals are within 30 days of now regardless of fixedNow offset,
     // since makeSignal uses Date.now() not fixedNow. Just check shape.
     expect(typeof result.corroborated).toBe("boolean");
+  });
+});
+
+describe("distinctSourceCount", () => {
+  it("counts unique source types, ignoring nulls and dupes", () => {
+    expect(
+      distinctSourceCount([
+        { source_type: "sec_filing" },
+        { source_type: "sec_filing" },
+        { source_type: "google_news" },
+        { source_type: null },
+      ])
+    ).toBe(2);
+  });
+  it("is zero for no rows", () => {
+    expect(distinctSourceCount([])).toBe(0);
+  });
+});
+
+describe("corroboratedConfidence", () => {
+  it("promotes to high at the threshold", () => {
+    expect(corroboratedConfidence("medium", CORROBORATION_THRESHOLD)).toBe("high");
+    expect(corroboratedConfidence("needs_review", 3)).toBe("high");
+  });
+  it("does not bump below the threshold", () => {
+    expect(corroboratedConfidence("medium", 2)).toBeNull();
+  });
+  it("never bumps an already-high company", () => {
+    expect(corroboratedConfidence("high", 5)).toBeNull();
+  });
+  it("honors a custom threshold", () => {
+    expect(corroboratedConfidence("low", 2, 2)).toBe("high");
   });
 });

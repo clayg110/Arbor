@@ -112,6 +112,6 @@ describe("sectorBidSummary", () => {
   it("null multiples give null avgMultiple for that sector", () => {
     const bids = [{ ...makeBid({ multipleOnEbitda: null }), sector: "tech" }];
     const result = sectorBidSummary(bids);
-    expect(result[0].avgMultiple).toBeNull();
+    expect(result[0]!.avgMultiple).toBeNull();
   });
 });

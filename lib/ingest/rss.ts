@@ -38,7 +38,7 @@ function clean(s: string): string {
 
 function first(block: string, re: RegExp): string {
   const m = block.match(re);
-  return m ? clean(m[1]) : "";
+  return m ? clean(m[1]!) : "";
 }
 
 function hostOf(url: string): string {

@@ -29,7 +29,7 @@ export function generateApiKey(): GeneratedKey {
 export function bearerFrom(header: string | null): string | null {
   if (!header) return null;
   const m = header.match(/^Bearer\s+(.+)$/i);
-  return m ? m[1].trim() : null;
+  return m ? m[1]!.trim() : null;
 }
 
 // Scope check for the public API. A key with NO scopes is treated as full

@@ -21,7 +21,7 @@ export function extractMentionHandles(text: string): string[] {
   const seen = new Set<string>();
   const re = /@([A-Za-z][A-Za-z0-9._-]{0,49})/g;
   let m;
-  while ((m = re.exec(text)) !== null) seen.add(m[1].toLowerCase());
+  while ((m = re.exec(text)) !== null) seen.add(m[1]!.toLowerCase());
   return [...seen];
 }
 

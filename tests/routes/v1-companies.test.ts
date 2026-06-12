@@ -80,7 +80,7 @@ describe("GET /api/v1/companies", () => {
       nextCursor: string | null;
     };
     expect(json.total).toBe(1);
-    expect(json.companies[0].id).toBe("c1");
+    expect(json.companies[0]!.id).toBe("c1");
     // one row, default limit → not a full page → no next cursor
     expect(json.nextCursor).toBeNull();
   });

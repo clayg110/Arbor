@@ -53,7 +53,7 @@ const SOURCE_PRIORITY: SourceType[] = [
 ];
 
 function primarySource(signals: Signal[]): SourceType {
-  let best = signals[0].sourceType;
+  let best = signals[0]!.sourceType;
   let bestPriority = SOURCE_PRIORITY.indexOf(best);
   for (const s of signals) {
     const p = SOURCE_PRIORITY.indexOf(s.sourceType);
@@ -115,7 +115,7 @@ export function buildSignalTimeline(
   while (true) {
     const tickMs = new Date(y, m, 1).getTime();
     if (tickMs > endMs) break;
-    ticks.push({ label: MONTH_ABBR[m], x: pct(tickMs) });
+    ticks.push({ label: MONTH_ABBR[m]!, x: pct(tickMs) });
     m++;
     if (m > 11) {
       m = 0;

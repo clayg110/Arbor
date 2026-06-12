@@ -61,6 +61,6 @@ describe("GET /api/scim/v2/Users (auth)", () => {
       Resources: { id: string }[];
     };
     expect(json.totalResults).toBe(1);
-    expect(json.Resources[0].id).toBe("u1");
+    expect(json.Resources[0]!.id).toBe("u1");
   });
 });

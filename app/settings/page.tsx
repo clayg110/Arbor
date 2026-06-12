@@ -21,6 +21,7 @@ export default function SettingsPage() {
       <AlertsCard />
       <BriefingCard />
       <ReportCard />
+      <CalendarCard />
       <ExportCard />
       <DangerCard />
     </div>
@@ -67,7 +68,7 @@ function FrequencyCard<T extends string>({
   prefKey: "briefingFrequency" | "reportFrequency";
   getFreq: (prefs: Awaited<ReturnType<typeof api.getPreferences>>) => T;
 }) {
-  const [freq, setFreq] = useState<T>(options[0].value as T);
+  const [freq, setFreq] = useState<T>(options[0]!.value as T);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -109,7 +110,7 @@ function FrequencyCard<T extends string>({
           </label>
           <select
             id={selectId}
-            value={loaded ? freq : options[0].value}
+            value={loaded ? freq : options[0]!.value}
             onChange={(e) => save(e.target.value as T)}
             disabled={!loaded || saving}
             className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none disabled:opacity-50"
@@ -161,6 +162,75 @@ function ReportCard() {
         { value: "monthly", label: "Monthly (1st of month)" },
       ]}
     />
+  );
+}
+
+function CalendarCard() {
+  const [url, setUrl] = useState<string | null>(null);
+  const [enabled, setEnabled] = useState<boolean | null>(null); // null = loading
+  const [offline, setOffline] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    api
+      .calendarFeed()
+      .then((r) => {
+        setEnabled(r.enabled);
+        setUrl(r.url);
+      })
+      .catch((e) => {
+        if (e instanceof BackendOff) setOffline(true);
+        setEnabled(false);
+      });
+  }, []);
+
+  async function copy() {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard blocked — the input is selectable as a fallback
+    }
+  }
+
+  return (
+    <Card
+      title="Calendar subscription"
+      desc="Subscribe in Google, Outlook, or Apple Calendar to see deal milestones, task due dates, and bid dates. Add a calendar “from URL” and paste the link below."
+    >
+      {offline ? (
+        <p className="text-[12px] text-muted">
+          Calendar subscription requires a connected backend.
+        </p>
+      ) : enabled === null ? (
+        <p className="text-[12px] text-subtle">Loading…</p>
+      ) : !enabled ? (
+        <p className="text-[12px] text-muted">
+          Calendar feed is not configured on this deployment (CALENDAR_FEED_SECRET).
+        </p>
+      ) : (
+        <div className="flex items-center gap-2">
+          <input
+            readOnly
+            value={url ?? ""}
+            aria-label="Calendar subscription URL"
+            onFocus={(e) => e.currentTarget.select()}
+            className="flex-1 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none"
+            style={{ border: "0.5px solid var(--border)" }}
+          />
+          <button
+            type="button"
+            onClick={copy}
+            className="rounded-md px-3 py-2 text-[12px] font-medium text-white"
+            style={{ backgroundColor: "#185FA5" }}
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      )}
+    </Card>
   );
 }
 

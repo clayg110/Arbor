@@ -84,7 +84,7 @@ describe("parseHsrResponse", () => {
       },
     };
     const filings = parseHsrResponse(raw, baseUrl);
-    expect(filings[0].filedDate).toBe("2025-06-01");
+    expect(filings[0]!.filedDate).toBe("2025-06-01");
   });
 
   it("skips entries with missing _source", () => {
@@ -130,8 +130,8 @@ describe("parseHsrResponse", () => {
     };
     const filings = parseHsrResponse(raw, baseUrl);
     expect(filings).toHaveLength(2);
-    expect(filings[0].target).toBe("B Inc");
-    expect(filings[1].target).toBe("D Ltd");
+    expect(filings[0]!.target).toBe("B Inc");
+    expect(filings[1]!.target).toBe("D Ltd");
   });
 });
 

@@ -121,11 +121,11 @@ export function SignalTimeline({
                     {dot.signals.length > 1 && ` · ${dot.signals.length} signals`}
                   </p>
                   <p className="text-[11px] font-medium text-ink">
-                    {dot.signals[0].title}
+                    {dot.signals[0]!.title}
                   </p>
-                  {dot.signals[0].excerpt && (
+                  {dot.signals[0]!.excerpt && (
                     <p className="mt-0.5 line-clamp-2 text-[10px] text-subtle">
-                      {dot.signals[0].excerpt}
+                      {dot.signals[0]!.excerpt}
                     </p>
                   )}
                   <p className="mt-1 text-[10px] text-muted">{dot.date}</p>

@@ -5,3 +5,4 @@ export * from "./feed";
 export * from "./analytics";
 export * from "./review";
 export * from "./contacts";
+export * from "./funds";

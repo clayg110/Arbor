@@ -131,15 +131,10 @@ export default function RadarPage() {
   const companies = useMemo(() => {
     const base = added.length ? [...added, ...liveCompanies] : liveCompanies;
     if (Object.keys(stageOverride).length === 0) return base;
-    return base.map((c) =>
-      stageOverride[c.id]
-        ? {
-            ...c,
-            stage: stageOverride[c.id],
-            pulled: stageOverride[c.id] === "pulled" || undefined,
-          }
-        : c
-    );
+    return base.map((c) => {
+      const ov = stageOverride[c.id];
+      return ov ? { ...c, stage: ov, pulled: ov === "pulled" || undefined } : c;
+    });
   }, [added, liveCompanies, stageOverride]);
   const summary = live.data.summary ?? summaryStrip;
   const sectors = live.data.sectorSummary.length
@@ -384,7 +379,7 @@ export default function RadarPage() {
   // ones so a single-stage filter expands to fill the row instead of leaving
   // blank columns. (Falls back to all columns when nothing matches.)
   const kanbanAll = COLUMNS.map((col) => {
-    const cs = COL_SORT.find((o) => o.id === colSort[col.id]) ?? COL_SORT[0];
+    const cs = COL_SORT.find((o) => o.id === colSort[col.id]) ?? COL_SORT[0]!;
     return {
       col,
       cards: sortList(

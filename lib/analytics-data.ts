@@ -273,16 +273,16 @@ export interface VelocityPoint {
 }
 
 export const velocity: VelocityPoint[] = CARVE.map((c, i) => {
-  const total = c + PRIV[i];
+  const total = c + PRIV[i]!;
   const start = Math.max(0, i - 3);
   let sum = 0;
-  for (let k = start; k <= i; k++) sum += CARVE[k] + PRIV[k];
+  for (let k = start; k <= i; k++) sum += CARVE[k]! + PRIV[k]!;
   const rolling = +(sum / (i - start + 1)).toFixed(1);
   return {
     i,
     label: MONTH_AT[i] ?? "",
     carveout: c,
-    private_asset: PRIV[i],
+    private_asset: PRIV[i]!,
     total,
     rolling,
   };

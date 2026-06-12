@@ -10,7 +10,14 @@ import type { DbCompany, DbHistory, DbSignal, DbNote } from "@/types/db";
 
 const patchSchema = z.object({
   action: z
-    .enum(["override", "confirm", "mark_review", "set_outcome", "assign_owner"])
+    .enum([
+      "override",
+      "confirm",
+      "mark_review",
+      "set_outcome",
+      "assign_owner",
+      "assign_fund",
+    ])
     .optional(),
   stage: stageEnum.optional(),
   confidence: confidenceEnum.optional(),
@@ -20,6 +27,7 @@ const patchSchema = z.object({
   closeMultiple: z.string().trim().max(50).nullable().optional(),
   closedAt: z.string().datetime({ offset: true }).nullable().optional(),
   ownerId: z.string().uuid().nullable().optional(),
+  fundId: z.string().uuid().nullable().optional(),
 });
 
 // GET /api/companies/[id] — full profile bundle.
@@ -167,6 +175,20 @@ export async function PATCH(
       entityType: "company",
       entityId: id,
       metadata: { ownerId: body.ownerId ?? null },
+    });
+    return ok({ ok: true });
+  }
+
+  if (action === "assign_fund") {
+    const { error } = await supabase
+      .from("companies")
+      .update({ fund_id: body.fundId ?? null })
+      .eq("id", id);
+    if (error) return serverError(error);
+    await auditAs(user, "company.assign_fund", {
+      entityType: "company",
+      entityId: id,
+      metadata: { fundId: body.fundId ?? null },
     });
     return ok({ ok: true });
   }
