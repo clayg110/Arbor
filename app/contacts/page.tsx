@@ -5,6 +5,7 @@ import { useLive } from "@/lib/use-live";
 import { api } from "@/lib/api-client";
 import { mockContacts, mockFirmActivity } from "@/lib/mock-data";
 import { contactInitials, type Contact } from "@/lib/contacts";
+import { safeHttpUrl } from "@/lib/safe-url";
 
 type Tab = "directory" | "banker";
 
@@ -160,9 +161,9 @@ function ContactCard({ contact: c }: { contact: Contact }) {
             </a>
           )}
           {c.phone && <p className="text-subtle">{c.phone}</p>}
-          {c.linkedinUrl && (
+          {safeHttpUrl(c.linkedinUrl) && (
             <a
-              href={c.linkedinUrl}
+              href={safeHttpUrl(c.linkedinUrl)!}
               target="_blank"
               rel="noopener noreferrer"
               className="block text-[#185FA5] hover:underline"

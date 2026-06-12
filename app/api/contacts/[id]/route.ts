@@ -3,7 +3,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
-import { parseJson } from "@/lib/validation";
+import { parseJson, optionalContactEmail, optionalContactUrl } from "@/lib/validation";
 import { toContact } from "@/lib/adapters";
 import type { DbContact } from "@/types/db";
 
@@ -11,9 +11,9 @@ const patchSchema = z.object({
   name: z.string().trim().min(1).max(200).optional(),
   title: z.string().trim().max(200).nullish(),
   firm: z.string().trim().max(200).nullish(),
-  email: z.string().trim().max(320).nullish(),
+  email: optionalContactEmail,
   phone: z.string().trim().max(50).nullish(),
-  linkedinUrl: z.string().trim().max(500).nullish(),
+  linkedinUrl: optionalContactUrl,
   notes: z.string().trim().max(2000).nullish(),
 });
 

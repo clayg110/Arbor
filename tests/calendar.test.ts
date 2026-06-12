@@ -4,6 +4,7 @@ import {
   foldLine,
   toIcs,
   gatherDealEvents,
+  isValidCalendarDate,
   type CalendarEvent,
 } from "@/lib/calendar";
 import {
@@ -141,6 +142,84 @@ describe("gatherDealEvents", () => {
     const ev = gatherDealEvents(base);
     const dates = ev.map((e) => e.date);
     expect(dates).toEqual([...dates].sort());
+  });
+
+  it("skips rows with a malformed or impossible date instead of emitting them", () => {
+    const ev = gatherDealEvents({
+      tasks: [
+        {
+          id: "t1",
+          title: "ok",
+          dueAt: "2026-06-20",
+          completedAt: null,
+          companyName: "A",
+        },
+        {
+          id: "t2",
+          title: "garbage",
+          dueAt: "not-a-date",
+          completedAt: null,
+          companyName: "A",
+        },
+        {
+          id: "t3",
+          title: "overflow",
+          dueAt: "2026-02-30",
+          completedAt: null,
+          companyName: "A",
+        },
+      ],
+      milestones: [
+        { companyId: "c1", companyName: "A", stage: "nda_signed", date: "2026-13-01" },
+      ],
+      bids: [
+        {
+          id: "b1",
+          companyName: "A",
+          bidType: "final" as const,
+          round: "final" as const,
+          date: "",
+        },
+      ],
+    });
+    expect(ev.map((e) => e.uid)).toEqual(["task-t1@arbor"]);
+  });
+
+  it("normalizes ISO datetimes to the date part", () => {
+    const ev = gatherDealEvents({
+      tasks: [
+        {
+          id: "t1",
+          title: "x",
+          dueAt: "2026-06-20T14:30:00Z",
+          completedAt: null,
+          companyName: "A",
+        },
+      ],
+      milestones: [],
+      bids: [],
+    });
+    expect(ev[0]!.date).toBe("2026-06-20");
+    // and the feed serializes without throwing
+    expect(() => toIcs(ev, { now: NOW })).not.toThrow();
+  });
+});
+
+describe("isValidCalendarDate", () => {
+  it("accepts real YYYY-MM-DD and ISO datetimes", () => {
+    expect(isValidCalendarDate("2026-06-20")).toBe(true);
+    expect(isValidCalendarDate("2026-06-20T09:00:00Z")).toBe(true);
+    expect(isValidCalendarDate("2024-02-29")).toBe(true); // leap day
+  });
+  it("rejects malformed, impossible, or empty values", () => {
+    expect(isValidCalendarDate("")).toBe(false);
+    expect(isValidCalendarDate(null)).toBe(false);
+    expect(isValidCalendarDate(undefined)).toBe(false);
+    expect(isValidCalendarDate("not-a-date")).toBe(false);
+    expect(isValidCalendarDate("2026-13-01")).toBe(false); // month 13
+    expect(isValidCalendarDate("2026-02-30")).toBe(false); // overflow
+    expect(isValidCalendarDate("2025-02-29")).toBe(false); // non-leap
+    expect(isValidCalendarDate("06/20/2026")).toBe(false);
   });
 });
 

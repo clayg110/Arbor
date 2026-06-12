@@ -4,10 +4,18 @@ import { createClient } from "@/lib/supabase/server";
 import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { parseJson } from "@/lib/validation";
+import { PROCESS_STAGES } from "@/lib/process-stage";
+import { isValidCalendarDate } from "@/lib/calendar";
 
+// `date` must be a real calendar date (YYYY-MM-DD), and `stage` a known process
+// stage — these land in companies.process_key_dates, which the calendar feed
+// serializes, so garbage here would otherwise surface downstream.
 const patchSchema = z.object({
-  stage: z.string().min(1),
-  date: z.string().nullable(),
+  stage: z.enum(PROCESS_STAGES as [string, ...string[]]),
+  date: z
+    .string()
+    .refine(isValidCalendarDate, "date must be a valid YYYY-MM-DD")
+    .nullable(),
 });
 
 // PATCH /api/companies/[id]/process-stage/key-dates

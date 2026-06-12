@@ -27,6 +27,7 @@ export default defineConfig({
       include: [
         "lib/adapters/**",
         "lib/api/**",
+        "lib/safe-url.ts",
         "lib/alerts.ts",
         "lib/api-keys.ts",
         "lib/billing.ts",

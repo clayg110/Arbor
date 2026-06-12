@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ok, fail, requireBackend, serverError } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
 import { parseJson } from "@/lib/validation";
+import { isValidCalendarDate } from "@/lib/calendar";
 import type { DbBid } from "@/types/db";
 import type { Bid } from "@/lib/bids";
 
@@ -26,7 +27,7 @@ function toBid(row: DbBid): Bid {
 const postSchema = z.object({
   bidType: z.enum(["indicative", "final"]),
   round: z.enum(["1", "2", "final"]),
-  bidDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  bidDate: z.string().refine(isValidCalendarDate, "bidDate must be a valid YYYY-MM-DD"),
   amountUsd: z.number().positive().nullable().default(null),
   multipleOnEbitda: z.number().positive().nullable().default(null),
   rationale: z.string().trim().max(1000).nullable().default(null),

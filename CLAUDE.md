@@ -60,18 +60,21 @@ Fix: `rm -rf .next` then restart dev server.
 **As of 2026-06-12:**
 
 - ALL 8 phases + full backlog (hardening + @mention + landing page) DONE + green. **COMMITTED.**
-- Tier 1 features 1–3 DONE + green. **COMMITTED.**
-- Tier 2 features 1–3 + Tier 3 features 1–2 DONE + green. **COMMITTED.** (latest commit: see `git log`)
+- Tier 1, Tier 2, Tier 3 — **ALL features DONE + green + COMMITTED + PUSHED.** Roadmap fully cleared.
 - 613 unit tests, 26 E2E, prod build all passing.
 - Migration counter: **next is 0042** (last used: 0041 = crm_sync).
+- **Remaining work is go-live ops, not code** — see `docs/DEPLOY.md`. Migrations 0035–0041 are committed but NOT yet applied to the live DB; several integration keys are unset (dormant). Nothing left to build.
 
-**What was built in latest commit:**
+**What was built in the latest commit (`0d20a69`, Tier 3 batch — pushed 2026-06-12):**
 
-1. **Bid / Offer Tracker** — `lib/bids.ts`, migration 0039, `BidTrackerSection.tsx`, `/api/companies/[id]/bids` + `/[bidId]`. Record indicative/final bids with amount, EBITDA multiple, rationale. Avg multiple strip on pipeline dashboard.
-2. **Pipeline-Level Partner Dashboard** — `lib/pipeline.ts`, `app/pipeline/page.tsx`, `/api/pipeline`. Funnel viz by process stage, upcoming key dates (30d), deal table, team workload bars, sector BarChart.
-3. **Regulatory Filing Tracker (HSR/FTC)** — `lib/ingest/hsr.ts`, `/api/ingest/hsr`. Fetches FTC public HSR data, fuzzy-matches acquirer/target to companies, forces confidence `high` + stage `in_market` on match. Daily cron 06:00. Dormant without `HSR_SOURCE_URL`.
-4. **Per-Company Signal Timeline** — `lib/signal-timeline.ts`, `SignalTimeline.tsx`. Horizontal 12-month timeline above Key Signals list; dots colored by source type, sized by signal density, hover tooltip.
-5. **Comps Database Filter UI + CSV Export** — `CompsSection.tsx`. Sector/size/dealType/outcome filters + date range (when closedAt data exists). Export CSV button. Replaces static comps list on company profile.
+1. **Calendar subscription feed** — `lib/calendar.ts` (RFC-5545), `lib/calendar-token.ts` (HMAC), `/api/calendar/[token].ics` + `/api/calendar/feed`, settings card. Dormant without `CALENDAR_FEED_SECRET`.
+2. **LP / fund-level reporting** — migration 0040 (`funds` + `companies.fund_id`), `lib/lp-report.ts`, `lib/adapters/funds.ts`, `/api/funds` CRUD + `/api/reports/lp`, `/reports/lp` page, `FundPickerSection`, nav link.
+3. **CRM sync (Affinity)** — migration 0041 (`crm_sync`), `lib/crm/*`, `/api/companies/[id]/crm-sync`, `CrmSyncSection`. Dormant without `AFFINITY_API_KEY`.
+4. **Enrich-on-add** — `lib/ingest/enrich.ts`, fired via `after()` from POST `/api/companies`. Dormant without Google CSE.
+5. **Multi-source corroboration** — `lib/corroboration.ts`, wired into `lib/ingest/persist.ts` (≥3 distinct sources auto-promote to `high`).
+6. **`noUncheckedIndexedAccess`** enabled; **E2E reliability fix** in `playwright.config.ts` (cold-compile headroom, capped workers, retry-once).
+
+Tier 2 batch (Bid Tracker, Partner Dashboard, HSR, Signal Timeline, Comps filter) shipped in the prior commit `af2c1a2`.
 
 **The 8-phase feature roadmap (all done):**
 
@@ -161,14 +164,14 @@ Row types in `types/db.ts` MUST be `type X = {...}`, NOT `interface X`. Using `i
 | `lib/supabase/middleware.ts` | Auth redirect logic, PUBLIC paths list                            |
 | `middleware.ts`              | Root: request-id, CSP nonce, matcher config                       |
 | `vitest.config.ts`           | Coverage includes + thresholds                                    |
-| `supabase/migrations/`       | SQL migrations, next counter is 0039                              |
+| `supabase/migrations/`       | SQL migrations, next counter is 0042                              |
 
 ---
 
 ## Migration convention
 
-Files: `supabase/migrations/NNNN_slug.sql`. Next number is **0039**.
-Used through 0038 (0022=conviction, 0023=company_memos, 0024=alert_rules, 0025=sponsor_holding, 0026=outcomes, 0027=calibration, 0028=user_preferences, 0029=saved_views, 0030=deal_workflow, 0031=alert_email_delivery, 0032=analytics_views, 0033=report_prefs, 0034=outreach_log_update_policy, 0035=deal_process_stage, 0036=contacts, 0037=company_contacts, 0038=company_ic_memos).
+Files: `supabase/migrations/NNNN_slug.sql`. Next number is **0042**.
+Used through 0041 (0022=conviction, 0023=company_memos, 0024=alert_rules, 0025=sponsor_holding, 0026=outcomes, 0027=calibration, 0028=user_preferences, 0029=saved_views, 0030=deal_workflow, 0031=alert_email_delivery, 0032=analytics_views, 0033=report_prefs, 0034=outreach_log_update_policy, 0035=deal_process_stage, 0036=contacts, 0037=company_contacts, 0038=company_ic_memos, 0039=deal_bids, 0040=funds, 0041=crm_sync).
 
 ---
 
@@ -189,7 +192,15 @@ All cron routes in `app/api/cron/` require `Authorization: Bearer <CRON_SECRET>`
 
 ## Remaining work
 
-Tier 1 complete. Build Tier 2 next.
+**Feature roadmap fully cleared — Tier 1, 2, 3 all DONE + committed + pushed. Zero TODO/FIXME in code.**
+What's left is **go-live ops, not coding** — see `docs/DEPLOY.md`:
+
+- Apply migrations 0035–0041 to the live Supabase (one-paste bundle: `docs/go-live-migrations.sql`).
+- Set core prod env (Supabase, `NEXT_PUBLIC_APP_URL`, `CRON_SECRET`, `ANTHROPIC_API_KEY`).
+- Set dormant keys to light up features: `RESEND_API_KEY`/`EMAIL_FROM` (email), `CALENDAR_FEED_SECRET`, `AFFINITY_API_KEY`, `HSR_SOURCE_URL`, Turnstile, Sentry, Stripe.
+- Deploy via Vercel (push to `main`), then smoke-test `GET /api/health?deep=1`.
+
+Feature inventory below is historical (all shipped).
 
 ### Tier 1 — ✅ ALL DONE
 

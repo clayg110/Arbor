@@ -47,6 +47,22 @@ export function foldLine(line: string): string {
   return parts.join("\r\n");
 }
 
+// A real calendar date in the leading YYYY-MM-DD of `value` (ISO datetimes are
+// accepted — we take the date part). Rejects malformed or impossible dates like
+// "2026-13-45" or "" so a single bad stored date can't blow up the whole feed.
+export function isValidCalendarDate(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const ymd = value.slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  // Round-trip check rejects overflow (e.g. Feb 30 → Mar 2).
+  return (
+    dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d
+  );
+}
+
 // YYYY-MM-DD → YYYYMMDD (DATE value). Accepts ISO datetimes too (takes the date).
 function icsDate(date: string): string {
   return date.slice(0, 10).replace(/-/g, "");
@@ -147,11 +163,13 @@ export interface DealCalendarInput {
 export function gatherDealEvents(input: DealCalendarInput): CalendarEvent[] {
   const events: CalendarEvent[] = [];
 
+  // Each event's date is normalized to a validated YYYY-MM-DD; rows with a
+  // missing or malformed date are skipped so one bad value can't break the feed.
   for (const t of input.tasks) {
-    if (!t.dueAt || t.completedAt) continue;
+    if (t.completedAt || !isValidCalendarDate(t.dueAt)) continue;
     events.push({
       uid: `task-${t.id}@arbor`,
-      date: t.dueAt,
+      date: t.dueAt!.slice(0, 10),
       title: `${t.companyName}: ${t.title}`,
       description: "Deal task due",
       category: "task",
@@ -159,10 +177,11 @@ export function gatherDealEvents(input: DealCalendarInput): CalendarEvent[] {
   }
 
   for (const m of input.milestones) {
+    if (!isValidCalendarDate(m.date)) continue;
     const label = PROCESS_STAGE_LABELS[m.stage as OurProcessStage] ?? m.stage;
     events.push({
       uid: `milestone-${m.companyId}-${m.stage}@arbor`,
-      date: m.date,
+      date: m.date.slice(0, 10),
       title: `${m.companyName}: ${label}`,
       description: "Process milestone",
       category: "milestone",
@@ -170,10 +189,11 @@ export function gatherDealEvents(input: DealCalendarInput): CalendarEvent[] {
   }
 
   for (const b of input.bids) {
+    if (!isValidCalendarDate(b.date)) continue;
     const round = b.round === "final" ? "Final" : `Round ${b.round}`;
     events.push({
       uid: `bid-${b.id}@arbor`,
-      date: b.date,
+      date: b.date.slice(0, 10),
       title: `${b.companyName}: ${b.bidType === "final" ? "Final" : "Indicative"} bid (${round})`,
       description: "Bid / offer date",
       category: "bid",

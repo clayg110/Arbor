@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { z } from "zod";
-import { parseJson } from "@/lib/validation";
+import { parseJson, optionalContactEmail, optionalContactUrl } from "@/lib/validation";
 import { rateLimit, clientIp } from "@/lib/redis/ratelimit";
 
 const schema = z.object({ name: z.string().min(1), n: z.number().int().optional() });
@@ -30,6 +30,31 @@ describe("parseJson", () => {
     const bad = new Request("http://x/api", { method: "POST", body: "{not json" });
     const r = await parseJson(bad, schema);
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("optionalContactEmail", () => {
+  it("allows empty / null / absent", () => {
+    expect(optionalContactEmail.safeParse(undefined).success).toBe(true);
+    expect(optionalContactEmail.safeParse(null).success).toBe(true);
+    expect(optionalContactEmail.safeParse("").success).toBe(true);
+  });
+  it("accepts a valid email, rejects garbage", () => {
+    expect(optionalContactEmail.safeParse("a@b.com").success).toBe(true);
+    expect(optionalContactEmail.safeParse("not-an-email").success).toBe(false);
+  });
+});
+
+describe("optionalContactUrl", () => {
+  it("allows empty / null / absent", () => {
+    expect(optionalContactUrl.safeParse(undefined).success).toBe(true);
+    expect(optionalContactUrl.safeParse(null).success).toBe(true);
+    expect(optionalContactUrl.safeParse("").success).toBe(true);
+  });
+  it("accepts http(s) + schemeless, rejects javascript:", () => {
+    expect(optionalContactUrl.safeParse("https://x.com").success).toBe(true);
+    expect(optionalContactUrl.safeParse("linkedin.com/in/x").success).toBe(true);
+    expect(optionalContactUrl.safeParse("javascript:alert(1)").success).toBe(false);
   });
 });
 
