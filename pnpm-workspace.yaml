@@ -3,3 +3,11 @@ allowBuilds:
   esbuild: true
   sharp: false
   unrs-resolver: true
+
+# Force-patch transitive dev/build-time advisories so `pnpm audit --audit-level
+# high` (CI gate) passes. All are build tooling, not runtime deps.
+# - esbuild >=0.28.1: GHSA-gv7w-rqvm-qjhr (RCE) + arbitrary file read.
+# - postcss  >=8.5.10: XSS via unescaped </style>.
+overrides:
+  esbuild: ">=0.28.1"
+  postcss: ">=8.5.10"
