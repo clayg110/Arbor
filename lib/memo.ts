@@ -10,6 +10,8 @@ import { withRetry } from "@/lib/retry";
 import { withSpan } from "@/lib/trace";
 import { waitForLlmSlot } from "@/lib/redis/ratelimit";
 import { hasAnthropicEnv } from "@/lib/extract-signal";
+import { wrapUntrusted, UNTRUSTED_GUARD } from "@/lib/llm-safety";
+import { llmBudgetExceeded } from "@/lib/llm-budget";
 import type { Company, Signal } from "@/lib/types";
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
@@ -57,7 +59,10 @@ export function buildContext(company: Company, signals: Signal[]): string {
         .join("\n")
     : "No signals recorded yet.";
 
-  return `Company facts:\n${facts}\n\nSignals (newest first):\n${sigLines}`;
+  // Signal excerpts are untrusted ingested text — fence + sanitize them so an
+  // injected instruction in a source can't steer the brief. Company facts are
+  // structured/trusted and stay outside the fence.
+  return `Company facts:\n${facts}\n\nSignals (newest first):\n${wrapUntrusted(sigLines)}`;
 }
 
 export const MEMO_SYSTEM = `You are a private-equity analyst writing a concise internal deal brief from tracked divestiture signals.
@@ -66,9 +71,13 @@ SITUATION — what is happening and at what stage of a potential sale.
 EVIDENCE — the strongest signals; name the source types and flag if single-sourced or low-confidence.
 CONSIDERATIONS — risks, gaps, and what to verify before acting.
 NEXT STEPS — concrete actions for the deal team.
-Rules: rely only on the provided facts and signals; never invent advisers, prices, or buyers. Be terse and factual. Plain text only — no markdown, no bold.`;
+Rules: rely only on the provided facts and signals; never invent advisers, prices, or buyers. Be terse and factual. Plain text only — no markdown, no bold.
 
-export const QA_SYSTEM = `You are a private-equity analyst assistant. Answer the analyst's question using ONLY the company facts and signals provided. If the answer is not supported by them, say so plainly rather than guessing. Be concise (1-3 sentences). Plain text, no markdown.`;
+${UNTRUSTED_GUARD}`;
+
+export const QA_SYSTEM = `You are a private-equity analyst assistant. Answer the analyst's question using ONLY the company facts and signals provided. If the answer is not supported by them, say so plainly rather than guessing. Be concise (1-3 sentences). Plain text, no markdown.
+
+${UNTRUSTED_GUARD}`;
 
 async function complete(
   system: string,
@@ -77,6 +86,9 @@ async function complete(
   maxTokens: number
 ): Promise<string | null> {
   if (!hasAnthropicEnv()) return null;
+  // Bill-shock guard: stop on-demand spend once the monthly cap is hit (no-op
+  // unless LLM_MONTHLY_BUDGET_USD is set). Callers treat null as "unavailable".
+  if (await llmBudgetExceeded()) return null;
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
   try {
     await waitForLlmSlot();
@@ -118,7 +130,9 @@ export function answerQuestion(
 export const QA_CITATIONS_SYSTEM = `You are a private-equity analyst assistant. Answer the analyst's question using ONLY the company facts and signals provided.
 Respond in exactly this format:
 ANSWER: <concise answer in 1–3 sentences. If the answer isn't supported by the provided data, say so plainly.>
-CITATIONS: <comma-separated signal numbers you cited, e.g. 1, 3 — or NONE if no signals were cited>`;
+CITATIONS: <comma-separated signal numbers you cited, e.g. 1, 3 — or NONE if no signals were cited>
+
+${UNTRUSTED_GUARD}`;
 
 export interface Citation {
   signalId: string;

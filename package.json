@@ -14,6 +14,7 @@
     "backfill:logos": "node --env-file=.env.local scripts/backfill-logos.mjs",
     "backfill:orgs": "node --env-file=.env.local scripts/backfill-orgs.mjs",
     "extract:test": "tsx scripts/test-extract.ts",
+    "eval:extraction": "tsx scripts/eval/extraction.eval.ts",
     "load": "node scripts/load/run.mjs",
     "load:k6": "k6 run scripts/load/k6.js",
     "test": "vitest run",

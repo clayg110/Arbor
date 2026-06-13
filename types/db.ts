@@ -105,6 +105,18 @@ export type DbCrmSync = {
   synced_at: string;
 };
 
+// Feature flags / kill switches (migration 0042). A row disables a feature;
+// absent row/table means ON. org_id NULL = global default.
+export type DbFeatureFlag = {
+  id: string;
+  key: string;
+  org_id: string | null;
+  enabled: boolean;
+  description: string | null;
+  updated_at: string;
+  updated_by: string | null;
+};
+
 // Monitored company universe (Backend §2.1) — no deal stage.
 export type DbUniverseCompany = {
   id: string;
@@ -708,6 +720,12 @@ export interface Database {
           status: DbCrmSync["status"];
         };
         Update: Partial<DbCrmSync>;
+        Relationships: Rel;
+      };
+      feature_flags: {
+        Row: DbFeatureFlag;
+        Insert: Partial<DbFeatureFlag> & { key: string };
+        Update: Partial<DbFeatureFlag>;
         Relationships: Rel;
       };
       company_contacts: {

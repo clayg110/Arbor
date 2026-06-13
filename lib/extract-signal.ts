@@ -8,6 +8,7 @@ import { createServiceClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { waitForLlmSlot } from "@/lib/redis/ratelimit";
 import { withRetry } from "@/lib/retry";
 import { withSpan } from "@/lib/trace";
+import { wrapUntrusted, UNTRUSTED_GUARD } from "@/lib/llm-safety";
 import type { DealType, Stage, Confidence, SourceType, Sector } from "@/lib/types";
 
 const MODEL = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6";
@@ -54,7 +55,9 @@ confidence: "high" if a primary source (filing/transcript) explicitly confirms; 
 
 Also extract any financials explicitly stated in the source (revenue, EBITDA, EBITDA margin, deal size). Leave a field empty if it is not stated — never guess.
 
-Call record_signal exactly once. If no relevant signal is present, set found=false.`;
+Call record_signal exactly once. If no relevant signal is present, set found=false.
+
+${UNTRUSTED_GUARD}`;
 
 const TOOL: Anthropic.Tool = {
   name: "record_signal",
@@ -169,7 +172,7 @@ export async function extractSignal(
           messages: [
             {
               role: "user",
-              content: `Source type: ${input.sourceType}\n\n${input.rawText}`,
+              content: `Source type: ${input.sourceType}\n\n${wrapUntrusted(input.rawText)}`,
             },
           ],
         })

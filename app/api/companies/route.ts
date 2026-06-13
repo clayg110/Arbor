@@ -12,6 +12,7 @@ import {
   tooMany,
 } from "@/lib/api/respond";
 import { getSessionUser } from "@/lib/api/auth";
+import { isFeatureEnabled } from "@/lib/flags";
 import { auditAs } from "@/lib/audit";
 import { rateLimit } from "@/lib/redis/ratelimit";
 import {
@@ -22,6 +23,7 @@ import {
   confidenceEnum,
 } from "@/lib/validation";
 import { toRadarCompany, toSummaryStrip, toSectorSummary } from "@/lib/adapters";
+import { isComputedSort, rankComputed, COMPUTED_SORT_CAP } from "@/lib/radar-rank";
 import type {
   DbCompany,
   LastSignalRow,
@@ -30,13 +32,6 @@ import type {
   SectorStageRow,
 } from "@/types/db";
 import type { Confidence, Sector, DealType, Stage } from "@/lib/types";
-
-const CONF_RANK: Record<Confidence, number> = {
-  high: 4,
-  medium: 3,
-  low: 2,
-  needs_review: 1,
-};
 
 const createCompanySchema = z.object({
   name: z.string().trim().min(1, "required").max(200),
@@ -105,7 +100,13 @@ export async function GET(request: NextRequest) {
   else if (sort === "added_desc") query = query.order("created_at", { ascending: false });
   else query = query.order("name", { ascending: true });
 
-  const { data, count, error } = await query.range(offset, offset + limit - 1);
+  // Computed sorts (conviction/confidence) are ranked in app code after
+  // adapting, so they need the whole filtered set — paginating at the DB first
+  // would only let us reorder a single page. Bounded by COMPUTED_SORT_CAP.
+  const computed = isComputedSort(sort);
+  const { data, count, error } = computed
+    ? await query.range(0, COMPUTED_SORT_CAP - 1)
+    : await query.range(offset, offset + limit - 1);
   if (error) return serverError(error);
 
   const companies = (data ?? []) as DbCompany[];
@@ -150,17 +151,8 @@ export async function GET(request: NextRequest) {
     );
   });
 
-  if (sort === "conf_desc" || sort === "conf_asc") {
-    radar = radar.sort((a, b) => {
-      const d = CONF_RANK[b.confidence] - CONF_RANK[a.confidence];
-      return sort === "conf_desc" ? d : -d;
-    });
-  } else if (sort === "conv_desc" || sort === "conv_asc") {
-    radar = radar.sort((a, b) => {
-      const d = (b.conviction?.score ?? 0) - (a.conviction?.score ?? 0);
-      return sort === "conv_desc" ? d : -d;
-    });
-  }
+  // Rank the full filtered set by the computed key, then slice to the page.
+  if (computed) radar = rankComputed(radar, sort, offset, limit);
 
   const summary = (summaryRows?.[0] as SummaryCountsRow | undefined) ?? null;
   const sectors = (sectorRows ?? []) as SectorStageRow[];
@@ -235,6 +227,9 @@ export async function POST(request: NextRequest) {
   // request's auth context.
   after(async () => {
     try {
+      // Kill switch: an `integration.enrich` flag set to disabled skips the
+      // web-search enrichment without a redeploy. Defaults ON.
+      if (!(await isFeatureEnabled("integration.enrich", user.orgId))) return;
       await enrichCompanyOnAdd(createServiceClient(), c.name, c.deal_type as DealType);
     } catch {
       // best-effort enrichment — never affects the add
