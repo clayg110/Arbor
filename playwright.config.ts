@@ -20,7 +20,9 @@ export default defineConfig({
   timeout: 90_000,
   // Navigation/visibility waits must outlast a cold route compile.
   expect: { timeout: 30_000 },
-  reporter: process.env.CI ? "list" : [["list"], ["html", { open: "never" }]],
+  // Always emit the HTML report (CI uploads it as an artifact); `list` keeps the
+  // console/CI logs readable alongside it.
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",
