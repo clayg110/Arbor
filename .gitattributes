@@ -1,0 +1,7 @@
+# Enforce LF line endings for all text files on every platform.
+# Without this, a Windows checkout (core.autocrlf=true) rewrites files to CRLF,
+# which fails `prettier --check` (Prettier's endOfLine defaults to "lf").
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.ico binary
