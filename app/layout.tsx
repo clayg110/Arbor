@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppLayout, type SessionUser } from "@/components/layout/AppLayout";
 import { CookieNotice } from "@/components/ui/CookieNotice";
 import { ServiceWorkerRegistrar } from "@/components/ui/ServiceWorkerRegistrar";
+import { ThemeApplier } from "@/components/ui/ThemeApplier";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { SITE } from "@/lib/site";
 
@@ -58,6 +59,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-bg text-ink antialiased">
+        <ThemeApplier />
         <a
           href="#main"
           className="sr-only z-50 rounded-md bg-surface px-3 py-2 text-[13px] font-medium text-ink focus:not-sr-only focus:absolute focus:left-3 focus:top-3"

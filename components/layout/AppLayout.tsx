@@ -6,8 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GlobalSearch } from "@/components/ui/GlobalSearch";
 import { NotificationBell } from "@/components/ui/NotificationBell";
-import { DarkModeToggle } from "@/components/ui/DarkModeToggle";
 import { CommandPalette } from "@/components/ui/CommandPalette";
+import { UserMenu } from "@/components/ui/UserMenu";
 import { cn } from "@/lib/format";
 
 const NAV = [
@@ -23,16 +23,6 @@ const NAV = [
 export interface SessionUser {
   email: string;
   role: string;
-}
-
-function initialsOf(email: string): string {
-  const name = email.split("@")[0] ?? "";
-  const parts = name.split(/[.\-_]/);
-  return (
-    ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() ||
-    name.slice(0, 2).toUpperCase() ||
-    "?"
-  );
 }
 
 export function AppLayout({
@@ -133,51 +123,11 @@ export function AppLayout({
 
           <div className="flex items-center gap-2 justify-self-end">
             <CommandPalette />
-            <DarkModeToggle />
             <div className="hidden md:block">
               <GlobalSearch />
             </div>
-            {user ? (
-              <>
-                <NotificationBell />
-                <div className="hidden text-right sm:block">
-                  <div className="text-[12px] font-medium leading-tight text-ink">
-                    {user.email}
-                  </div>
-                  <div className="text-[10px] font-normal uppercase tracking-wide text-subtle">
-                    {user.role}
-                  </div>
-                </div>
-                <div
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F1EFE8] text-[11px] font-medium text-[#444441]"
-                  title={user.email}
-                >
-                  {initialsOf(user.email)}
-                </div>
-                <Link
-                  href="/settings"
-                  className="rounded-md px-2.5 py-1 text-[12px] font-medium text-muted hover:text-ink"
-                  style={{ border: "0.5px solid var(--border)" }}
-                >
-                  Settings
-                </Link>
-                <button
-                  type="button"
-                  onClick={signOut}
-                  className="rounded-md px-2.5 py-1 text-[12px] font-medium text-muted hover:text-ink"
-                  style={{ border: "0.5px solid var(--border)" }}
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F1EFE8] text-[11px] font-medium text-[#444441]"
-                title="Demo"
-              >
-                PN
-              </div>
-            )}
+            {user && <NotificationBell />}
+            <UserMenu user={user} onSignOut={signOut} />
           </div>
         </div>
       </header>

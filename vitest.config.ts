@@ -62,6 +62,7 @@ export default defineConfig({
         "lib/status.ts",
         "lib/conviction.ts",
         "lib/radar-rank.ts",
+        "lib/theme.ts",
         "lib/llm-safety.ts",
         "lib/llm-eval.ts",
         "lib/llm-budget.ts",
