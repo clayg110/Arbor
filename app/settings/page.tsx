@@ -8,6 +8,14 @@ import { useFocusTrap } from "@/lib/use-focus-trap";
 import { TwoFactorSection } from "@/components/ui/TwoFactorSection";
 import { AlertsCard } from "@/components/ui/AlertsSection";
 import { SettingsIcon, XIcon } from "@/components/ui/icons";
+import {
+  buildUsageMeters,
+  planQuota,
+  nextPlan,
+  quotaLabel,
+  type UsageMeter,
+} from "@/lib/usage";
+import type { Plan } from "@/lib/billing";
 
 export default function SettingsPage() {
   return (
@@ -17,6 +25,7 @@ export default function SettingsPage() {
         <h1 className="text-[18px] font-medium text-ink">Account &amp; privacy</h1>
       </div>
 
+      <PlanCard />
       <TwoFactorSection />
       <AlertsCard />
       <BriefingCard />
@@ -46,6 +55,131 @@ function Card({
       <p className="mb-3 mt-1 text-[12px] text-muted">{desc}</p>
       {children}
     </section>
+  );
+}
+
+const PLAN_LABEL: Record<Plan, string> = {
+  free: "Free",
+  pro: "Pro",
+  enterprise: "Enterprise",
+};
+
+const METER_COLOR: Record<UsageMeter["state"], string> = {
+  ok: "#185FA5",
+  warn: "#8A5712",
+  over: "#C0322F",
+};
+
+// Plan & usage: current tier, how close you are to its quotas, and an upgrade
+// path. Usage counts come from the live backend; demo mode shows representative
+// figures so the meters are still legible.
+function PlanCard() {
+  // No client-side plan getter yet, so default to Free (the app's default tier);
+  // usage counts are fetched live below.
+  const plan: Plan = "free";
+  const [used, setUsed] = useState<{ companies: number; alertRules: number }>({
+    companies: 38,
+    alertRules: 2,
+  });
+  const [demo, setDemo] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    Promise.all([api.companies("?limit=1"), api.listAlerts()])
+      .then(([c, a]) => {
+        setUsed({ companies: c.total, alertRules: a.rules.length });
+      })
+      .catch((e) => {
+        if (e instanceof BackendOff) setDemo(true);
+      });
+  }, []);
+
+  const quota = planQuota(plan);
+  const meters = buildUsageMeters(plan, used);
+  const up = nextPlan(plan);
+
+  async function upgrade() {
+    if (up !== "pro") return; // enterprise is "talk to us"; checkout is for Pro
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await api.billingCheckout(up);
+      if (r.url) window.location.href = r.url;
+      else setMsg("Billing isn't configured on this deployment.");
+    } catch (e) {
+      setMsg(
+        e instanceof BackendOff
+          ? "Upgrade is unavailable in demo mode."
+          : "Could not start checkout."
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card
+      title="Plan & usage"
+      desc={`You're on the ${PLAN_LABEL[plan]} plan${demo ? " (demo figures shown)" : ""}. Seats up to ${quotaLabel(quota.seats)}.`}
+    >
+      <div className="space-y-3">
+        {meters.map((m) => (
+          <div key={m.key}>
+            <div className="mb-1 flex items-center justify-between text-[12px]">
+              <span className="text-muted">{m.label}</span>
+              <span className="font-medium text-ink">
+                {m.used} / {quotaLabel(m.limit)}
+                {m.state === "over" && (
+                  <span className="ml-1.5 text-[11px] font-medium text-[#C0322F]">
+                    over limit
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[#E6E4DD]">
+              <span
+                className="block h-full rounded-full"
+                style={{
+                  width: `${m.limit == null ? 8 : Math.min(100, Math.round(m.ratio * 100))}%`,
+                  backgroundColor: m.limit == null ? "#B4B2A9" : METER_COLOR[m.state],
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {up && (
+        <div className="mt-4 flex items-center gap-3">
+          {up === "enterprise" ? (
+            <a
+              href="/security"
+              className="rounded-md px-3 py-2 text-[12px] font-medium text-white"
+              style={{ backgroundColor: "#185FA5" }}
+            >
+              Talk to us about Enterprise
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={upgrade}
+              disabled={busy}
+              className="rounded-md px-3 py-2 text-[12px] font-medium text-white disabled:opacity-50"
+              style={{ backgroundColor: "#185FA5" }}
+            >
+              {busy ? "Starting…" : `Upgrade to ${PLAN_LABEL[up]}`}
+            </button>
+          )}
+          <span className="text-[12px] text-subtle">
+            {up === "pro"
+              ? "500 companies · 25 alert rules · 5 seats"
+              : "Unlimited companies, alerts & seats"}
+          </span>
+        </div>
+      )}
+      {msg && <p className="mt-2 text-[12px] text-muted">{msg}</p>}
+    </Card>
   );
 }
 

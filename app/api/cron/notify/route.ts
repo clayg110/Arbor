@@ -16,6 +16,7 @@ import {
   toAlertRule,
   type AlertEvent,
 } from "@/lib/alert-rules";
+import { rankAndDedupe, deliverable } from "@/lib/alert-priority";
 import { computeConviction } from "@/lib/conviction";
 import { daysSince } from "@/lib/adapters/time";
 import { sendAllAlerts } from "@/lib/alerts";
@@ -121,11 +122,15 @@ async function runAlertRules(svc: SvcClient, cutoff: string): Promise<number> {
   }
   if (matches.length === 0) return 0;
 
-  const created = await upsertNotificationRows(svc, alertNotificationRows(matches));
+  // Noise-rank: score every match, then collapse same-user+company duplicates to
+  // the single highest-priority alert before delivering on any channel.
+  const deliver = deliverable(rankAndDedupe(matches));
+
+  const created = await upsertNotificationRows(svc, alertNotificationRows(deliver));
 
   // Best-effort webhook fan-out for opted-in rules (no-op without ALERT_WEBHOOK).
   await Promise.all(
-    matches
+    deliver
       .filter((m) => m.rule.webhook)
       .map((m) =>
         sendAllAlerts(
@@ -136,7 +141,7 @@ async function runAlertRules(svc: SvcClient, cutoff: string): Promise<number> {
 
   // Per-rule email delivery (no-op without RESEND_API_KEY).
   if (hasEmailEnv()) {
-    const emailMatches = matches.filter((m) => m.rule.emailDelivery);
+    const emailMatches = deliver.filter((m) => m.rule.emailDelivery);
     if (emailMatches.length > 0) {
       // Fetch each unique userId once, not once per matched rule.
       const uniqueUserIds = [...new Set(emailMatches.map((m) => m.rule.userId))];

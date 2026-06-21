@@ -44,6 +44,7 @@ export function AppLayout({
     "/forgot-password",
     "/auth/reset",
     "/legal",
+    "/security",
     "/status",
     "/onboard",
     "/docs",

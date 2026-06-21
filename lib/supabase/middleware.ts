@@ -12,6 +12,7 @@ const PUBLIC = [
   "/auth",
   "/landing",
   "/legal",
+  "/security",
   "/status",
   "/robots.txt",
   "/sitemap.xml",

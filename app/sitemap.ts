@@ -4,7 +4,7 @@ import { SITE } from "@/lib/site";
 // Public, indexable URLs only.
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const paths = ["/", "/login", "/legal/terms", "/legal/privacy"];
+  const paths = ["/", "/login", "/security", "/legal/terms", "/legal/privacy"];
   return paths.map((p) => ({
     url: `${SITE.url}${p}`,
     lastModified: now,

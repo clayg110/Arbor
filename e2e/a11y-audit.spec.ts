@@ -23,6 +23,7 @@ const PAGES = [
   "/status",
   "/legal/privacy",
   "/legal/terms",
+  "/security",
   "/onboard",
   "/docs",
 ];
