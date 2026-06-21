@@ -22,6 +22,7 @@ import { ArrowLeftIcon } from "@/components/ui/icons";
 import { CONVICTION_LABEL } from "@/lib/conviction";
 import { MARKET_TIMING_LABEL } from "@/lib/predict-market";
 import { probabilityToClose, basisLabel } from "@/lib/calibration";
+import { checklistForStage } from "@/lib/task-templates";
 import { formatDate } from "@/lib/format";
 
 function toInput(c: RadarCompany): DealRoomInput {
@@ -291,6 +292,29 @@ export default function DealRoomPage() {
             </p>
           )}
         </Card>
+
+        {/* stage playbook */}
+        {room.processStage && checklistForStage(room.processStage).length > 0 && (
+          <Card title={`Playbook — ${room.processStageLabel}`}>
+            <p className="mb-2 text-[12px] font-normal text-muted">
+              The standard next steps at this stage. Add them as dated tasks from the
+              company&apos;s Tasks section.
+            </p>
+            <ul className="space-y-1.5">
+              {checklistForStage(room.processStage).map((item) => (
+                <li
+                  key={item.title}
+                  className="flex items-center justify-between gap-3 text-[12px]"
+                >
+                  <span className="text-ink">{item.title}</span>
+                  <span className="shrink-0 text-[11px] text-subtle">
+                    +{item.dueOffsetDays}d
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
       </div>
     </div>
   );

@@ -17,6 +17,8 @@ import type {
 } from "@/lib/process-stage";
 import type { Contact, CompanyContact, ContactRole, FirmActivity } from "@/lib/contacts";
 import type { Bid, BidType, BidRound } from "@/lib/bids";
+import type { DealDocument, DocumentKind } from "@/lib/documents";
+import type { FeedbackAggregate, FeedbackVote } from "@/lib/signal-feedback";
 import type { PipelineDeal } from "@/lib/pipeline";
 import type { LpFund, LpReport } from "@/lib/lp-report";
 
@@ -426,6 +428,43 @@ export const api = {
   ) => jsend<{ bid: Bid }>(`/api/companies/${companyId}/bids`, "POST", body),
   deleteBid: (companyId: string, bidId: string) =>
     jsend<{ ok: boolean }>(`/api/companies/${companyId}/bids/${bidId}`, "DELETE"),
+
+  // ---- documents ----
+  listDocuments: (companyId: string) =>
+    jget<{ documents: DealDocument[] }>(`/api/companies/${companyId}/documents`),
+  addDocument: (
+    companyId: string,
+    body: {
+      name: string;
+      kind: DocumentKind;
+      storagePath: string | null;
+      contentType: string | null;
+      sizeBytes: number | null;
+      text?: string;
+    }
+  ) =>
+    jsend<{ document: DealDocument }>(
+      `/api/companies/${companyId}/documents`,
+      "POST",
+      body
+    ),
+  deleteDocument: (companyId: string, docId: string) =>
+    jsend<{ ok: boolean }>(
+      `/api/companies/${companyId}/documents?docId=${encodeURIComponent(docId)}`,
+      "DELETE"
+    ),
+
+  // ---- signal feedback ----
+  getSignalFeedback: (signalId: string) =>
+    jget<{ aggregate: FeedbackAggregate; myVote: FeedbackVote | null }>(
+      `/api/signals/${signalId}/feedback`
+    ),
+  voteSignal: (signalId: string, vote: FeedbackVote | null) =>
+    jsend<{ aggregate: FeedbackAggregate; myVote: FeedbackVote | null }>(
+      `/api/signals/${signalId}/feedback`,
+      "POST",
+      { vote }
+    ),
 
   // ---- pipeline dashboard ----
   getPipelineDeals: () => jget<{ deals: PipelineDeal[] }>(`/api/pipeline`),

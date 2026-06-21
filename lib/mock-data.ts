@@ -9,6 +9,7 @@ import type {
 import { topComps, type CompInput, type CompResult } from "./comps";
 import { bankerIntelligence, type Contact, type CompanyContact } from "./contacts";
 import type { Bid } from "./bids";
+import type { DealDocument } from "./documents";
 import type { ContactLink } from "./relationship-graph";
 import type { PipelineDeal } from "./pipeline";
 import { buildLpReport, currentQuarter, type LpDeal, type LpFund } from "./lp-report";
@@ -1149,6 +1150,67 @@ const MOCK_BIDS: Record<string, Bid[]> = {
 
 export function getMockBids(companyId: string): Bid[] {
   return MOCK_BIDS[companyId] ?? [];
+}
+
+// ---- mock documents (with pre-extracted financials) ----
+const MOCK_DOCUMENTS: Record<string, DealDocument[]> = {
+  "1": [
+    {
+      id: "doc-1-a",
+      companyId: "1",
+      name: "Project Helios — Confidential Information Memorandum.pdf",
+      kind: "cim",
+      storagePath: null,
+      contentType: "application/pdf",
+      sizeBytes: 4_812_000,
+      extracted: {
+        revenue: "$1.2B",
+        ebitda: "$210M",
+        margin: "18%",
+        multiple: "9.5x",
+        evidence: [
+          "FY2025 revenue of $1.2 billion",
+          "EBITDA of $210M (an 18% EBITDA margin)",
+          "marketed at approximately 9.5x EBITDA",
+        ],
+      },
+      createdAt: "2026-05-18T09:30:00Z",
+    },
+    {
+      id: "doc-1-b",
+      companyId: "1",
+      name: "Teaser — Polyurethanes carve-out.pdf",
+      kind: "teaser",
+      storagePath: null,
+      contentType: "application/pdf",
+      sizeBytes: 612_000,
+      extracted: null,
+      createdAt: "2026-05-02T14:00:00Z",
+    },
+  ],
+  "5": [
+    {
+      id: "doc-5-a",
+      companyId: "5",
+      name: "GEON — Management presentation.pdf",
+      kind: "financials",
+      storagePath: null,
+      contentType: "application/pdf",
+      sizeBytes: 2_140_000,
+      extracted: {
+        revenue: "$640M",
+        ebitda: "$72M",
+        margin: null,
+        multiple: "11x",
+        evidence: ["$640mm in net sales", "EBITDA of $72M", "around 11x EBITDA"],
+      },
+      createdAt: "2026-05-22T11:15:00Z",
+    },
+  ],
+};
+
+export function getMockDocuments(companyId: string): DealDocument[] {
+  return MOCK_DOCUMENTS[companyId] ?? [];
 }
 
 // ---- mock pipeline deals (derived from radar companies with process stages) ----

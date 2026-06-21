@@ -21,6 +21,7 @@ import {
 import { ProcessStageSection } from "@/components/ui/ProcessStageSection";
 import { CompanyContactsSection } from "@/components/ui/CompanyContactsSection";
 import { BidTrackerSection } from "@/components/ui/BidTrackerSection";
+import { DocumentsSection } from "@/components/ui/DocumentsSection";
 import { FundPickerSection } from "@/components/ui/FundPickerSection";
 import { CrmSyncSection } from "@/components/ui/CrmSyncSection";
 import { SignalTimeline } from "@/components/ui/SignalTimeline";
@@ -34,6 +35,7 @@ import {
   getComps,
   getCompanyContacts,
   getMockBids,
+  getMockDocuments,
 } from "@/lib/mock-data";
 import {
   SECTOR_LABELS,
@@ -48,8 +50,10 @@ import { toCompanyProfile, toStageHistory, toSignals, toNotes } from "@/lib/adap
 import { topComps, type CompInput, type CompResult } from "@/lib/comps";
 import { computeMomentum, type MomentumResult } from "@/lib/signal-momentum";
 import { computeCorroboration, type CorroborationResult } from "@/lib/corroboration";
+import { sourceStrength } from "@/lib/source-credibility";
 import { MomentumBadge } from "@/components/ui/MomentumBadge";
 import { CorroborationBadge } from "@/components/ui/CorroborationBadge";
+import { SourceStrengthBadge } from "@/components/ui/SourceStrengthBadge";
 import type { DbCompany, DbHistory, DbSignal, DbNote } from "@/types/db";
 import type { Company, StageHistoryRecord, Signal, Note } from "@/lib/types";
 
@@ -202,6 +206,11 @@ export default async function CompanyPage({
             <ConfidenceBadge confidence={company.confidence} />
             {momentum && <MomentumBadge momentum={momentum} showSparkline />}
             {corroboration && <CorroborationBadge corroboration={corroboration} />}
+            {signals.length > 0 && (
+              <SourceStrengthBadge
+                strength={sourceStrength(signals.map((s) => s.sourceType))}
+              />
+            )}
           </div>
           <p className="mt-2 text-[12px] font-normal text-muted">
             {company.dealType === "carveout"
@@ -323,6 +332,13 @@ export default async function CompanyPage({
             <BidTrackerSection
               companyId={company.id}
               fallback={getMockBids(company.id)}
+            />
+          </Section>
+
+          <Section title="Documents">
+            <DocumentsSection
+              companyId={company.id}
+              fallback={getMockDocuments(company.id)}
             />
           </Section>
 

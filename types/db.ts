@@ -84,6 +84,35 @@ export type DbCompany = {
   fund_id?: string | null;
 };
 
+export type DbSignalFeedback = {
+  id: string;
+  signal_id: string;
+  user_id: string;
+  org_id: string | null;
+  vote: "up" | "down";
+  created_at: string;
+};
+
+export type DbDocument = {
+  id: string;
+  company_id: string;
+  org_id: string | null;
+  created_by: string | null;
+  name: string;
+  kind: "teaser" | "cim" | "financials" | "other";
+  storage_path: string | null;
+  content_type: string | null;
+  size_bytes: number | null;
+  extracted: {
+    revenue: string | null;
+    ebitda: string | null;
+    margin: string | null;
+    multiple: string | null;
+    evidence: string[];
+  } | null;
+  created_at: string;
+};
+
 export type DbFund = {
   id: string;
   org_id: string | null;
@@ -747,6 +776,26 @@ export interface Database {
           bid_date: string;
         };
         Update: Partial<DbBid>;
+        Relationships: [];
+      };
+      documents: {
+        Row: DbDocument;
+        Insert: Partial<DbDocument> & {
+          company_id: string;
+          name: string;
+          kind: DbDocument["kind"];
+        };
+        Update: Partial<DbDocument>;
+        Relationships: [];
+      };
+      signal_feedback: {
+        Row: DbSignalFeedback;
+        Insert: Partial<DbSignalFeedback> & {
+          signal_id: string;
+          user_id: string;
+          vote: DbSignalFeedback["vote"];
+        };
+        Update: Partial<DbSignalFeedback>;
         Relationships: [];
       };
     };

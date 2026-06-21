@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { api, BackendOff } from "@/lib/api-client";
 import type { DealTask, OutreachEntry } from "@/lib/deal-tasks";
 import { sortTasks, isOverdue, formatDue, OUTREACH_TYPES } from "@/lib/deal-tasks";
+import { stagesWithChecklist, suggestedTasks } from "@/lib/task-templates";
+import { PROCESS_STAGE_LABELS, type OurProcessStage } from "@/lib/process-stage";
 import { XIcon } from "@/components/ui/icons";
+
+const CHECKLIST_STAGES = stagesWithChecklist();
 
 interface OrgMember {
   id: string;
@@ -98,6 +102,10 @@ export function DealTasksSection({
   const [dueAt, setDueAt] = useState("");
   const [adding, setAdding] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [playbookStage, setPlaybookStage] = useState<OurProcessStage>(
+    CHECKLIST_STAGES[0]!
+  );
+  const [addingPlaybook, setAddingPlaybook] = useState(false);
 
   useEffect(() => {
     api
@@ -159,6 +167,32 @@ export function DealTasksSection({
     });
   }
 
+  // Add the selected stage's playbook as dated tasks, skipping any already there.
+  async function addPlaybook() {
+    setAddingPlaybook(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const items = suggestedTasks(
+        playbookStage,
+        today,
+        tasks.map((t) => t.title)
+      );
+      const created: DealTask[] = [];
+      for (const it of items) {
+        const { task } = await api.createTask(companyId, {
+          title: it.title,
+          dueAt: it.dueAt,
+        });
+        created.push(task);
+      }
+      if (created.length) setTasks((prev) => sortTasks([...prev, ...created]));
+    } catch {
+      // best-effort
+    } finally {
+      setAddingPlaybook(false);
+    }
+  }
+
   if (!loaded) return null;
   if (offline)
     return <p className="text-[12px] text-muted">Tasks require a connected backend.</p>;
@@ -191,13 +225,38 @@ export function DealTasksSection({
       </ul>
 
       {!showAdd ? (
-        <button
-          type="button"
-          onClick={() => setShowAdd(true)}
-          className="mt-2 text-[12px] text-[#185FA5] hover:underline"
-        >
-          + Add task
-        </button>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="text-[12px] text-[#185FA5] hover:underline"
+          >
+            + Add task
+          </button>
+          <span className="flex items-center gap-1.5">
+            <select
+              value={playbookStage}
+              onChange={(e) => setPlaybookStage(e.target.value as OurProcessStage)}
+              aria-label="Playbook stage"
+              className="rounded bg-surface px-1.5 py-0.5 text-[11px] text-muted focus:outline-none"
+              style={{ border: "0.5px solid var(--border)" }}
+            >
+              {CHECKLIST_STAGES.map((s) => (
+                <option key={s} value={s}>
+                  {PROCESS_STAGE_LABELS[s]}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={addPlaybook}
+              disabled={addingPlaybook}
+              className="text-[12px] text-[#185FA5] hover:underline disabled:opacity-50"
+            >
+              {addingPlaybook ? "Adding…" : "+ Add playbook"}
+            </button>
+          </span>
+        </div>
       ) : (
         <div className="mt-2 flex flex-col gap-1.5">
           <input
