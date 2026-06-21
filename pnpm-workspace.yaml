@@ -6,8 +6,21 @@ allowBuilds:
 
 # Force-patch transitive dev/build-time advisories so `pnpm audit --audit-level
 # high` (CI gate) passes. All are build tooling, not runtime deps.
-# - esbuild >=0.28.1: GHSA-gv7w-rqvm-qjhr (RCE) + arbitrary file read.
-# - postcss  >=8.5.10: XSS via unescaped </style>.
+# - esbuild   >=0.28.1: GHSA-gv7w-rqvm-qjhr (RCE) + arbitrary file read.
+# - postcss   >=8.5.10: XSS via unescaped </style>.
+# - form-data >=4.0.6:  GHSA-hmw2-7cc7-3qxx (CRLF injection); via typesense>axios.
 overrides:
   esbuild: ">=0.28.1"
   postcss: ">=8.5.10"
+  form-data: ">=4.0.6"
+
+# Test-only advisories we can't patch without breaking the test runner. The undici
+# CVEs reach us solely through jsdom (vitest's DOM env) — never shipped — and
+# jsdom@29 imports an internal undici path that was removed in the patched 7.28.0,
+# so forcing the upgrade breaks jsdom. Ignored from the `--audit-level high` gate;
+# revisit when jsdom ships a build compatible with undici >=7.28.0.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-vmh5-mc38-953g # undici: TLS cert validation bypass (SOCKS5 ProxyAgent)
+    - GHSA-vxpw-j846-p89q # undici: WebSocket client DoS via fragment count
+    - GHSA-hm92-r4w5-c3mj # undici: cross-origin routing via SOCKS5 pool reuse

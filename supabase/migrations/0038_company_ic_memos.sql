@@ -2,9 +2,9 @@
 -- Cache for the structured IC memo (distinct from the free-form company_memos).
 -- One row per company; regenerated when the signal/process/comps fingerprint
 -- changes. Service-role writes only (mirrors company_memos); readable to
--- authenticated users.
+-- authenticated users. Idempotent: safe to re-apply.
 
-CREATE TABLE company_ic_memos (
+CREATE TABLE IF NOT EXISTS company_ic_memos (
   company_id   uuid PRIMARY KEY REFERENCES companies(id) ON DELETE CASCADE,
   memo         text NOT NULL,
   signals_hash text NOT NULL,
@@ -14,5 +14,6 @@ CREATE TABLE company_ic_memos (
 
 ALTER TABLE company_ic_memos ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "ic_memos_read" ON company_ic_memos;
 CREATE POLICY "ic_memos_read" ON company_ic_memos
   FOR SELECT TO authenticated USING (true);

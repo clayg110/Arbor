@@ -2,9 +2,9 @@
 -- Fund layer for LP / fund-level reporting. A fund is an org-scoped investment
 -- vehicle with a vintage year; deals (companies) can be assigned to one fund.
 -- The LP report aggregates the pipeline by fund (vintage) × sector for a chosen
--- quarter. Org-scoped RLS mirrors contacts (0036).
+-- quarter. Org-scoped RLS mirrors contacts (0036). Idempotent: safe to re-apply.
 
-CREATE TABLE funds (
+CREATE TABLE IF NOT EXISTS funds (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   org_id       uuid NULL,
   created_by   uuid NULL REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -13,16 +13,18 @@ CREATE TABLE funds (
   created_at   timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX funds_org_idx ON funds(org_id);
+CREATE INDEX IF NOT EXISTS funds_org_idx ON funds(org_id);
 
 ALTER TABLE funds ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "org members view funds" ON funds;
 CREATE POLICY "org members view funds" ON funds FOR SELECT TO authenticated
   USING (
     created_by = auth.uid()
     OR org_id = (auth.jwt() -> 'app_metadata' ->> 'org_id')::uuid
   );
 
+DROP POLICY IF EXISTS "members insert funds" ON funds;
 CREATE POLICY "members insert funds" ON funds FOR INSERT TO authenticated
   WITH CHECK (
     created_by = auth.uid()
@@ -32,6 +34,7 @@ CREATE POLICY "members insert funds" ON funds FOR INSERT TO authenticated
     )
   );
 
+DROP POLICY IF EXISTS "members update org funds" ON funds;
 CREATE POLICY "members update org funds" ON funds FOR UPDATE TO authenticated
   USING (
     created_by = auth.uid()
@@ -42,6 +45,7 @@ CREATE POLICY "members update org funds" ON funds FOR UPDATE TO authenticated
     OR org_id = (auth.jwt() -> 'app_metadata' ->> 'org_id')::uuid
   );
 
+DROP POLICY IF EXISTS "members delete org funds" ON funds;
 CREATE POLICY "members delete org funds" ON funds FOR DELETE TO authenticated
   USING (
     created_by = auth.uid()
@@ -50,5 +54,5 @@ CREATE POLICY "members delete org funds" ON funds FOR DELETE TO authenticated
 
 -- Assign a deal to a fund. ON DELETE SET NULL so deleting a fund unassigns its
 -- deals rather than removing them from the pipeline.
-ALTER TABLE companies ADD COLUMN fund_id uuid NULL REFERENCES funds(id) ON DELETE SET NULL;
-CREATE INDEX companies_fund_idx ON companies(fund_id);
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS fund_id uuid NULL REFERENCES funds(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS companies_fund_idx ON companies(fund_id);
