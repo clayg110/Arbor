@@ -9,6 +9,7 @@ import type {
 import { topComps, type CompInput, type CompResult } from "./comps";
 import { bankerIntelligence, type Contact, type CompanyContact } from "./contacts";
 import type { Bid } from "./bids";
+import type { ContactLink } from "./relationship-graph";
 import type { PipelineDeal } from "./pipeline";
 import { buildLpReport, currentQuarter, type LpDeal, type LpFund } from "./lp-report";
 
@@ -1105,6 +1106,13 @@ export const mockFirmActivity = bankerIntelligence(
   Object.entries(MOCK_COMPANY_CONTACTS).flatMap(([companyId, links]) =>
     links.map((l) => ({ companyId, firm: l.firm, role: l.role }))
   )
+);
+
+// Flat company_contact links for the relationship graph (coverage + warm intros).
+export const mockContactLinks: ContactLink[] = Object.entries(
+  MOCK_COMPANY_CONTACTS
+).flatMap(([companyId, links]) =>
+  links.map((l) => ({ contactId: l.id, companyId, role: l.role }))
 );
 
 // ---- mock bids ----

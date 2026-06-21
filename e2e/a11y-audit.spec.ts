@@ -10,6 +10,8 @@ const PAGES = [
   "/signup",
   "/forgot-password",
   "/radar",
+  "/deals",
+  "/deals/1",
   "/feed",
   "/analytics",
   "/pipeline",

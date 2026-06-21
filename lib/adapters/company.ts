@@ -5,6 +5,7 @@ import type { DbCompany, DbSignal, DbHistory, DbNote, LastSignalRow } from "@/ty
 import type { RadarCompany, LastSignal } from "@/lib/radar-data";
 import type { Company, StageHistoryRecord, Signal, Note } from "@/lib/types";
 import { computeConviction } from "@/lib/conviction";
+import { computeMarketTiming } from "@/lib/predict-market";
 import { daysSince, stageDaysLabel, relativeLabel, shortDate, initialsOf } from "./time";
 
 // Per-company signal aggregates (from v_company_conviction) that sharpen the
@@ -48,6 +49,11 @@ export function toRadarCompany(
     signalCount30d: agg?.signalCount30d,
     distinctSourceTypes: agg?.distinctSourceTypes,
   });
+  const marketTiming = computeMarketTiming({
+    stage: c.current_stage,
+    dealType: c.deal_type,
+    daysInStage: days,
+  });
   const quote =
     lastSignal == null
       ? undefined
@@ -75,6 +81,7 @@ export function toRadarCompany(
     addedDisplay: shortDate(c.created_at),
     lastSignal: ls,
     conviction,
+    marketTiming,
     quote,
     watchlisted: watched || undefined,
     subsector: c.subsector,

@@ -6,6 +6,7 @@ import { DealTypeBadge } from "./DealTypeBadge";
 import { SectorBadge } from "./SectorBadge";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { ConvictionBadge } from "./ConvictionBadge";
+import { MarketTimingBadge } from "./MarketTimingBadge";
 import { SignalSourceBadge } from "./SignalSourceBadge";
 import { Tooltip } from "./Tooltip";
 import { StarIcon, ChevronRightIcon, GripIcon, ClockIcon } from "./icons";
@@ -42,6 +43,10 @@ export function RadarCompanyCard({
   const ownerLabel = c.dealType === "carveout" ? "Parent" : "Sponsor";
   const accent = c.pulled ? PULLED_ACCENT : (STAGE_COLORS[c.stage].border ?? "#888");
   const isCol3 = c.stage === "on_hold" || c.stage === "pulled";
+  // "Coming to market" is only a meaningful question before an asset is already
+  // in market (and a pulled process is dormant) — show it for monitor/on-hold.
+  const showTiming =
+    !!c.marketTiming && (c.stage === "monitor_for_exit" || c.stage === "on_hold");
   const stale = c.lastSignal.daysAgo > 30;
   const urgent = c.stage === "in_market" && c.days > 60;
   const confTip = `Confidence: ${CONFIDENCE_LABELS[c.confidence].replace(
@@ -152,6 +157,13 @@ export function RadarCompanyCard({
             ⚠ 60d+
           </span>
         </Tooltip>
+      )}
+
+      {/* coming-to-market prediction (monitor / on-hold only) */}
+      {showTiming && c.marketTiming && (
+        <div className="mt-1.5">
+          <MarketTimingBadge timing={c.marketTiming} />
+        </div>
       )}
 
       {/* last signal */}

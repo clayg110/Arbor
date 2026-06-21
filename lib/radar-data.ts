@@ -1,6 +1,7 @@
 import type { DealType, Sector, Confidence, Stage, SourceType } from "./types";
 import type { OurProcessStage, ProcessKeyDates } from "./process-stage";
 import { computeConviction, type Conviction } from "./conviction";
+import { computeMarketTiming, type MarketTiming } from "./predict-market";
 
 export interface LastSignal {
   label: string; // "2 days ago"
@@ -37,6 +38,7 @@ export interface RadarCompany {
   revenueSource?: string | null;
   ebitdaSource?: string | null;
   conviction?: Conviction; // 0–100 "likely to transact" + band
+  marketTiming?: MarketTiming; // 0–100 "coming to market" prediction + horizon
   ourProcessStage?: OurProcessStage | null;
   processKeyDates?: ProcessKeyDates | null;
 }
@@ -430,6 +432,11 @@ export const radarCompanies: RadarCompany[] = baseRadarCompanies.map((c) => ({
     lastSignalAgeDays: c.lastSignal.daysAgo,
     confidence: c.confidence,
     stage: c.stage,
+  }),
+  marketTiming: computeMarketTiming({
+    stage: c.stage,
+    dealType: c.dealType,
+    daysInStage: c.days,
   }),
 }));
 
