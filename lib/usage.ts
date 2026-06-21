@@ -111,3 +111,46 @@ const UPGRADE: Record<Plan, Plan | null> = {
 export function nextPlan(plan: Plan): Plan | null {
   return UPGRADE[plan];
 }
+
+// Client-safe plan display (label, price, one-line blurb). Kept here rather than
+// in lib/billing.ts so the pricing UI can import it without pulling in Stripe.
+export interface PlanDisplay {
+  label: string;
+  price: string;
+  cadence: string;
+  blurb: string;
+}
+
+export const PLAN_DISPLAY: Record<Plan, PlanDisplay> = {
+  free: { label: "Free", price: "$0", cadence: "/mo", blurb: "For individual analysts" },
+  pro: { label: "Pro", price: "$299", cadence: "/mo", blurb: "For active deal teams" },
+  enterprise: {
+    label: "Enterprise",
+    price: "Custom",
+    cadence: "",
+    blurb: "For large coverage teams",
+  },
+};
+
+// Headline feature bullets per plan for the pricing cards.
+export const PLAN_FEATURES: Record<Plan, string[]> = {
+  free: [
+    `Up to ${quotaLabel(PLAN_QUOTAS.free.companies)} tracked companies`,
+    `${quotaLabel(PLAN_QUOTAS.free.alertRules)} alert rules`,
+    `${quotaLabel(PLAN_QUOTAS.free.seats)} seats`,
+    "Radar, feed & deal rooms",
+  ],
+  pro: [
+    `Up to ${quotaLabel(PLAN_QUOTAS.pro.companies)} tracked companies`,
+    `${quotaLabel(PLAN_QUOTAS.pro.alertRules)} alert rules`,
+    `${quotaLabel(PLAN_QUOTAS.pro.seats)} seats`,
+    "AI memos, calibrated probability & comps",
+    "Slack + email alerts",
+  ],
+  enterprise: [
+    "Unlimited companies, alerts & seats",
+    "SSO + SCIM provisioning",
+    "Audit log + custom data sources",
+    "SLA & dedicated support",
+  ],
+};

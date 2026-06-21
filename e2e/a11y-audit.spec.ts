@@ -19,6 +19,7 @@ const PAGES = [
   "/review",
   "/watchlist",
   "/settings",
+  "/pricing",
   "/admin",
   "/status",
   "/legal/privacy",

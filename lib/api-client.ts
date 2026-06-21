@@ -167,6 +167,7 @@ export const api = {
   billingCheckout: (plan: "pro" | "enterprise") =>
     jsend<{ url: string | null }>(`/api/billing/checkout`, "POST", { plan }),
   billingPortal: () => jsend<{ url: string | null }>(`/api/billing/portal`, "POST"),
+  getPlan: () => jget<{ plan: "free" | "pro" | "enterprise" }>(`/api/billing/plan`),
   deleteAccount: () => jsend<{ ok: boolean }>(`/api/account/delete`, "POST"),
   triggerPipeline: (name: string) => jsend(`/api/admin/trigger?pipeline=${name}`, "POST"),
   addWatch: (companyId: string) => jsend(`/api/watchlist`, "POST", { companyId }),

@@ -74,9 +74,7 @@ const METER_COLOR: Record<UsageMeter["state"], string> = {
 // path. Usage counts come from the live backend; demo mode shows representative
 // figures so the meters are still legible.
 function PlanCard() {
-  // No client-side plan getter yet, so default to Free (the app's default tier);
-  // usage counts are fetched live below.
-  const plan: Plan = "free";
+  const [plan, setPlan] = useState<Plan>("free");
   const [used, setUsed] = useState<{ companies: number; alertRules: number }>({
     companies: 38,
     alertRules: 2,
@@ -86,9 +84,10 @@ function PlanCard() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.companies("?limit=1"), api.listAlerts()])
-      .then(([c, a]) => {
+    Promise.all([api.companies("?limit=1"), api.listAlerts(), api.getPlan()])
+      .then(([c, a, p]) => {
         setUsed({ companies: c.total, alertRules: a.rules.length });
+        setPlan(p.plan);
       })
       .catch((e) => {
         if (e instanceof BackendOff) setDemo(true);
@@ -179,6 +178,14 @@ function PlanCard() {
         </div>
       )}
       {msg && <p className="mt-2 text-[12px] text-muted">{msg}</p>}
+      <p className="mt-3">
+        <a
+          href="/pricing"
+          className="text-[12px] font-medium text-[#185FA5] hover:underline"
+        >
+          Compare all plans →
+        </a>
+      </p>
     </Card>
   );
 }
