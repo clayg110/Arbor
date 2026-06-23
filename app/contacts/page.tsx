@@ -6,6 +6,7 @@ import { api } from "@/lib/api-client";
 import { mockContacts, mockFirmActivity, mockContactLinks } from "@/lib/mock-data";
 import { radarCompanies } from "@/lib/radar-data";
 import { contactInitials, type Contact } from "@/lib/contacts";
+import { EmptyState } from "@/components/ui/primitives";
 import {
   buildCoverageMap,
   coverageSummary,
@@ -113,7 +114,10 @@ export default function ContactsPage() {
           </div>
 
           {filtered.length === 0 ? (
-            <p className="py-16 text-center text-[13px] text-muted">No contacts found.</p>
+            <EmptyState
+              title="No contacts found"
+              hint="Try a different search or firm filter, or add contacts from a company profile."
+            />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map((c) => (

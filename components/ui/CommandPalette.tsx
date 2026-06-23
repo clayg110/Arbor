@@ -145,7 +145,7 @@ export function CommandPalette() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[18vh]"
+      className="animate-fade-in fixed inset-0 z-50 flex items-start justify-center pt-[18vh] backdrop-blur-sm"
       style={{ background: "rgba(0,0,0,0.4)" }}
       onClick={(e) => e.target === e.currentTarget && close()}
     >
@@ -153,7 +153,7 @@ export function CommandPalette() {
         role="dialog"
         aria-label="Command palette"
         aria-modal="true"
-        className="w-full max-w-[520px] overflow-hidden rounded-xl bg-surface shadow-2xl"
+        className="animate-slide-down w-full max-w-[520px] overflow-hidden rounded-xl bg-surface shadow-2xl"
         style={{ border: "0.5px solid var(--border)" }}
         onKeyDown={onKeyDown}
       >

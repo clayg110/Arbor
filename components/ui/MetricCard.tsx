@@ -1,4 +1,5 @@
 import { ArrowUpIcon, ArrowDownIcon } from "./icons";
+import { CountUp } from "./primitives/CountUp";
 
 export function MetricCard({
   label,
@@ -18,7 +19,9 @@ export function MetricCard({
   return (
     <div className="rounded-lg bg-[#F5F4EF] p-4">
       <div className="text-[11px] font-normal text-muted">{label}</div>
-      <div className="mt-1 text-[20px] font-medium leading-tight text-ink">{value}</div>
+      <div className="mt-1 text-[20px] font-medium leading-tight text-ink">
+        <CountUp value={value} />
+      </div>
       {delta && (
         <div
           className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium"

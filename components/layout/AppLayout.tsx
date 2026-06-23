@@ -112,12 +112,15 @@ export function AppLayout({
                   )}
                 >
                   {item.label}
-                  {active && (
-                    <span
-                      className="absolute inset-x-3 -bottom-[11px] h-[2px] rounded-full"
-                      style={{ backgroundColor: "#185FA5" }}
-                    />
-                  )}
+                  {/* Always rendered; the active link grows it in from the left
+                      (scale-x) so it eases between tabs instead of hard-cutting. */}
+                  <span
+                    className={cn(
+                      "absolute inset-x-3 -bottom-[11px] h-[2px] origin-left rounded-full transition-transform duration-200",
+                      active ? "scale-x-100" : "scale-x-0"
+                    )}
+                    style={{ backgroundColor: "#185FA5" }}
+                  />
                 </Link>
               );
             })}
@@ -163,7 +166,10 @@ export function AppLayout({
         tabIndex={-1}
         className="mx-auto max-w-[1320px] px-6 py-7 outline-none"
       >
-        {children}
+        {/* Keyed on the path so each navigation re-mounts + fades the content in. */}
+        <div key={pathname} className="animate-fade-in">
+          {children}
+        </div>
       </main>
     </div>
   );

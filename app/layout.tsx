@@ -5,6 +5,7 @@ import { AppLayout, type SessionUser } from "@/components/layout/AppLayout";
 import { CookieNotice } from "@/components/ui/CookieNotice";
 import { ServiceWorkerRegistrar } from "@/components/ui/ServiceWorkerRegistrar";
 import { ThemeApplier } from "@/components/ui/ThemeApplier";
+import { ToastProvider } from "@/components/ui/primitives";
 import { createClient, hasSupabaseEnv } from "@/lib/supabase/server";
 import { SITE } from "@/lib/site";
 
@@ -67,7 +68,9 @@ export default async function RootLayout({
         >
           Skip to content
         </a>
-        <AppLayout user={user}>{children}</AppLayout>
+        <ToastProvider>
+          <AppLayout user={user}>{children}</AppLayout>
+        </ToastProvider>
         <CookieNotice />
         <ServiceWorkerRegistrar />
       </body>

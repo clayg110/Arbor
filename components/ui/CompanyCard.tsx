@@ -9,8 +9,7 @@ export function CompanyCard({ company }: { company: Company }) {
   return (
     <Link
       href={`/company/${company.id}`}
-      className="block rounded-lg bg-surface p-3 transition-colors hover:border-subtle"
-      style={{ border: "0.5px solid var(--border)" }}
+      className="block rounded-lg border-hairline bg-surface p-3 transition-all duration-150 hover:-translate-y-px hover:border-[#d8d5cc] hover:shadow-sm"
     >
       <div className="mb-2 text-[13px] font-medium leading-snug text-ink">
         {company.name}

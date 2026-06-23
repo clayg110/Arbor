@@ -269,10 +269,13 @@ export function RadarCompanyCard({
     </>
   );
 
-  const className = "relative block rounded-lg p-3 pl-4 transition-colors";
+  const className = "relative block rounded-lg p-3 pl-4 transition-all duration-150";
   const style: React.CSSProperties = {
     border: `0.5px solid ${hover ? accent : "var(--border)"}`,
     backgroundColor: hover ? `${accent}0D` : "var(--surface)",
+    // Soft lift on hover. No translate — these cards are drag-reorderable in the
+    // kanban, and a transform would fight the drag ghost.
+    boxShadow: hover ? "0 2px 10px rgba(0,0,0,0.06)" : undefined,
     // Pulled cards are signalled by the line-through name + "Pulled" badge +
     // muted accent — not a card-wide opacity dim, which would drop text below
     // the WCAG AA contrast floor. Dragging still dims (transient, non-text-critical).

@@ -5,6 +5,7 @@ import { api, BackendOff } from "@/lib/api-client";
 import { Modal } from "./primitives/Modal";
 import { Button } from "./primitives/Button";
 import { Field, Input, Select } from "./primitives/Field";
+import { useToast } from "./primitives/Toast";
 import {
   SECTORS,
   SECTOR_LABELS,
@@ -36,6 +37,7 @@ export function AddCompanyModal({
   const [confidence, setConfidence] = useState<Confidence>("needs_review");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const ownerLabel = dealType === "carveout" ? "Parent company" : "Sponsor firm";
 
@@ -59,6 +61,7 @@ export function AddCompanyModal({
       try {
         const { company } = await api.createCompany(payload);
         onAdded(company);
+        toast(`${company.name} added to radar`);
         onClose();
         return;
       } catch (err) {
@@ -92,6 +95,7 @@ export function AddCompanyModal({
       },
       watchlisted: undefined,
     });
+    toast(`${name.trim()} added to radar`);
     onClose();
   }
 
