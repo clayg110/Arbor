@@ -7,6 +7,7 @@ import { sortTasks, isOverdue, formatDue, OUTREACH_TYPES } from "@/lib/deal-task
 import { stagesWithChecklist, suggestedTasks } from "@/lib/task-templates";
 import { PROCESS_STAGE_LABELS, type OurProcessStage } from "@/lib/process-stage";
 import { XIcon } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/primitives";
 
 const CHECKLIST_STAGES = stagesWithChecklist();
 
@@ -377,6 +378,7 @@ export function OutreachLogSection({
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<string | null>(null);
   const [drafting, setDrafting] = useState(false);
+  const toast = useToast();
 
   // @mention autocomplete
   const noteRef = useRef<HTMLTextAreaElement>(null);
@@ -579,7 +581,10 @@ export function OutreachLogSection({
             <button
               type="button"
               onClick={() => {
-                navigator.clipboard.writeText(draft).catch(() => {});
+                navigator.clipboard
+                  .writeText(draft)
+                  .then(() => toast("Draft copied to clipboard"))
+                  .catch(() => toast("Couldn't copy draft", "error"));
               }}
               className="text-[11px] text-[#185FA5] hover:underline"
             >

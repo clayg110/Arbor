@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, BackendOff, type CrmSyncView } from "@/lib/api-client";
+import { useToast } from "@/components/ui/primitives";
 
 // Push this deal to the configured CRM (Affinity, etc.) and show last-sync state.
 // Dormant when no CRM env is set — renders a "not configured" hint instead.
@@ -12,6 +13,7 @@ export function CrmSyncSection({ companyId }: { companyId: string }) {
   const [busy, setBusy] = useState(false);
   const [offline, setOffline] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     api
@@ -33,10 +35,12 @@ export function CrmSyncSection({ companyId }: { companyId: string }) {
     try {
       const r = await api.crmSync(companyId);
       setSync(r.sync);
+      toast(`Pushed to ${provider ?? "CRM"}`);
     } catch (e) {
-      setErr(
-        e instanceof Error && e.message ? `Sync failed (${e.message}).` : "Sync failed."
-      );
+      const msg =
+        e instanceof Error && e.message ? `Sync failed (${e.message}).` : "Sync failed.";
+      setErr(msg);
+      toast(msg, "error");
     } finally {
       setBusy(false);
     }

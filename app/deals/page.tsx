@@ -6,6 +6,7 @@ import { api } from "@/lib/api-client";
 import { radarCompanies, type RadarCompany } from "@/lib/radar-data";
 import { buildDealRoom, rankDealRooms, type DealRoomInput } from "@/lib/deal-room";
 import { DealRoomCard } from "@/components/ui/DealRoom";
+import { EmptyState } from "@/components/ui/primitives";
 import { cn } from "@/lib/format";
 
 // A deal room exists for every company our team is actively running a process on
@@ -128,15 +129,17 @@ export default function DealsPage() {
       {/* grid */}
       {shown.length === 0 ? (
         <div
-          className="rounded-lg bg-surface py-16 text-center"
+          className="rounded-lg bg-surface"
           style={{ border: "0.5px solid var(--border)" }}
         >
-          <p className="text-[14px] font-medium text-ink">No deal rooms here yet</p>
-          <p className="mt-1 text-[13px] text-muted">
-            {rooms.length === 0
-              ? "Open a company and set your team's process stage to start a deal room."
-              : "No deals match this filter."}
-          </p>
+          <EmptyState
+            title="No deal rooms here yet"
+            hint={
+              rooms.length === 0
+                ? "Open a company and set your team's process stage to start a deal room."
+                : "No deals match this filter."
+            }
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

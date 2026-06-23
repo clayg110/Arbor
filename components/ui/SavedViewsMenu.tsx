@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, BackendOff, type SavedView, type SavedViewFilters } from "@/lib/api-client";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { XIcon } from "@/components/ui/icons";
+import { useToast } from "@/components/ui/primitives";
 
 interface Props {
   currentFilters: SavedViewFilters;
@@ -16,6 +17,7 @@ export function SavedViewsMenu({ currentFilters, onLoad }: Props) {
   const [showSave, setShowSave] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const toast = useToast();
 
   useEffect(() => {
     api
@@ -38,8 +40,15 @@ export function SavedViewsMenu({ currentFilters, onLoad }: Props) {
   }
 
   function deleteView(id: string) {
+    const removed = views.find((v) => v.id === id);
     setViews((prev) => prev.filter((v) => v.id !== id));
-    api.deleteSavedView(id).catch(() => refresh());
+    api
+      .deleteSavedView(id)
+      .then(() => toast(removed ? `Deleted "${removed.name}"` : "View deleted", "info"))
+      .catch(() => {
+        toast("Couldn't delete view", "error");
+        refresh();
+      });
   }
 
   if (!loaded) return null;
@@ -121,6 +130,7 @@ export function SavedViewsMenu({ currentFilters, onLoad }: Props) {
           onSaved={(v) => {
             setViews((prev) => [v, ...prev]);
             setShowSave(false);
+            toast(`Saved view "${v.name}"`);
           }}
           onClose={() => setShowSave(false)}
         />

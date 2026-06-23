@@ -18,6 +18,7 @@ import {
 } from "@/lib/process-stage";
 import { SECTOR_LABELS } from "@/lib/colors";
 import { getMockPipelineDeals } from "@/lib/mock-data";
+import { EmptyState } from "@/components/ui/primitives";
 import {
   ResponsiveContainer,
   BarChart,
@@ -75,18 +76,15 @@ export default function PipelinePage() {
 
   if (deals.length === 0) {
     return (
-      <div className="py-16 text-center">
-        <p className="text-[14px] font-medium text-ink">No active processes yet</p>
-        <p className="mt-1 text-[13px] text-subtle">
-          Set &ldquo;Our process&rdquo; stage on a company to track it here.
-        </p>
-        <Link
-          href="/radar"
-          className="mt-4 inline-block text-[13px] text-[#185FA5] hover:underline"
-        >
-          Go to radar →
-        </Link>
-      </div>
+      <EmptyState
+        title="No active processes yet"
+        hint={"Set “Our process” stage on a company to track it here."}
+        action={
+          <Link href="/radar" className="text-[13px] text-[#185FA5] hover:underline">
+            Go to radar →
+          </Link>
+        }
+      />
     );
   }
 
