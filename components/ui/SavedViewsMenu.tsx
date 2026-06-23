@@ -194,7 +194,7 @@ function SaveViewModal({
           placeholder="View name…"
           aria-label="View name"
           maxLength={100}
-          className="mb-3 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+          className="mb-3 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
           style={{ border: "0.5px solid var(--border)" }}
         />
         {err && <p className="mb-2 text-[12px] text-[#791F1F]">{err}</p>}

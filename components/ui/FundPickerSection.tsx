@@ -48,7 +48,7 @@ export function FundPickerSection({
         onChange={(e) => assign(e.target.value || null)}
         disabled={saving || offline}
         aria-label="Assign fund"
-        className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none disabled:opacity-50"
+        className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none focus-ring disabled:opacity-50"
         style={{ border: "0.5px solid var(--border)" }}
       >
         <option value="">No fund</option>

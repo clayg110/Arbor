@@ -12,7 +12,7 @@ export function Skeleton({
 }) {
   return (
     <span
-      className={`block animate-pulse rounded bg-[#E9E7E0] ${className}`}
+      className={`block animate-shimmer rounded bg-[length:200%_100%] bg-[linear-gradient(90deg,#E9E7E0_0%,#E9E7E0_35%,#F4F2EC_50%,#E9E7E0_65%,#E9E7E0_100%)] ${className}`}
       style={style}
       aria-hidden
     />

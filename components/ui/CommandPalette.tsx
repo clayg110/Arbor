@@ -177,7 +177,7 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search companies or jump to…"
-            className="w-full bg-transparent py-3.5 text-[14px] text-ink placeholder:text-subtle focus:outline-none"
+            className="w-full bg-transparent py-3.5 text-[14px] text-ink placeholder:text-subtle focus:outline-none focus-ring"
           />
           <kbd
             className="hidden shrink-0 rounded px-1.5 py-0.5 text-[10px] text-muted sm:block"

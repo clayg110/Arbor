@@ -52,7 +52,7 @@ export default function ReviewPage() {
           aria-label="Filter by sector"
           value={sector}
           onChange={(e) => setSector(e.target.value as Sector | "all")}
-          className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] font-normal text-ink focus:outline-none"
+          className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] font-normal text-ink focus:outline-none focus-ring"
           style={{ border: "0.5px solid var(--border)" }}
         >
           <option value="all">All sectors</option>

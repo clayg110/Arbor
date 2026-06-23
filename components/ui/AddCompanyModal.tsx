@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { api, BackendOff } from "@/lib/api-client";
-import { useFocusTrap } from "@/lib/use-focus-trap";
-import { XIcon } from "./icons";
+import { Modal } from "./primitives/Modal";
+import { Button } from "./primitives/Button";
+import { Field, Input, Select } from "./primitives/Field";
 import {
   SECTORS,
   SECTOR_LABELS,
@@ -35,8 +36,6 @@ export function AddCompanyModal({
   const [confidence, setConfidence] = useState<Confidence>("needs_review");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const dialogRef = useRef<HTMLFormElement>(null);
-  useFocusTrap(dialogRef, onClose);
 
   const ownerLabel = dealType === "carveout" ? "Parent company" : "Sponsor firm";
 
@@ -97,49 +96,24 @@ export function AddCompanyModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
-      onClick={onClose}
-    >
-      <form
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Add company"
-        onSubmit={submit}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-xl bg-surface p-5"
-        style={{ border: "0.5px solid var(--border)" }}
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-[14px] font-medium text-ink">Add company</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="text-subtle hover:text-ink"
-          >
-            <XIcon className="h-4 w-4" />
-          </button>
-        </div>
-
-        <Label>Company name</Label>
-        <input
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
-          style={{ border: "0.5px solid var(--border)" }}
-        />
+    <Modal title="Add company" onClose={onClose}>
+      <form onSubmit={submit}>
+        <Field label="Company name" htmlFor="ac-name" className="mb-4">
+          <Input
+            id="ac-name"
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>Deal type</Label>
+          <Field label="Deal type">
             <Select
-              label="Deal type"
+              aria-label="Deal type"
               value={dealType}
-              onChange={(v) => setDealType(v as DealType)}
+              onChange={(e) => setDealType(e.target.value as DealType)}
             >
               {(["carveout", "private_asset"] as DealType[]).map((d) => (
                 <option key={d} value={d}>
@@ -147,13 +121,12 @@ export function AddCompanyModal({
                 </option>
               ))}
             </Select>
-          </div>
-          <div>
-            <Label>Sector</Label>
+          </Field>
+          <Field label="Sector">
             <Select
-              label="Sector"
+              aria-label="Sector"
               value={sector}
-              onChange={(v) => setSector(v as Sector)}
+              onChange={(e) => setSector(e.target.value as Sector)}
             >
               {SECTORS.map((s) => (
                 <option key={s} value={s}>
@@ -161,38 +134,37 @@ export function AddCompanyModal({
                 </option>
               ))}
             </Select>
-          </div>
+          </Field>
         </div>
 
-        <div className="mt-3">
-          <Label>{ownerLabel}</Label>
-          <input
+        <Field label={ownerLabel} className="mt-3">
+          <Input
             type="text"
             value={owner}
             onChange={(e) => setOwner(e.target.value)}
             placeholder="Optional"
-            className="mb-1 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink placeholder:text-subtle focus:outline-none"
-            style={{ border: "0.5px solid var(--border)" }}
           />
-        </div>
+        </Field>
 
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <div>
-            <Label>Stage</Label>
-            <Select label="Stage" value={stage} onChange={(v) => setStage(v as Stage)}>
+          <Field label="Stage">
+            <Select
+              aria-label="Stage"
+              value={stage}
+              onChange={(e) => setStage(e.target.value as Stage)}
+            >
               {STAGES.map((s) => (
                 <option key={s} value={s}>
                   {STAGE_LABELS[s]}
                 </option>
               ))}
             </Select>
-          </div>
-          <div>
-            <Label>Confidence</Label>
+          </Field>
+          <Field label="Confidence">
             <Select
-              label="Confidence"
+              aria-label="Confidence"
               value={confidence}
-              onChange={(v) => setConfidence(v as Confidence)}
+              onChange={(e) => setConfidence(e.target.value as Confidence)}
             >
               {CONFS.map((c) => (
                 <option key={c} value={c}>
@@ -200,60 +172,20 @@ export function AddCompanyModal({
                 </option>
               ))}
             </Select>
-          </div>
+          </Field>
         </div>
 
         {error && <p className="mt-3 text-[12px] text-[#791F1F]">{error}</p>}
 
         <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md px-3 py-1.5 text-[12px] font-medium text-muted hover:text-ink"
-            style={{ border: "0.5px solid var(--border)" }}
-          >
+          <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={busy}
-            className="rounded-md px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50"
-            style={{ backgroundColor: "#185FA5" }}
-          >
+          </Button>
+          <Button type="submit" loading={busy}>
             {busy ? "Adding…" : "Add company"}
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
-  );
-}
-
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="mb-1 block text-[11px] font-normal text-muted">{children}</label>
-  );
-}
-
-function Select({
-  value,
-  onChange,
-  label,
-  children,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <select
-      aria-label={label}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-md bg-surface px-2.5 py-2 text-[13px] text-ink focus:outline-none"
-      style={{ border: "0.5px solid var(--border)" }}
-    >
-      {children}
-    </select>
+    </Modal>
   );
 }

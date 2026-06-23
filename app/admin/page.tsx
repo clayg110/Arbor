@@ -224,7 +224,7 @@ export default function AdminPage() {
                       aria-label={`Role for ${u.email}`}
                       value={u.role}
                       onChange={(e) => changeRole(u, e.target.value)}
-                      className="rounded-md bg-surface px-2 py-1 text-[12px] font-medium text-ink focus:outline-none"
+                      className="rounded-md bg-surface px-2 py-1 text-[12px] font-medium text-ink focus:outline-none focus-ring"
                       style={{ border: "0.5px solid var(--border)" }}
                     >
                       <option value="analyst">analyst</option>
@@ -529,7 +529,7 @@ function OrgSettings({ org, live }: { org: OrgView; live: boolean }) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={120}
-            className="w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+            className="w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
             style={{ border: "0.5px solid var(--border)" }}
           />
         </div>
@@ -634,7 +634,7 @@ function OrgSettings({ org, live }: { org: OrgView; live: boolean }) {
               readOnly
               value={scim.token}
               onFocus={(e) => e.currentTarget.select()}
-              className="mt-1 h-16 w-full rounded-md bg-surface px-3 py-2 text-[11px] text-ink focus:outline-none"
+              className="mt-1 h-16 w-full rounded-md bg-surface px-3 py-2 text-[11px] text-ink focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             />
             <p className="mt-1 text-[10px] text-subtle">
@@ -737,7 +737,7 @@ function InviteModal({
               readOnly
               value={link}
               onFocus={(e) => e.currentTarget.select()}
-              className="mb-4 h-24 w-full rounded-md bg-surface px-3 py-2 text-[11px] text-ink focus:outline-none"
+              className="mb-4 h-24 w-full rounded-md bg-surface px-3 py-2 text-[11px] text-ink focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             />
             <div className="flex justify-end">
@@ -759,7 +759,7 @@ function InviteModal({
               aria-label="Role"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+              className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             >
               <option value="analyst">analyst</option>
@@ -893,7 +893,7 @@ function AddUserModal({
           aria-label="Role"
           value={role}
           onChange={(e) => setRole(e.target.value)}
-          className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+          className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
           style={{ border: "0.5px solid var(--border)" }}
         >
           <option value="analyst">analyst</option>
@@ -952,7 +952,7 @@ function ModalField({
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+        className="w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
         style={{ border: "0.5px solid var(--border)" }}
       />
       {hint && <p className="mt-1 text-[10px] font-normal text-subtle">{hint}</p>}

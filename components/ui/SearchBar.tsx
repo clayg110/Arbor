@@ -31,7 +31,7 @@ export function SearchBar({
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-transparent text-[13px] font-normal text-ink placeholder:text-subtle focus:outline-none"
+        className="w-full bg-transparent text-[13px] font-normal text-ink placeholder:text-subtle focus:outline-none focus-ring"
       />
     </div>
   );

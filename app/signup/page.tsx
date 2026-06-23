@@ -193,7 +193,7 @@ function Field({
         value={value}
         autoComplete={autoComplete}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+        className="w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
         style={{ border: "0.5px solid var(--border)" }}
       />
       {hint && <p className="mt-1 text-[10px] font-normal text-subtle">{hint}</p>}

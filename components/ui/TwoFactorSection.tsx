@@ -154,7 +154,7 @@ export function TwoFactorSection() {
             inputMode="numeric"
             placeholder="123456"
             aria-label="Authentication code"
-            className="mb-3 w-40 rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+            className="mb-3 w-40 rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
             style={{ border: "0.5px solid var(--border)" }}
           />
           <div className="flex gap-2">

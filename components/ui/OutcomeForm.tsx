@@ -136,7 +136,7 @@ export function OutcomeForm({
               onChange={(e) => setAcquirer(e.target.value)}
               placeholder="Buyer name"
               maxLength={200}
-              className="w-full rounded border border-[var(--border)] bg-surface px-2 py-1 text-[12px] text-ink focus:outline-none focus:ring-1 focus:ring-[#185FA5]"
+              className="w-full rounded border border-[var(--border)] bg-surface px-2 py-1 text-[12px] text-ink focus:outline-none focus-ring focus:ring-1 focus:ring-[#185FA5]"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -154,7 +154,7 @@ export function OutcomeForm({
                 onChange={(e) => setCloseMultiple(e.target.value)}
                 placeholder="12.5x EBITDA"
                 maxLength={50}
-                className="w-full rounded border border-[var(--border)] bg-surface px-2 py-1 text-[12px] text-ink focus:outline-none focus:ring-1 focus:ring-[#185FA5]"
+                className="w-full rounded border border-[var(--border)] bg-surface px-2 py-1 text-[12px] text-ink focus:outline-none focus-ring focus:ring-1 focus:ring-[#185FA5]"
               />
             </div>
             <div>
@@ -169,7 +169,7 @@ export function OutcomeForm({
                 type="date"
                 value={closedAt}
                 onChange={(e) => setClosedAt(e.target.value)}
-                className="w-full rounded border border-[var(--border)] bg-surface px-2 py-1 text-[12px] text-ink focus:outline-none focus:ring-1 focus:ring-[#185FA5]"
+                className="w-full rounded border border-[var(--border)] bg-surface px-2 py-1 text-[12px] text-ink focus:outline-none focus-ring focus:ring-1 focus:ring-[#185FA5]"
               />
             </div>
           </div>
@@ -189,7 +189,7 @@ export function OutcomeForm({
             type="date"
             value={closedAt}
             onChange={(e) => setClosedAt(e.target.value)}
-            className="w-full rounded border border-[var(--border)] bg-surface px-2 py-1 text-[12px] text-ink focus:outline-none focus:ring-1 focus:ring-[#185FA5]"
+            className="w-full rounded border border-[var(--border)] bg-surface px-2 py-1 text-[12px] text-ink focus:outline-none focus-ring focus:ring-1 focus:ring-[#185FA5]"
           />
         </div>
       )}

@@ -81,7 +81,7 @@ export default function LpReportPage() {
             id="quarter"
             value={quarter}
             onChange={(e) => setQuarter(e.target.value)}
-            className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none"
+            className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none focus-ring"
             style={{ border: "0.5px solid var(--border)" }}
           >
             {quarters.map((q) => (
@@ -254,7 +254,7 @@ function FundManager({ funds, reload }: { funds: FundView[]; reload: () => void 
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Fund name"
-          className="flex-1 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none"
+          className="flex-1 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none focus-ring"
           style={{ border: "0.5px solid var(--border)" }}
         />
         <input
@@ -262,7 +262,7 @@ function FundManager({ funds, reload }: { funds: FundView[]; reload: () => void 
           onChange={(e) => setVintage(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
           placeholder="Vintage"
           inputMode="numeric"
-          className="w-24 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none"
+          className="w-24 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none focus-ring"
           style={{ border: "0.5px solid var(--border)" }}
         />
         <button

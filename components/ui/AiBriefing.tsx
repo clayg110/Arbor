@@ -141,7 +141,7 @@ export function CompanyQa({ companyId }: { companyId: string }) {
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask about this company…"
           aria-label="Ask about this company"
-          className="flex-1 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none"
+          className="flex-1 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none focus-ring"
           style={{ border: "0.5px solid var(--border)" }}
         />
         <button

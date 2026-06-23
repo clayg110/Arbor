@@ -87,7 +87,7 @@ export default function ResetPasswordPage() {
               value={password}
               autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
-              className="mb-1 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+              className="mb-1 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             />
             <p className="mb-4 text-[10px] font-normal text-subtle">
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
               value={confirm}
               autoComplete="new-password"
               onChange={(e) => setConfirm(e.target.value)}
-              className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+              className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             />
 

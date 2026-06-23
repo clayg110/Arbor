@@ -76,7 +76,7 @@ export default function ForgotPasswordPage() {
                 value={email}
                 autoComplete="email"
                 onChange={(e) => setEmail(e.target.value)}
-                className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+                className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
                 style={{ border: "0.5px solid var(--border)" }}
               />
               {error && <p className="mb-3 text-[12px] text-[#791F1F]">{error}</p>}

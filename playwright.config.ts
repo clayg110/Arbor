@@ -26,6 +26,10 @@ export default defineConfig({
   use: {
     baseURL: BASE_URL,
     trace: "on-first-retry",
+    // Emulate prefers-reduced-motion so entrance/shimmer animations resolve to
+    // their final state instantly — keeps element-visibility waits deterministic
+    // and matches what motion-averse users see.
+    contextOptions: { reducedMotion: "reduce" },
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {

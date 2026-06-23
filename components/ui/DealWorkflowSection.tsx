@@ -238,7 +238,7 @@ export function DealTasksSection({
               value={playbookStage}
               onChange={(e) => setPlaybookStage(e.target.value as OurProcessStage)}
               aria-label="Playbook stage"
-              className="rounded bg-surface px-1.5 py-0.5 text-[11px] text-muted focus:outline-none"
+              className="rounded bg-surface px-1.5 py-0.5 text-[11px] text-muted focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             >
               {CHECKLIST_STAGES.map((s) => (
@@ -266,7 +266,7 @@ export function DealTasksSection({
             onKeyDown={(e) => e.key === "Enter" && addTask()}
             placeholder="Task title…"
             maxLength={500}
-            className="w-full rounded-md bg-surface px-3 py-1.5 text-[12px] text-ink focus:outline-none"
+            className="w-full rounded-md bg-surface px-3 py-1.5 text-[12px] text-ink focus:outline-none focus-ring"
             style={{ border: "0.5px solid var(--border)" }}
           />
           <div className="flex items-center gap-2">
@@ -274,7 +274,7 @@ export function DealTasksSection({
               type="date"
               value={dueAt}
               onChange={(e) => setDueAt(e.target.value)}
-              className="rounded-md bg-surface px-2 py-1 text-[11px] text-muted focus:outline-none"
+              className="rounded-md bg-surface px-2 py-1 text-[11px] text-muted focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             />
             <button
@@ -606,7 +606,7 @@ export function OutreachLogSection({
               value={type}
               onChange={(e) => setType(e.target.value as OutreachEntry["type"])}
               aria-label="Activity type"
-              className="rounded-md bg-surface px-2 py-1.5 text-[12px] text-ink focus:outline-none"
+              className="rounded-md bg-surface px-2 py-1.5 text-[12px] text-ink focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             >
               {OUTREACH_TYPES.map((t) => (
@@ -626,7 +626,7 @@ export function OutreachLogSection({
               placeholder="Notes… Use @name to mention a teammate."
               rows={3}
               maxLength={2000}
-              className="w-full rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none"
+              className="w-full rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none focus-ring"
               style={{ border: "0.5px solid var(--border)" }}
             />
             {mentionSuggestions.length > 0 && (

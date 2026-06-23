@@ -227,7 +227,7 @@ export function NewAlertForm({
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Chemicals carveouts entering market"
           aria-label="Alert name"
-          className="w-full rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none"
+          className="w-full rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none focus-ring"
           style={{ border: "0.5px solid var(--border)" }}
         />
       </Field>
@@ -295,7 +295,7 @@ export function NewAlertForm({
             onChange={(e) => setMinConviction(e.target.value)}
             placeholder="Any"
             aria-label="Minimum conviction"
-            className="w-full rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none"
+            className="w-full rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none focus-ring"
             style={{ border: "0.5px solid var(--border)" }}
           />
         </Field>
@@ -305,7 +305,7 @@ export function NewAlertForm({
             onChange={(e) => setSponsorContains(e.target.value)}
             placeholder="e.g. Carlyle"
             aria-label="Sponsor contains"
-            className="w-full rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none"
+            className="w-full rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none focus-ring"
             style={{ border: "0.5px solid var(--border)" }}
           />
         </Field>
@@ -315,7 +315,7 @@ export function NewAlertForm({
             onChange={(e) => setNameContains(e.target.value)}
             placeholder="e.g. Dow"
             aria-label="Company name contains"
-            className="w-full rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none"
+            className="w-full rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none focus-ring"
             style={{ border: "0.5px solid var(--border)" }}
           />
         </Field>
@@ -390,7 +390,7 @@ function Picker({
       aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-md bg-surface px-2 py-1.5 text-[12px] text-ink focus:outline-none"
+      className="w-full rounded-md bg-surface px-2 py-1.5 text-[12px] text-ink focus:outline-none focus-ring"
       style={{ border: "0.5px solid var(--border)" }}
     >
       {children}

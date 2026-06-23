@@ -254,7 +254,7 @@ function FrequencyCard<T extends string>({
             value={loaded ? freq : options[0]!.value}
             onChange={(e) => save(e.target.value as T)}
             disabled={!loaded || saving}
-            className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none disabled:opacity-50"
+            className="rounded-md bg-surface px-2.5 py-1.5 text-[12px] text-ink focus:outline-none focus-ring disabled:opacity-50"
             style={{ border: "0.5px solid var(--border)" }}
           >
             {options.map((o) => (
@@ -358,7 +358,7 @@ function CalendarCard() {
             value={url ?? ""}
             aria-label="Calendar subscription URL"
             onFocus={(e) => e.currentTarget.select()}
-            className="flex-1 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none"
+            className="flex-1 rounded-md bg-surface px-3 py-2 text-[12px] text-ink focus:outline-none focus-ring"
             style={{ border: "0.5px solid var(--border)" }}
           />
           <button
@@ -499,7 +499,7 @@ function DeleteModal({ onClose }: { onClose: () => void }) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           aria-label="Type DELETE to confirm"
-          className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none"
+          className="mb-4 w-full rounded-md bg-surface px-3 py-2 text-[13px] text-ink focus:outline-none focus-ring"
           style={{ border: "0.5px solid var(--border)" }}
         />
         {err && <p className="mb-3 text-[12px] text-[#791F1F]">{err}</p>}

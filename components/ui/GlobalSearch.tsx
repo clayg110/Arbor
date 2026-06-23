@@ -97,7 +97,7 @@ export function GlobalSearch() {
           onFocus={() => hits.length && setOpen(true)}
           onKeyDown={onKey}
           placeholder="Search companies…"
-          className="w-40 bg-transparent text-[12px] font-normal text-ink placeholder:text-subtle focus:outline-none sm:w-56"
+          className="w-40 bg-transparent text-[12px] font-normal text-ink placeholder:text-subtle focus:outline-none focus-ring sm:w-56"
         />
       </div>
 

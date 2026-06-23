@@ -133,7 +133,7 @@ export function AnalystNoteEditor({
                     value={editDraft}
                     onChange={(e) => setEditDraft(e.target.value)}
                     rows={3}
-                    className="w-full resize-none rounded-md bg-surface px-2 py-1.5 text-[13px] font-normal text-ink focus:outline-none"
+                    className="w-full resize-none rounded-md bg-surface px-2 py-1.5 text-[13px] font-normal text-ink focus:outline-none focus-ring"
                     style={{ border: "0.5px solid var(--border)" }}
                   />
                   <div className="mt-1.5 flex justify-end gap-2">
@@ -174,7 +174,7 @@ export function AnalystNoteEditor({
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Add a note..."
           rows={3}
-          className="w-full resize-none bg-transparent text-[13px] font-normal text-ink placeholder:text-subtle focus:outline-none"
+          className="w-full resize-none bg-transparent text-[13px] font-normal text-ink placeholder:text-subtle focus:outline-none focus-ring"
         />
         <div className="mt-2 flex justify-end">
           <button
